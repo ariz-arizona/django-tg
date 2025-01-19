@@ -1,0 +1,786 @@
+[
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "get_asgi_application",
+        "importPath": "django.core.asgi",
+        "description": "django.core.asgi",
+        "isExtraImport": true,
+        "detail": "django.core.asgi",
+        "documentation": {}
+    },
+    {
+        "label": "absolute_import",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "unicode_literals",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "Celery",
+        "importPath": "celery",
+        "description": "celery",
+        "isExtraImport": true,
+        "detail": "celery",
+        "documentation": {}
+    },
+    {
+        "label": "shared_task",
+        "importPath": "celery",
+        "description": "celery",
+        "isExtraImport": true,
+        "detail": "celery",
+        "documentation": {}
+    },
+    {
+        "label": "logging",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "logging",
+        "description": "logging",
+        "detail": "logging",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "admin",
+        "importPath": "django.contrib",
+        "description": "django.contrib",
+        "isExtraImport": true,
+        "detail": "django.contrib",
+        "documentation": {}
+    },
+    {
+        "label": "admin",
+        "importPath": "django.contrib",
+        "description": "django.contrib",
+        "isExtraImport": true,
+        "detail": "django.contrib",
+        "documentation": {}
+    },
+    {
+        "label": "path",
+        "importPath": "django.urls",
+        "description": "django.urls",
+        "isExtraImport": true,
+        "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "include",
+        "importPath": "django.urls",
+        "description": "django.urls",
+        "isExtraImport": true,
+        "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "reverse",
+        "importPath": "django.urls",
+        "description": "django.urls",
+        "isExtraImport": true,
+        "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "path",
+        "importPath": "django.urls",
+        "description": "django.urls",
+        "isExtraImport": true,
+        "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "include",
+        "importPath": "django.urls",
+        "description": "django.urls",
+        "isExtraImport": true,
+        "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "get_wsgi_application",
+        "importPath": "django.core.wsgi",
+        "description": "django.core.wsgi",
+        "isExtraImport": true,
+        "detail": "django.core.wsgi",
+        "documentation": {}
+    },
+    {
+        "label": "BaseCommand",
+        "importPath": "django.core.management.base",
+        "description": "django.core.management.base",
+        "isExtraImport": true,
+        "detail": "django.core.management.base",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "connection",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "sys",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "sys",
+        "description": "sys",
+        "detail": "sys",
+        "documentation": {}
+    },
+    {
+        "label": "AppConfig",
+        "importPath": "django.apps",
+        "description": "django.apps",
+        "isExtraImport": true,
+        "detail": "django.apps",
+        "documentation": {}
+    },
+    {
+        "label": "call_command",
+        "importPath": "django.core.management",
+        "description": "django.core.management",
+        "isExtraImport": true,
+        "detail": "django.core.management",
+        "documentation": {}
+    },
+    {
+        "label": "serializers",
+        "importPath": "rest_framework",
+        "description": "rest_framework",
+        "isExtraImport": true,
+        "detail": "rest_framework",
+        "documentation": {}
+    },
+    {
+        "label": "viewsets",
+        "importPath": "rest_framework",
+        "description": "rest_framework",
+        "isExtraImport": true,
+        "detail": "rest_framework",
+        "documentation": {}
+    },
+    {
+        "label": "redis",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "redis",
+        "description": "redis",
+        "detail": "redis",
+        "documentation": {}
+    },
+    {
+        "label": "asyncio",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "asyncio",
+        "description": "asyncio",
+        "detail": "asyncio",
+        "documentation": {}
+    },
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "ApplicationBuilder",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CommandHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "Update",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "TestCase",
+        "importPath": "django.test",
+        "description": "django.test",
+        "isExtraImport": true,
+        "detail": "django.test",
+        "documentation": {}
+    },
+    {
+        "label": "DefaultRouter",
+        "importPath": "rest_framework.routers",
+        "description": "rest_framework.routers",
+        "isExtraImport": true,
+        "detail": "rest_framework.routers",
+        "documentation": {}
+    },
+    {
+        "label": "JsonResponse",
+        "importPath": "django.http",
+        "description": "django.http",
+        "isExtraImport": true,
+        "detail": "django.http",
+        "documentation": {}
+    },
+    {
+        "label": "csrf_exempt",
+        "importPath": "django.views.decorators.csrf",
+        "description": "django.views.decorators.csrf",
+        "isExtraImport": true,
+        "detail": "django.views.decorators.csrf",
+        "documentation": {}
+    },
+    {
+        "label": "application",
+        "kind": 5,
+        "importPath": "app.server.asgi",
+        "description": "app.server.asgi",
+        "peekOfCode": "application = get_asgi_application()",
+        "detail": "app.server.asgi",
+        "documentation": {}
+    },
+    {
+        "label": "app",
+        "kind": 5,
+        "importPath": "app.server.celery",
+        "description": "app.server.celery",
+        "peekOfCode": "app = Celery('server')\napp.config_from_object('django.conf:settings', namespace='CELERY')\napp.autodiscover_tasks()",
+        "detail": "app.server.celery",
+        "documentation": {}
+    },
+    {
+        "label": "ColorFormatter",
+        "kind": 6,
+        "importPath": "app.server.logger",
+        "description": "app.server.logger",
+        "peekOfCode": "class ColorFormatter(logging.Formatter):\n    COLORS = {\n        'DEBUG': '\\033[92m',     # Green\n        'INFO': '\\033[94m',      # Blue\n        'WARNING': '\\033[93m',   # Yellow\n        'ERROR': '\\033[91m',     # Red\n        'CRITICAL': '\\033[1;91m' # Bold Red\n    }\n    RESET = '\\033[0m'\n    def format(self, record):",
+        "detail": "app.server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "formatter",
+        "kind": 5,
+        "importPath": "app.server.logger",
+        "description": "app.server.logger",
+        "peekOfCode": "formatter = ColorFormatter('%(asctime)s [%(levelname)s] || %(filename)s:%(lineno)d %(message)s')\nconsole_handler = logging.StreamHandler()\nconsole_handler.setFormatter(formatter)\nlogger = logging.getLogger('')\nlogger.setLevel(logging.INFO)\nlogger.addHandler(console_handler)",
+        "detail": "app.server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "console_handler",
+        "kind": 5,
+        "importPath": "app.server.logger",
+        "description": "app.server.logger",
+        "peekOfCode": "console_handler = logging.StreamHandler()\nconsole_handler.setFormatter(formatter)\nlogger = logging.getLogger('')\nlogger.setLevel(logging.INFO)\nlogger.addHandler(console_handler)",
+        "detail": "app.server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "kind": 5,
+        "importPath": "app.server.logger",
+        "description": "app.server.logger",
+        "peekOfCode": "logger = logging.getLogger('')\nlogger.setLevel(logging.INFO)\nlogger.addHandler(console_handler)",
+        "detail": "app.server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "BASE_DIR",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "BASE_DIR = Path(__file__).resolve().parent.parent\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\nSECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nTG_WEBHOOK_HOST = \"https://c7ef-146-19-207-68.ngrok-free.app\"  # Замените на ваш хост\nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "SECRET_KEY",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "SECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nTG_WEBHOOK_HOST = \"https://c7ef-146-19-207-68.ngrok-free.app\"  # Замените на ваш хост\nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "DEBUG",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "DEBUG = True\nTG_WEBHOOK_HOST = \"https://c7ef-146-19-207-68.ngrok-free.app\"  # Замените на ваш хост\nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "TG_WEBHOOK_HOST",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "TG_WEBHOOK_HOST = \"https://c7ef-146-19-207-68.ngrok-free.app\"  # Замените на ваш хост\nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",\n    \"django.contrib.sessions\",",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "ALLOWED_HOSTS",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "ALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",\n    \"django.contrib.sessions\",\n    \"django.contrib.messages\",",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "INSTALLED_APPS",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "INSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",\n    \"django.contrib.sessions\",\n    \"django.contrib.messages\",\n    \"django.contrib.staticfiles\",\n    \"rest_framework\",\n    \"tg_bot\",\n]",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "MIDDLEWARE",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "MIDDLEWARE = [\n    \"django.middleware.security.SecurityMiddleware\",\n    \"django.contrib.sessions.middleware.SessionMiddleware\",\n    \"django.middleware.common.CommonMiddleware\",\n    \"django.middleware.csrf.CsrfViewMiddleware\",\n    \"django.contrib.auth.middleware.AuthenticationMiddleware\",\n    \"django.contrib.messages.middleware.MessageMiddleware\",\n    \"django.middleware.clickjacking.XFrameOptionsMiddleware\",\n]\nROOT_URLCONF = \"server.urls\"",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "ROOT_URLCONF",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "ROOT_URLCONF = \"server.urls\"\n# Для сборки статических файлов\nSTATIC_URL = \"/static/\"  # URL для доступа к статическим файлам\n# Путь к папке, куда будут собираться статические файлы\nSTATIC_ROOT = os.path.join(BASE_DIR, \"static\")  # Папка для собранных статических файлов\nTEMPLATES = [\n    {\n        \"BACKEND\": \"django.template.backends.django.DjangoTemplates\",\n        \"DIRS\": [],\n        \"APP_DIRS\": True,",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "STATIC_URL",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "STATIC_URL = \"/static/\"  # URL для доступа к статическим файлам\n# Путь к папке, куда будут собираться статические файлы\nSTATIC_ROOT = os.path.join(BASE_DIR, \"static\")  # Папка для собранных статических файлов\nTEMPLATES = [\n    {\n        \"BACKEND\": \"django.template.backends.django.DjangoTemplates\",\n        \"DIRS\": [],\n        \"APP_DIRS\": True,\n        \"OPTIONS\": {\n            \"context_processors\": [",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "STATIC_ROOT",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "STATIC_ROOT = os.path.join(BASE_DIR, \"static\")  # Папка для собранных статических файлов\nTEMPLATES = [\n    {\n        \"BACKEND\": \"django.template.backends.django.DjangoTemplates\",\n        \"DIRS\": [],\n        \"APP_DIRS\": True,\n        \"OPTIONS\": {\n            \"context_processors\": [\n                \"django.template.context_processors.debug\",\n                \"django.template.context_processors.request\",",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "TEMPLATES",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "TEMPLATES = [\n    {\n        \"BACKEND\": \"django.template.backends.django.DjangoTemplates\",\n        \"DIRS\": [],\n        \"APP_DIRS\": True,\n        \"OPTIONS\": {\n            \"context_processors\": [\n                \"django.template.context_processors.debug\",\n                \"django.template.context_processors.request\",\n                \"django.contrib.auth.context_processors.auth\",",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "WSGI_APPLICATION",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "WSGI_APPLICATION = \"server.wsgi.application\"\n# Database\n# https://docs.djangoproject.com/en/3.2/ref/settings/#databases\nDATABASES = {\n    \"default\": {\n        \"ENGINE\": \"django.db.backends.postgresql\",\n        \"NAME\": os.getenv(\"POSTGRES_DB\"),\n        \"USER\": os.getenv(\"POSTGRES_USER\"),\n        \"PASSWORD\": os.getenv(\"POSTGRES_PASSWORD\"),\n        \"HOST\": os.getenv(\"POSTGRES_HOST\"),",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "DATABASES",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "DATABASES = {\n    \"default\": {\n        \"ENGINE\": \"django.db.backends.postgresql\",\n        \"NAME\": os.getenv(\"POSTGRES_DB\"),\n        \"USER\": os.getenv(\"POSTGRES_USER\"),\n        \"PASSWORD\": os.getenv(\"POSTGRES_PASSWORD\"),\n        \"HOST\": os.getenv(\"POSTGRES_HOST\"),\n        \"PORT\": os.getenv(\"POSTGRES_PORT\"),\n    }\n}",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "CELERY_TASK_ALWAYS_EAGER",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "CELERY_TASK_ALWAYS_EAGER = False  # чтобы задачи не выполнялись синхронно\nCELERY_TASK_EAGER_PROPAGATES = True\nCELERY_BROKER_URL = f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/0'\nCELERY_ACCEPT_CONTENT = [\"json\"]\nCELERY_TASK_SERIALIZER = \"json\"\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "CELERY_TASK_EAGER_PROPAGATES",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "CELERY_TASK_EAGER_PROPAGATES = True\nCELERY_BROKER_URL = f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/0'\nCELERY_ACCEPT_CONTENT = [\"json\"]\nCELERY_TASK_SERIALIZER = \"json\"\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }\n}",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "CELERY_BROKER_URL",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "CELERY_BROKER_URL = f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/0'\nCELERY_ACCEPT_CONTENT = [\"json\"]\nCELERY_TASK_SERIALIZER = \"json\"\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }\n}\n# Password validation",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "CELERY_ACCEPT_CONTENT",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "CELERY_ACCEPT_CONTENT = [\"json\"]\nCELERY_TASK_SERIALIZER = \"json\"\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }\n}\n# Password validation\n# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "CELERY_TASK_SERIALIZER",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "CELERY_TASK_SERIALIZER = \"json\"\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }\n}\n# Password validation\n# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators\nAUTH_PASSWORD_VALIDATORS = [",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "CACHES",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "CACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }\n}\n# Password validation\n# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators\nAUTH_PASSWORD_VALIDATORS = [\n    {",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "AUTH_PASSWORD_VALIDATORS",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "AUTH_PASSWORD_VALIDATORS = [\n    {\n        \"NAME\": \"django.contrib.auth.password_validation.UserAttributeSimilarityValidator\",\n    },\n    {\n        \"NAME\": \"django.contrib.auth.password_validation.MinimumLengthValidator\",\n    },\n    {\n        \"NAME\": \"django.contrib.auth.password_validation.CommonPasswordValidator\",\n    },",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "LANGUAGE_CODE",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "LANGUAGE_CODE = \"en-us\"\nTIME_ZONE = \"UTC\"\nUSE_I18N = True\nUSE_L10N = True\nUSE_TZ = True\n# Static files (CSS, JavaScript, Images)\n# https://docs.djangoproject.com/en/3.2/howto/static-files/\nSTATIC_URL = \"/static/\"\n# Default primary key field type\n# https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "TIME_ZONE",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "TIME_ZONE = \"UTC\"\nUSE_I18N = True\nUSE_L10N = True\nUSE_TZ = True\n# Static files (CSS, JavaScript, Images)\n# https://docs.djangoproject.com/en/3.2/howto/static-files/\nSTATIC_URL = \"/static/\"\n# Default primary key field type\n# https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field\nDEFAULT_AUTO_FIELD = \"django.db.models.BigAutoField\"",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "USE_I18N",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "USE_I18N = True\nUSE_L10N = True\nUSE_TZ = True\n# Static files (CSS, JavaScript, Images)\n# https://docs.djangoproject.com/en/3.2/howto/static-files/\nSTATIC_URL = \"/static/\"\n# Default primary key field type\n# https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field\nDEFAULT_AUTO_FIELD = \"django.db.models.BigAutoField\"\nLOGGING = {",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "USE_L10N",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "USE_L10N = True\nUSE_TZ = True\n# Static files (CSS, JavaScript, Images)\n# https://docs.djangoproject.com/en/3.2/howto/static-files/\nSTATIC_URL = \"/static/\"\n# Default primary key field type\n# https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field\nDEFAULT_AUTO_FIELD = \"django.db.models.BigAutoField\"\nLOGGING = {\n    \"version\": 1,",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "USE_TZ",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "USE_TZ = True\n# Static files (CSS, JavaScript, Images)\n# https://docs.djangoproject.com/en/3.2/howto/static-files/\nSTATIC_URL = \"/static/\"\n# Default primary key field type\n# https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field\nDEFAULT_AUTO_FIELD = \"django.db.models.BigAutoField\"\nLOGGING = {\n    \"version\": 1,\n    \"disable_existing_loggers\": False,",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "STATIC_URL",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "STATIC_URL = \"/static/\"\n# Default primary key field type\n# https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field\nDEFAULT_AUTO_FIELD = \"django.db.models.BigAutoField\"\nLOGGING = {\n    \"version\": 1,\n    \"disable_existing_loggers\": False,\n    \"handlers\": {},\n    \"loggers\": {\n        \"\": {},",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "DEFAULT_AUTO_FIELD",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "DEFAULT_AUTO_FIELD = \"django.db.models.BigAutoField\"\nLOGGING = {\n    \"version\": 1,\n    \"disable_existing_loggers\": False,\n    \"handlers\": {},\n    \"loggers\": {\n        \"\": {},\n    },\n}",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "LOGGING",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "LOGGING = {\n    \"version\": 1,\n    \"disable_existing_loggers\": False,\n    \"handlers\": {},\n    \"loggers\": {\n        \"\": {},\n    },\n}",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "urlpatterns",
+        "kind": 5,
+        "importPath": "app.server.urls",
+        "description": "app.server.urls",
+        "peekOfCode": "urlpatterns = [\n    path('admin/', admin.site.urls),\n    path('bot/', include('tg_bot.urls')),  # Подключаем маршруты tg_bot\n]",
+        "detail": "app.server.urls",
+        "documentation": {}
+    },
+    {
+        "label": "application",
+        "kind": 5,
+        "importPath": "app.server.wsgi",
+        "description": "app.server.wsgi",
+        "peekOfCode": "application = get_wsgi_application()",
+        "detail": "app.server.wsgi",
+        "documentation": {}
+    },
+    {
+        "label": "Command",
+        "kind": 6,
+        "importPath": "app.tg_bot.management.commands.start_bot_processing",
+        "description": "app.tg_bot.management.commands.start_bot_processing",
+        "peekOfCode": "class Command(BaseCommand):\n    help = \"Запуск процесса для всех ботов\"\n    def handle(self, *args, **kwargs):\n        from tg_bot.models import Bot\n        from tg_bot.tasks import process_bot\n        logger.info(\"Запуск команды start_bot_processing.\")\n        try:\n            logger.info(\"Запуск обработки ботов...\")\n            from tg_bot.models import Bot\n            # Получаем всех ботов",
+        "detail": "app.tg_bot.management.commands.start_bot_processing",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0001_initial",
+        "description": "app.tg_bot.migrations.0001_initial",
+        "peekOfCode": "class Migration(migrations.Migration):\n    initial = True\n    dependencies = [\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='Bot',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),\n                ('name', models.CharField(max_length=100, verbose_name='Название бота')),",
+        "detail": "app.tg_bot.migrations.0001_initial",
+        "documentation": {}
+    },
+    {
+        "label": "BotAdmin",
+        "kind": 6,
+        "importPath": "app.tg_bot.admin",
+        "description": "app.tg_bot.admin",
+        "peekOfCode": "class BotAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"chat_id\", \"created_at\", \"updated_at\")\n    search_fields = (\"name\", \"chat_id\")",
+        "detail": "app.tg_bot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "TgBotConfig",
+        "kind": 6,
+        "importPath": "app.tg_bot.apps",
+        "description": "app.tg_bot.apps",
+        "peekOfCode": "class TgBotConfig(AppConfig):\n    name = 'tg_bot'\n    _task_started = False\n    def ready(self):\n        if self._task_started:\n            logger.info(\"Задача уже была запущена. Пропускаем.\")\n            return\n        # Если запущен runserver, проверяем, что это основной процесс\n        if 'runserver' in sys.argv:\n            # Проверяем RUN_MAIN для основного процесса",
+        "detail": "app.tg_bot.apps",
+        "documentation": {}
+    },
+    {
+        "label": "Bot",
+        "kind": 6,
+        "importPath": "app.tg_bot.models",
+        "description": "app.tg_bot.models",
+        "peekOfCode": "class Bot(models.Model):\n    name = models.CharField(max_length=100, verbose_name=\"Название бота\")\n    token = models.CharField(max_length=255, verbose_name=\"Токен\")\n    chat_id = models.CharField(max_length=50, verbose_name=\"Chat ID\")\n    created_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата создания\")\n    updated_at = models.DateTimeField(auto_now=True, verbose_name=\"Дата обновления\")\n    def __str__(self):\n        return self.name",
+        "detail": "app.tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "BotSerializer",
+        "kind": 6,
+        "importPath": "app.tg_bot.serializers",
+        "description": "app.tg_bot.serializers",
+        "peekOfCode": "class BotSerializer(serializers.ModelSerializer):\n    class Meta:\n        model = Bot\n        fields = \"__all__\"",
+        "detail": "app.tg_bot.serializers",
+        "documentation": {}
+    },
+    {
+        "label": "process_bot",
+        "kind": 2,
+        "importPath": "app.tg_bot.tasks",
+        "description": "app.tg_bot.tasks",
+        "peekOfCode": "def process_bot(self, token):\n    lock_key = f\"bot_processing_lock_{token}\"\n    # Попробуем установить блокировку, если она уже установлена — выходим\n    if not redis_client.setnx(lock_key, \"locked\"):\n        logger.info(f\"Задача для бота с токеном {token} уже выполняется. Пропускаем.\")\n        return\n    try:\n        logger.info(f\"Начало обработки бота с токеном: {token}\")\n        # Запускаем асинхронный процесс бота\n        asyncio.run(run_bot(token))  # Запускаем асинхронную задачу",
+        "detail": "app.tg_bot.tasks",
+        "documentation": {}
+    },
+    {
+        "label": "redis_client",
+        "kind": 5,
+        "importPath": "app.tg_bot.tasks",
+        "description": "app.tg_bot.tasks",
+        "peekOfCode": "redis_client = redis.StrictRedis(\n    host=os.getenv(\"REDIS_HOST\"), port=os.getenv(\"REDIS_PORT\"), db=2\n)\n# Асинхронная обработка бота\nasync def run_bot(token):\n    app = ApplicationBuilder().token(token).build()\n    webhook_url = reverse(viewname=\"webhook\", kwargs={\"token\": token})\n    webhook_url = \"\".join([settings.TG_WEBHOOK_HOST, webhook_url])\n    logger.info(f\"Попытка установить вебхук {webhook_url}\")\n    await app.bot.set_webhook(webhook_url)  # Асинхронная установка webhook",
+        "detail": "app.tg_bot.tasks",
+        "documentation": {}
+    },
+    {
+        "label": "router",
+        "kind": 5,
+        "importPath": "app.tg_bot.urls",
+        "description": "app.tg_bot.urls",
+        "peekOfCode": "router = DefaultRouter()\nrouter.register(r\"bots\", BotViewSet)\nurlpatterns = [\n    path(\"\", include(router.urls)),  \n    path(\"webhook/<str:token>/\", webhook, name=\"webhook\"),  # Маршрут для вебхука с токеном\n]",
+        "detail": "app.tg_bot.urls",
+        "documentation": {}
+    },
+    {
+        "label": "urlpatterns",
+        "kind": 5,
+        "importPath": "app.tg_bot.urls",
+        "description": "app.tg_bot.urls",
+        "peekOfCode": "urlpatterns = [\n    path(\"\", include(router.urls)),  \n    path(\"webhook/<str:token>/\", webhook, name=\"webhook\"),  # Маршрут для вебхука с токеном\n]",
+        "detail": "app.tg_bot.urls",
+        "documentation": {}
+    },
+    {
+        "label": "BotViewSet",
+        "kind": 6,
+        "importPath": "app.tg_bot.views",
+        "description": "app.tg_bot.views",
+        "peekOfCode": "class BotViewSet(viewsets.ModelViewSet):\n    queryset = Bot.objects.all()\n    serializer_class = BotSerializer\n# Декоратор для обработки webhook без CSRF-проверки\n@csrf_exempt\ndef webhook(request, token):\n    if request.method == \"POST\":\n        # Получаем JSON строку из тела запроса\n        json_str = request.body.decode(\"UTF-8\")\n        # Проверка, что это сообщение (опционально)",
+        "detail": "app.tg_bot.views",
+        "documentation": {}
+    },
+    {
+        "label": "webhook",
+        "kind": 2,
+        "importPath": "app.tg_bot.views",
+        "description": "app.tg_bot.views",
+        "peekOfCode": "def webhook(request, token):\n    if request.method == \"POST\":\n        # Получаем JSON строку из тела запроса\n        json_str = request.body.decode(\"UTF-8\")\n        # Проверка, что это сообщение (опционально)\n        try:\n            # Вы можете просто поместить строку JSON в очередь\n            redis_client.rpush(\"bot_messages_queue\", json_str)\n            logger.info(f\"Сообщение добавлено в очередь: {json_str}\")\n            return JsonResponse({\"status\": \"ok\"})",
+        "detail": "app.tg_bot.views",
+        "documentation": {}
+    },
+    {
+        "label": "redis_client",
+        "kind": 5,
+        "importPath": "app.tg_bot.views",
+        "description": "app.tg_bot.views",
+        "peekOfCode": "redis_client = redis.StrictRedis(\n    host=os.getenv(\"REDIS_HOST\"), port=os.getenv(\"REDIS_PORT\"), db=2\n)\nclass BotViewSet(viewsets.ModelViewSet):\n    queryset = Bot.objects.all()\n    serializer_class = BotSerializer\n# Декоратор для обработки webhook без CSRF-проверки\n@csrf_exempt\ndef webhook(request, token):\n    if request.method == \"POST\":",
+        "detail": "app.tg_bot.views",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "app.manage",
+        "description": "app.manage",
+        "peekOfCode": "def main():\n    \"\"\"Run administrative tasks.\"\"\"\n    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'server.settings')\n    try:\n        from django.core.management import execute_from_command_line\n    except ImportError as exc:\n        raise ImportError(\n            \"Couldn't import Django. Are you sure it's installed and \"\n            \"available on your PYTHONPATH environment variable? Did you \"\n            \"forget to activate a virtual environment?\"",
+        "detail": "app.manage",
+        "documentation": {}
+    }
+]

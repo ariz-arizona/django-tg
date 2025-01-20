@@ -4,11 +4,14 @@ import asyncio
 import json
 from django.urls import reverse
 from django.conf import settings
+import signal
 
 from celery import shared_task
 
 from telegram.ext import ApplicationBuilder, CommandHandler
 from telegram import Update
+
+from tg_bot.bot.wb import ParserBot
 
 from server.logger import logger
 
@@ -20,13 +23,27 @@ redis_client = redis.StrictRedis(
 
 
 # Асинхронная обработка бота
-async def run_bot(token):
+async def run_bot(token, handlersClass):
+    # Динамически создаем класс по имени
+    bot_class = globals().get(handlersClass)
+    if not bot_class:
+        logger.error(f"Класс {handlersClass} не найден")
+        return
+
+    bot_instance = bot_class()  # Создаем экземпляр класса
+    handlers = bot_instance.handlers  # Получаем хэндлеры
+
     app = ApplicationBuilder().token(token).build()
+    await app.initialize()
+
+    for handler in handlers:
+        app.add_handler(handler)
 
     webhook_url = reverse(viewname="webhook", kwargs={"token": token})
     webhook_url = "".join([settings.TG_WEBHOOK_HOST, webhook_url])
     logger.info(f"Попытка установить вебхук {webhook_url}")
     await app.bot.set_webhook(webhook_url)  # Асинхронная установка webhook
+    
 
     pubsub = redis_client.pubsub()
     pubsub.psubscribe("bot_messages_queue")
@@ -40,15 +57,13 @@ async def run_bot(token):
                     # Декодируем сообщение
                     json_str = message.decode("utf-8")
                     logger.info(f"Сообщение из очереди: {json_str}")
-                    
+
                     # Преобразуем в объект Update
                     data = json.loads(json_str)
                     update = Update.de_json(data, app.bot)
-                    logger.info(f"Обновление: {update}")
-
-                    # Отправляем сообщение в Telegram
-                    await app.bot.send_message(chat_id=update.message.chat.id, text="Ответ от бота")
-
+                    await app.process_update(update)
+                    # await app.update_queue.put(update)
+                    
                 except Exception as e:
                     logger.error(f"Ошибка при обработке сообщения: {e}", exc_info=True)
 
@@ -56,25 +71,41 @@ async def run_bot(token):
             await asyncio.sleep(0.3)
 
         except Exception as e:
-            logger.error(f"Ошибка при обработке бота с токеном {token}: {e}", exc_info=True)
+            logger.error(
+                f"Ошибка при обработке бота с токеном {token}: {e}", exc_info=True
+            )
+
 
 @shared_task(bind=True)
-def process_bot(self, token):
+def process_bot(self, token, handlersClass):
     lock_key = f"bot_processing_lock_{token}"
+    
+    
+    def cleanup_on_exit(signum, frame):
+        logger.info("Завершаем работу контейнера и очищаем ресурсы...")
+        # Выполним нужные очистки, например, удалим блокировку Redis
+        redis_client.delete(lock_key)
 
     # Попробуем установить блокировку, если она уже установлена — выходим
     if not redis_client.setnx(lock_key, "locked"):
         logger.info(f"Задача для бота с токеном {token} уже выполняется. Пропускаем.")
         return
+    
+    signal.signal(signal.SIGTERM, cleanup_on_exit)
 
     try:
         logger.info(f"Начало обработки бота с токеном: {token}")
 
-        # Запускаем асинхронный процесс бота
-        asyncio.run(run_bot(token))  # Запускаем асинхронную задачу
+        # Получаем текущий цикл событий
+        loop = asyncio.get_event_loop()
+
+        # Запускаем асинхронный процесс бота внутри текущего цикла событий
+        loop.run_until_complete(run_bot(token, handlersClass))  # Запускаем асинхронную задачу
 
     except Exception as e:
         logger.error(f"Ошибка при обработке бота с токеном {token}: {e}", exc_info=True)
     finally:
         redis_client.delete(lock_key)  # Удаляем блокировку
         logger.info(f"Завершение обработки бота с токеном {token}, блокировка удалена.")
+
+

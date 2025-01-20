@@ -130,43 +130,147 @@
         "documentation": {}
     },
     {
+        "label": "ABC",
+        "importPath": "abc",
+        "description": "abc",
+        "isExtraImport": true,
+        "detail": "abc",
+        "documentation": {}
+    },
+    {
+        "label": "abstractmethod",
+        "importPath": "abc",
+        "description": "abc",
+        "isExtraImport": true,
+        "detail": "abc",
+        "documentation": {}
+    },
+    {
+        "label": "Update",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "Update",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "Update",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "CommandHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CallbackContext",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CommandHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CallbackContext",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "ApplicationBuilder",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CommandHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "AbstractBot",
+        "importPath": "tg_bot.bot.abstract",
+        "description": "tg_bot.bot.abstract",
+        "isExtraImport": true,
+        "detail": "tg_bot.bot.abstract",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
         "label": "BaseCommand",
         "importPath": "django.core.management.base",
         "description": "django.core.management.base",
         "isExtraImport": true,
         "detail": "django.core.management.base",
-        "documentation": {}
-    },
-    {
-        "label": "logger",
-        "importPath": "server.logger",
-        "description": "server.logger",
-        "isExtraImport": true,
-        "detail": "server.logger",
-        "documentation": {}
-    },
-    {
-        "label": "logger",
-        "importPath": "server.logger",
-        "description": "server.logger",
-        "isExtraImport": true,
-        "detail": "server.logger",
-        "documentation": {}
-    },
-    {
-        "label": "logger",
-        "importPath": "server.logger",
-        "description": "server.logger",
-        "isExtraImport": true,
-        "detail": "server.logger",
-        "documentation": {}
-    },
-    {
-        "label": "logger",
-        "importPath": "server.logger",
-        "description": "server.logger",
-        "isExtraImport": true,
-        "detail": "server.logger",
         "documentation": {}
     },
     {
@@ -278,27 +382,20 @@
         "documentation": {}
     },
     {
-        "label": "ApplicationBuilder",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
+        "label": "signal",
+        "kind": 6,
         "isExtraImport": true,
-        "detail": "telegram.ext",
+        "importPath": "signal",
+        "description": "signal",
+        "detail": "signal",
         "documentation": {}
     },
     {
-        "label": "CommandHandler",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
+        "label": "ParserBot",
+        "importPath": "tg_bot.bot.wb",
+        "description": "tg_bot.bot.wb",
         "isExtraImport": true,
-        "detail": "telegram.ext",
-        "documentation": {}
-    },
-    {
-        "label": "Update",
-        "importPath": "telegram",
-        "description": "telegram",
-        "isExtraImport": true,
-        "detail": "telegram",
+        "detail": "tg_bot.bot.wb",
         "documentation": {}
     },
     {
@@ -658,6 +755,24 @@
         "documentation": {}
     },
     {
+        "label": "AbstractBot",
+        "kind": 6,
+        "importPath": "app.tg_bot.bot.abstract",
+        "description": "app.tg_bot.bot.abstract",
+        "peekOfCode": "class AbstractBot(ABC):\n    handlers = []\n    @abstractmethod\n    def get_handlers(self):\n        pass",
+        "detail": "app.tg_bot.bot.abstract",
+        "documentation": {}
+    },
+    {
+        "label": "ParserBot",
+        "kind": 6,
+        "importPath": "app.tg_bot.bot.wb",
+        "description": "app.tg_bot.bot.wb",
+        "peekOfCode": "class ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            CommandHandler(\"wbParse\", self.wb_parse),\n            CommandHandler(\"start\", self.start),\n        ]\n    async def wb_parse(self, update: Update, context: CallbackContext):\n        logger.info('parse')",
+        "detail": "app.tg_bot.bot.wb",
+        "documentation": {}
+    },
+    {
         "label": "Command",
         "kind": 6,
         "importPath": "app.tg_bot.management.commands.start_bot_processing",
@@ -716,7 +831,7 @@
         "kind": 2,
         "importPath": "app.tg_bot.tasks",
         "description": "app.tg_bot.tasks",
-        "peekOfCode": "def process_bot(self, token):\n    lock_key = f\"bot_processing_lock_{token}\"\n    # Попробуем установить блокировку, если она уже установлена — выходим\n    if not redis_client.setnx(lock_key, \"locked\"):\n        logger.info(f\"Задача для бота с токеном {token} уже выполняется. Пропускаем.\")\n        return\n    try:\n        logger.info(f\"Начало обработки бота с токеном: {token}\")\n        # Запускаем асинхронный процесс бота\n        asyncio.run(run_bot(token))  # Запускаем асинхронную задачу",
+        "peekOfCode": "def process_bot(self, token, handlersClass):\n    lock_key = f\"bot_processing_lock_{token}\"\n    def cleanup_on_exit(signum, frame):\n        logger.info(\"Завершаем работу контейнера и очищаем ресурсы...\")\n        # Выполним нужные очистки, например, удалим блокировку Redis\n        redis_client.delete(lock_key)\n    # Попробуем установить блокировку, если она уже установлена — выходим\n    if not redis_client.setnx(lock_key, \"locked\"):\n        logger.info(f\"Задача для бота с токеном {token} уже выполняется. Пропускаем.\")\n        return",
         "detail": "app.tg_bot.tasks",
         "documentation": {}
     },
@@ -725,7 +840,7 @@
         "kind": 5,
         "importPath": "app.tg_bot.tasks",
         "description": "app.tg_bot.tasks",
-        "peekOfCode": "redis_client = redis.StrictRedis(\n    host=os.getenv(\"REDIS_HOST\"), port=os.getenv(\"REDIS_PORT\"), db=2\n)\n# Асинхронная обработка бота\nasync def run_bot(token):\n    app = ApplicationBuilder().token(token).build()\n    webhook_url = reverse(viewname=\"webhook\", kwargs={\"token\": token})\n    webhook_url = \"\".join([settings.TG_WEBHOOK_HOST, webhook_url])\n    logger.info(f\"Попытка установить вебхук {webhook_url}\")\n    await app.bot.set_webhook(webhook_url)  # Асинхронная установка webhook",
+        "peekOfCode": "redis_client = redis.StrictRedis(\n    host=os.getenv(\"REDIS_HOST\"), port=os.getenv(\"REDIS_PORT\"), db=2\n)\n# Асинхронная обработка бота\nasync def run_bot(token, handlersClass):\n    # Динамически создаем класс по имени\n    bot_class = globals().get(handlersClass)\n    if not bot_class:\n        logger.error(f\"Класс {handlersClass} не найден\")\n        return",
         "detail": "app.tg_bot.tasks",
         "documentation": {}
     },

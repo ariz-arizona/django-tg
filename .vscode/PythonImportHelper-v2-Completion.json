@@ -162,6 +162,14 @@
         "documentation": {}
     },
     {
+        "label": "InputMediaPhoto",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
         "label": "Update",
         "importPath": "telegram",
         "description": "telegram",
@@ -194,7 +202,23 @@
         "documentation": {}
     },
     {
+        "label": "MessageHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
         "label": "CallbackContext",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "filters",
         "importPath": "telegram.ext",
         "description": "telegram.ext",
         "isExtraImport": true,
@@ -218,11 +242,37 @@
         "documentation": {}
     },
     {
+        "label": "re",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "re",
+        "description": "re",
+        "detail": "re",
+        "documentation": {}
+    },
+    {
+        "label": "aiohttp",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "aiohttp",
+        "description": "aiohttp",
+        "detail": "aiohttp",
+        "documentation": {}
+    },
+    {
         "label": "AbstractBot",
         "importPath": "tg_bot.bot.abstract",
         "description": "tg_bot.bot.abstract",
         "isExtraImport": true,
         "detail": "tg_bot.bot.abstract",
+        "documentation": {}
+    },
+    {
+        "label": "image_url",
+        "importPath": "tg_bot.bot.wb_image_url",
+        "description": "tg_bot.bot.wb_image_url",
+        "isExtraImport": true,
+        "detail": "tg_bot.bot.wb_image_url",
         "documentation": {}
     },
     {
@@ -392,10 +442,10 @@
     },
     {
         "label": "ParserBot",
-        "importPath": "tg_bot.bot.wb",
-        "description": "tg_bot.bot.wb",
+        "importPath": "tg_bot.bot.parser",
+        "description": "tg_bot.bot.parser",
         "isExtraImport": true,
-        "detail": "tg_bot.bot.wb",
+        "detail": "tg_bot.bot.parser",
         "documentation": {}
     },
     {
@@ -489,7 +539,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "BASE_DIR = Path(__file__).resolve().parent.parent\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\nSECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nTG_WEBHOOK_HOST = \"https://c7ef-146-19-207-68.ngrok-free.app\"  # Замените на ваш хост\nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),",
+        "peekOfCode": "BASE_DIR = Path(__file__).resolve().parent.parent\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\nSECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nTG_WEBHOOK_HOST = \"https://4d8e-146-19-207-68.ngrok-free.app\" \nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -498,7 +548,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "SECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nTG_WEBHOOK_HOST = \"https://c7ef-146-19-207-68.ngrok-free.app\"  # Замените на ваш хост\nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",",
+        "peekOfCode": "SECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nTG_WEBHOOK_HOST = \"https://4d8e-146-19-207-68.ngrok-free.app\" \nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -507,7 +557,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "DEBUG = True\nTG_WEBHOOK_HOST = \"https://c7ef-146-19-207-68.ngrok-free.app\"  # Замените на ваш хост\nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",",
+        "peekOfCode": "DEBUG = True\nTG_WEBHOOK_HOST = \"https://4d8e-146-19-207-68.ngrok-free.app\" \nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -516,7 +566,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "TG_WEBHOOK_HOST = \"https://c7ef-146-19-207-68.ngrok-free.app\"  # Замените на ваш хост\nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",\n    \"django.contrib.sessions\",",
+        "peekOfCode": "TG_WEBHOOK_HOST = \"https://4d8e-146-19-207-68.ngrok-free.app\" \nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",\n    \"django.contrib.sessions\",",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -766,10 +816,55 @@
     {
         "label": "ParserBot",
         "kind": 6,
-        "importPath": "app.tg_bot.bot.wb",
-        "description": "app.tg_bot.bot.wb",
-        "peekOfCode": "class ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            CommandHandler(\"wbParse\", self.wb_parse),\n            CommandHandler(\"start\", self.start),\n        ]\n    async def wb_parse(self, update: Update, context: CallbackContext):\n        logger.info('parse')",
-        "detail": "app.tg_bot.bot.wb",
+        "importPath": "app.tg_bot.bot.parser",
+        "description": "app.tg_bot.bot.parser",
+        "peekOfCode": "class ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(wb_regexp),\n                self.handle_wildberries_links,\n            ),\n            CommandHandler(\"start\", self.start),",
+        "detail": "app.tg_bot.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "wb_regexp",
+        "kind": 5,
+        "importPath": "app.tg_bot.bot.parser",
+        "description": "app.tg_bot.bot.parser",
+        "peekOfCode": "wb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\npicture_chat = -1001890980411\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(wb_regexp),\n                self.handle_wildberries_links,",
+        "detail": "app.tg_bot.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "picture_chat",
+        "kind": 5,
+        "importPath": "app.tg_bot.bot.parser",
+        "description": "app.tg_bot.bot.parser",
+        "peekOfCode": "picture_chat = -1001890980411\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(wb_regexp),\n                self.handle_wildberries_links,\n            ),",
+        "detail": "app.tg_bot.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "ImgServer",
+        "kind": 6,
+        "importPath": "app.tg_bot.bot.wb_image_url",
+        "description": "app.tg_bot.bot.wb_image_url",
+        "peekOfCode": "class ImgServer:\n    @staticmethod\n    def vol_host_v2(e):\n        if 0 <= e <= 143:\n            t = \"01\"\n        elif e <= 287:\n            t = \"02\"\n        elif e <= 431:\n            t = \"03\"\n        elif e <= 719:",
+        "detail": "app.tg_bot.bot.wb_image_url",
+        "documentation": {}
+    },
+    {
+        "label": "image_url",
+        "kind": 2,
+        "importPath": "app.tg_bot.bot.wb_image_url",
+        "description": "app.tg_bot.bot.wb_image_url",
+        "peekOfCode": "def image_url(e, t='c516x688'):\n    s = int(e)\n    return f\"{img_server.construct_host_v2(s)}/images/{t}/\"\nclass ImgServer:\n    @staticmethod\n    def vol_host_v2(e):\n        if 0 <= e <= 143:\n            t = \"01\"\n        elif e <= 287:\n            t = \"02\"",
+        "detail": "app.tg_bot.bot.wb_image_url",
+        "documentation": {}
+    },
+    {
+        "label": "img_server",
+        "kind": 5,
+        "importPath": "app.tg_bot.bot.wb_image_url",
+        "description": "app.tg_bot.bot.wb_image_url",
+        "peekOfCode": "img_server = ImgServer()",
+        "detail": "app.tg_bot.bot.wb_image_url",
         "documentation": {}
     },
     {

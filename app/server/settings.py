@@ -27,7 +27,7 @@ SECRET_KEY = "django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=
 DEBUG = True
 
 
-TG_WEBHOOK_HOST = "https://c7ef-146-19-207-68.ngrok-free.app"  # Замените на ваш хост
+TG_WEBHOOK_HOST = "https://4d8e-146-19-207-68.ngrok-free.app" 
 
 ALLOWED_HOSTS = [
     TG_WEBHOOK_HOST.replace('https://', ''),

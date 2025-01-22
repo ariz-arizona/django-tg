@@ -27,17 +27,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p="
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG= True
+DEBUG = True
 
 ALLOWED_HOSTS = [
-    'localhost',
-    '192.168.101.2',
-    os.environ.get('TG_WEBHOOK_HOST'),
+    "localhost",
+    os.environ.get("TG_WEBHOOK_HOST"),
 ]
 TG_WEBHOOK_HOST = f"https://{os.environ.get('TG_WEBHOOK_HOST')}"
 PICTURE_CHAT = os.environ.get("PICTURE_CHAT")
 PARSER_URL = os.environ.get("PARSER")
-
+CSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)
+CORS_ORIGIN_ALLOW_ALL = False
+CORS_ORIGIN_WHITELIST = [
+    TG_WEBHOOK_HOST,
+]
 # Application definition
 
 INSTALLED_APPS = [

@@ -18,23 +18,23 @@ x-common-settings: &common_settings
 services:
   web:
     <<: *common_settings
-    container_name: django_app
+    container_name: ${PROJECT_NAME}_django_app
     command: gunicorn server.wsgi:application --bind 0.0.0.0:8000
 
 
   celery:
     <<: *common_settings
-    container_name: celery_worker
+    container_name: ${PROJECT_NAME}_celery_worker
     command: poetry run celery -A server worker --loglevel=info
 
   celery_beat:
     <<: *common_settings
-    container_name: celery_beat
+    container_name: ${PROJECT_NAME}_celery_beat
     command: poetry run celery -A server beat --loglevel=info
 
   redis:
     image: redis:7
-    container_name: redis
+    container_name: ${PROJECT_NAME}_redis
     labels:
       project_name: ${PROJECT_NAME}  # Метка для redis
     ports:
@@ -42,7 +42,7 @@ services:
 
   db:
     image: postgres:15
-    container_name: postgres
+    container_name: ${PROJECT_NAME}_postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
     env_file:
@@ -54,7 +54,7 @@ services:
 
   nginx:
     image: nginx:latest
-    container_name: nginx
+    container_name: ${PROJECT_NAME}_nginx
     ports:
       - "${NGINX_PORT:-80}:${NGINX_PORT:-80}"  # Если переменная не задана, по умолчанию 80
     volumes:
@@ -67,7 +67,7 @@ services:
 
   dozzle:
     image: amir20/dozzle:latest
-    container_name: dozzle
+    container_name: ${PROJECT_NAME}_dozzle
     ports:
       - "${DOZZLE_PORT:-8001}:8080"  # Если переменная не задана, по умолчанию 8001
     volumes:

@@ -31,6 +31,7 @@ DEBUG= True
 
 ALLOWED_HOSTS = [
     'localhost',
+    '192.168.101.2',
     os.environ.get('TG_WEBHOOK_HOST'),
 ]
 TG_WEBHOOK_HOST = f"https://{os.environ.get('TG_WEBHOOK_HOST')}"

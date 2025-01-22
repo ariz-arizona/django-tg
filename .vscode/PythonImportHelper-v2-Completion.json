@@ -286,6 +286,14 @@
         "documentation": {}
     },
     {
+        "label": "now",
+        "importPath": "django.utils.timezone",
+        "description": "django.utils.timezone",
+        "isExtraImport": true,
+        "detail": "django.utils.timezone",
+        "documentation": {}
+    },
+    {
         "label": "AbstractBot",
         "importPath": "tg_bot.bot.abstract",
         "description": "tg_bot.bot.abstract",
@@ -299,6 +307,30 @@
         "description": "tg_bot.bot.wb_image_url",
         "isExtraImport": true,
         "detail": "tg_bot.bot.wb_image_url",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "ParseProduct",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUserProduct",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
         "documentation": {}
     },
     {
@@ -382,6 +414,22 @@
         "documentation": {}
     },
     {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "connection",
         "importPath": "django.db",
         "description": "django.db",
@@ -395,6 +443,23 @@
         "description": "django.db",
         "isExtraImport": true,
         "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "django.db.models.deletion",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "django.db.models.deletion",
+        "description": "django.db.models.deletion",
+        "detail": "django.db.models.deletion",
         "documentation": {}
     },
     {
@@ -852,7 +917,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.bot.parser",
         "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "class ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(wb_regexp),\n                self.handle_wildberries_links,\n            ),\n            MessageHandler(",
+        "peekOfCode": "class ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(combined_regexp),\n                self.handle_links_based_on_message,\n            ),\n            CommandHandler(\"last\", self.handle_last_products),  # Обработчик для команды /last",
         "detail": "app.tg_bot.bot.parser",
         "documentation": {}
     },
@@ -861,7 +926,7 @@
         "kind": 5,
         "importPath": "app.tg_bot.bot.parser",
         "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "PICTURE_CHAT = settings.PICTURE_CHAT\nPARSER_URL = settings.PARSER_URL\n# Класс для парсера бота, который наследует AbstractBot\nwb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [",
+        "peekOfCode": "PICTURE_CHAT = settings.PICTURE_CHAT\nPARSER_URL = settings.PARSER_URL\n# Класс для парсера бота, который наследует AbstractBot\nwb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):",
         "detail": "app.tg_bot.bot.parser",
         "documentation": {}
     },
@@ -870,7 +935,7 @@
         "kind": 5,
         "importPath": "app.tg_bot.bot.parser",
         "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "PARSER_URL = settings.PARSER_URL\n# Класс для парсера бота, который наследует AbstractBot\nwb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(",
+        "peekOfCode": "PARSER_URL = settings.PARSER_URL\n# Класс для парсера бота, который наследует AbstractBot\nwb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [",
         "detail": "app.tg_bot.bot.parser",
         "documentation": {}
     },
@@ -879,7 +944,7 @@
         "kind": 5,
         "importPath": "app.tg_bot.bot.parser",
         "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "wb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(wb_regexp),\n                self.handle_wildberries_links,",
+        "peekOfCode": "wb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(combined_regexp),",
         "detail": "app.tg_bot.bot.parser",
         "documentation": {}
     },
@@ -888,7 +953,16 @@
         "kind": 5,
         "importPath": "app.tg_bot.bot.parser",
         "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "ozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(wb_regexp),\n                self.handle_wildberries_links,\n            ),",
+        "peekOfCode": "ozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(combined_regexp),\n                self.handle_links_based_on_message,",
+        "detail": "app.tg_bot.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "combined_regexp",
+        "kind": 5,
+        "importPath": "app.tg_bot.bot.parser",
+        "description": "app.tg_bot.bot.parser",
+        "peekOfCode": "combined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(combined_regexp),\n                self.handle_links_based_on_message,\n            ),",
         "detail": "app.tg_bot.bot.parser",
         "documentation": {}
     },
@@ -938,6 +1012,15 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0002_parseproduct_tguser_tguserproduct",
+        "description": "app.tg_bot.migrations.0002_parseproduct_tguser_tguserproduct",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0001_initial'),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='ParseProduct',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),\n                ('product_id', models.CharField(max_length=255, verbose_name='ID товара')),",
+        "detail": "app.tg_bot.migrations.0002_parseproduct_tguser_tguserproduct",
+        "documentation": {}
+    },
+    {
         "label": "BotAdmin",
         "kind": 6,
         "importPath": "app.tg_bot.admin",
@@ -960,7 +1043,34 @@
         "kind": 6,
         "importPath": "app.tg_bot.models",
         "description": "app.tg_bot.models",
-        "peekOfCode": "class Bot(models.Model):\n    name = models.CharField(max_length=100, verbose_name=\"Название бота\")\n    token = models.CharField(max_length=255, verbose_name=\"Токен\")\n    chat_id = models.CharField(max_length=50, verbose_name=\"Chat ID\")\n    created_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата создания\")\n    updated_at = models.DateTimeField(auto_now=True, verbose_name=\"Дата обновления\")\n    def __str__(self):\n        return self.name",
+        "peekOfCode": "class Bot(models.Model):\n    name = models.CharField(max_length=100, verbose_name=\"Название бота\")\n    token = models.CharField(max_length=255, verbose_name=\"Токен\")\n    chat_id = models.CharField(max_length=50, verbose_name=\"Chat ID\")\n    created_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата создания\")\n    updated_at = models.DateTimeField(auto_now=True, verbose_name=\"Дата обновления\")\n    def __str__(self):\n        return self.name\nfrom django.db import models\nclass TgUser(models.Model):",
+        "detail": "app.tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "kind": 6,
+        "importPath": "app.tg_bot.models",
+        "description": "app.tg_bot.models",
+        "peekOfCode": "class TgUser(models.Model):\n    \"\"\"Модель для хранения данных о пользователе Telegram.\"\"\"\n    tg_id = models.BigIntegerField(unique=True, verbose_name=\"Telegram ID\")\n    username = models.CharField(max_length=255, blank=True, null=True, verbose_name=\"Username\")\n    first_name = models.CharField(max_length=255, blank=True, null=True, verbose_name=\"Имя\")\n    last_name = models.CharField(max_length=255, blank=True, null=True, verbose_name=\"Фамилия\")\n    language_code = models.CharField(max_length=10, blank=True, null=True, verbose_name=\"Язык пользователя\")\n    is_bot = models.BooleanField(default=False, verbose_name=\"Это бот\")\n    created_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата создания\")\n    updated_at = models.DateTimeField(auto_now=True, verbose_name=\"Дата обновления\")",
+        "detail": "app.tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "ParseProduct",
+        "kind": 6,
+        "importPath": "app.tg_bot.models",
+        "description": "app.tg_bot.models",
+        "peekOfCode": "class ParseProduct(models.Model):\n    \"\"\"Модель для хранения данных о продукте.\"\"\"\n    PRODUCT_TYPE_CHOICES = [\n        ('ozon', 'Ozon'),\n        ('wb', 'Wildberries'),\n    ]\n    product_id = models.CharField(max_length=255, verbose_name=\"ID товара\")\n    photo_id = models.CharField(max_length=255, verbose_name=\"ID фото в Telegram\")\n    caption = models.TextField(verbose_name=\"Подпись к фото\")\n    product_type = models.CharField(max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name=\"Тип продукта\")",
+        "detail": "app.tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUserProduct",
+        "kind": 6,
+        "importPath": "app.tg_bot.models",
+        "description": "app.tg_bot.models",
+        "peekOfCode": "class TgUserProduct(models.Model):\n    \"\"\"Модель для связи пользователя с продуктом.\"\"\"\n    tg_user = models.ForeignKey(TgUser, on_delete=models.CASCADE, related_name=\"user_products\", verbose_name=\"Пользователь\")\n    product = models.ForeignKey(ParseProduct, on_delete=models.CASCADE, related_name=\"product_users\", verbose_name=\"Продукт\")\n    sent_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата отправки\")\n    class Meta:\n        unique_together = ('tg_user', 'product')  # Один и тот же пользователь может отправить продукт только один раз.\n    def __str__(self):\n        return f\"{self.tg_user} -> {self.product}\"",
         "detail": "app.tg_bot.models",
         "documentation": {}
     },

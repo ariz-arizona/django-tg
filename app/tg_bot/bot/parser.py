@@ -5,8 +5,11 @@ import requests
 from telegram import Update, InputMediaPhoto
 from telegram.ext import CommandHandler, MessageHandler, CallbackContext, filters
 
+from django.utils.timezone import now
+
 from tg_bot.bot.abstract import AbstractBot
 from tg_bot.bot.wb_image_url import image_url
+from tg_bot.models import TgUser, ParseProduct, TgUserProduct
 
 from server.logger import logger
 from django.conf import settings
@@ -18,6 +21,7 @@ PARSER_URL = settings.PARSER_URL
 
 wb_regexp = r"wildberries\.ru\/(catalog\/(\d*)|product\?card=(\d*))"
 ozon_regexp = r"ozon\.ru\/(t\/[^\s]*)\/?"
+combined_regexp = f"({wb_regexp}|{ozon_regexp})"
 
 
 class ParserBot(AbstractBot):
@@ -27,13 +31,10 @@ class ParserBot(AbstractBot):
     def get_handlers(self):
         return [
             MessageHandler(
-                filters.TEXT & ~filters.COMMAND & filters.Regex(wb_regexp),
-                self.handle_wildberries_links,
+                filters.TEXT & ~filters.COMMAND & filters.Regex(combined_regexp),
+                self.handle_links_based_on_message,
             ),
-            MessageHandler(
-                filters.TEXT & ~filters.COMMAND & filters.Regex(ozon_regexp),
-                self.handle_ozon_links,
-            ),
+            CommandHandler("last", self.handle_last_products),  # Обработчик для команды /last
             CommandHandler("start", self.start),
         ]
 
@@ -106,14 +107,33 @@ class ParserBot(AbstractBot):
                     logger.error(e)
                     return None
 
-    async def handle_wildberries_links(self, update: Update, context: CallbackContext):
-        message_text = update.message.text
-        matches = re.findall(wb_regexp, message_text)
-        items = [match[1] or match[2] for match in matches]
+    async def handle_links(
+        self, items, product_type, parse_func, update: Update, context: CallbackContext
+    ):
+        # Получаем или создаем пользователя
+        user, created = await TgUser.objects.aget_or_create(
+            tg_id=update.message.from_user.id,
+            defaults={
+                "username": update.message.from_user.username,
+                "first_name": update.message.from_user.first_name,
+                "last_name": update.message.from_user.last_name,
+                "language_code": update.message.from_user.language_code,
+                "is_bot": update.message.from_user.is_bot,
+            },
+        )
 
         pictures = []
         for i in items:
-            pictures.append(await self.wb(i, context))
+            p = await parse_func(i, context)
+            pictures.append(p)
+            product, product_created = await ParseProduct.objects.aget_or_create(
+                product_id=i,
+                photo_id=p["media"],
+                defaults={"caption": p["caption"], "product_type": product_type},
+            )
+            await TgUserProduct.objects.aupdate_or_create(
+                tg_user=user, product=product, defaults={"sent_at": now()}
+            )
 
         for i in range(0, len(pictures), 10):
             group = pictures[i : i + 10]
@@ -124,22 +144,26 @@ class ParserBot(AbstractBot):
                 media=media_group, reply_to_message_id=update.message.message_id
             )
 
-    async def handle_ozon_links(self, update: Update, context: CallbackContext):
+    async def handle_links_based_on_message(
+        self, update: Update, context: CallbackContext
+    ):
         message_text = update.message.text
-        matches = re.findall(ozon_regexp, message_text)
-        items = matches
 
-        pictures = []
-        for i in items:
-            pictures.append(await self.parse_ozon(i))
+        # Ищем ссылки Wildberries
+        wb_matches = re.findall(wb_regexp, message_text)
+        wb_items = [match[1] or match[2] for match in wb_matches]
 
-        for i in range(0, len(pictures), 10):
-            group = pictures[i : i + 10]
-            media_group = [
-                InputMediaPhoto(**photo) for photo in group if photo is not None
-            ]
-            await update.message.reply_media_group(
-                media=media_group, reply_to_message_id=update.message.message_id
+        # Ищем ссылки Ozon
+        ozon_matches = re.findall(ozon_regexp, message_text)
+
+        # Если нашли ссылки на Wildberries, обрабатываем их
+        if wb_items:
+            await self.handle_links(wb_items, "wb", self.wb, update, context)
+
+        # Если нашли ссылки на Ozon, обрабатываем их
+        if ozon_matches:
+            await self.handle_links(
+                ozon_matches, "ozon", self.parse_ozon, update, context
             )
 
     def get_ozon_widget(self, widget_states, key):
@@ -152,7 +176,7 @@ class ParserBot(AbstractBot):
         except Exception as err:
             return {}
 
-    async def parse_ozon(self, ozon_id):
+    async def parse_ozon(self, ozon_id, context):
         url = f"https://api.ozon.ru/composer-api.bx/page/json/v2?url=/{ozon_id}"
         parser_url = f"{PARSER_URL}/v1"
 
@@ -164,107 +188,155 @@ class ParserBot(AbstractBot):
             data=json.dumps(payload),
         )
         ozon_api = response.json()
+        try:
+            # Проверяем статус ответа
+            if ozon_api.get("status") != "ok":
+                raise Exception("Parse error")
 
-        # Проверяем статус ответа
-        if ozon_api.get("status") != "ok":
-            raise Exception("Parse error")
+            if "seller" in ozon_api["solution"]["url"]:
+                raise Exception("Not an Ozon product")
 
-        if "seller" in ozon_api["solution"]["url"]:
-            raise Exception("Not an Ozon product")
+            # Извлекаем и обрабатываем ответ
+            r = ozon_api["solution"]["response"]
+            r = r.replace(
+                '<html><head><meta name="color-scheme" content="light dark"></head><body><pre style="word-wrap: break-word; white-space: pre-wrap;">',
+                "",
+            ).replace("</pre></body></html>", "")
+            r = json.loads(r)
 
-        # Извлекаем и обрабатываем ответ
-        r = ozon_api["solution"]["response"]
-        r = r.replace(
-            '<html><head><meta name="color-scheme" content="light dark"></head><body><pre style="word-wrap: break-word; white-space: pre-wrap;">',
-            "",
-        ).replace("</pre></body></html>", "")
-        r = json.loads(r)
+            widget_states = r.get("widgetStates", {})
+            txt = []
+            img = None
 
-        widget_states = r.get("widgetStates", {})
-        txt = []
-        img = None
-
-        # Обработка виджетов
-        error = self.get_ozon_widget(widget_states, "error")
-        out_of_stock = self.get_ozon_widget(widget_states, "webOutOfStock")
-        price = self.get_ozon_widget(widget_states, "webPrice")
-        sale = self.get_ozon_widget(widget_states, "webSale")
-        gallery = self.get_ozon_widget(widget_states, "webGallery")
-        brand = self.get_ozon_widget(widget_states, "webBrand")
-        heading = self.get_ozon_widget(widget_states, "webProductHeading")
-        add_to_cart = self.get_ozon_widget(widget_states, "webAddToCart")
-        fulltext_results_header = self.get_ozon_widget(
-            widget_states, "fulltextResultsHeader"
-        )
-        search_results = self.get_ozon_widget(widget_states, "searchResults")
-        user_adult_modal = self.get_ozon_widget(widget_states, "userAdultModal")
-
-        if error or user_adult_modal:
-            txt.append(r["seo"]["title"])
-            txt.append(r["seo"]["link"][0]["href"].replace("api.ozon", "ozon"))
-            txt.append("")
-            txt.append(
-                f"<strong>{error.get('title', user_adult_modal.get('subtitle', {}).get('text', ''))}</strong>"
+            # Обработка виджетов
+            error = self.get_ozon_widget(widget_states, "error")
+            out_of_stock = self.get_ozon_widget(widget_states, "webOutOfStock")
+            price = self.get_ozon_widget(widget_states, "webPrice")
+            sale = self.get_ozon_widget(widget_states, "webSale")
+            gallery = self.get_ozon_widget(widget_states, "webGallery")
+            brand = self.get_ozon_widget(widget_states, "webBrand")
+            heading = self.get_ozon_widget(widget_states, "webProductHeading")
+            add_to_cart = self.get_ozon_widget(widget_states, "webAddToCart")
+            fulltext_results_header = self.get_ozon_widget(
+                widget_states, "fulltextResultsHeader"
             )
-            seo_img = next(
-                (
-                    meta["content"]
-                    for meta in r["seo"].get("meta", [])
-                    if meta.get("property") == "og:image"
-                ),
-                None,
-            )
-            img = seo_img
-        elif out_of_stock:
-            txt.append(f"Разбор карточки OZON <code>{out_of_stock['sku']}</code>")
-            txt.append(
-                f"\n{out_of_stock['sellerName']} <a href='https://ozon.ru/{out_of_stock['productLink']}'>{out_of_stock['skuName']}</a>"
-            )
-            txt.append(f"\nЦена: {out_of_stock['price']}")
-            txt.append(f"\nНаличие: ❌")
-            img = out_of_stock.get("coverImage")
-        elif price or sale:
-            txt.append(
-                f"Разбор карточки OZON <code>{gallery.get('sku', '') or heading.get('id', '')}</code>"
-            )
-            txt.append(
-                f"{brand.get('name', '') + ' ' if brand.get('name') else ''}<a href='https://ozon.ru{heading.get('url', '')}'>{heading.get('title', '')}</a>"
-            )
-            if price.get("price"):
+            search_results = self.get_ozon_widget(widget_states, "searchResults")
+            user_adult_modal = self.get_ozon_widget(widget_states, "userAdultModal")
+
+            if error or user_adult_modal:
+                txt.append(r["seo"]["title"])
+                txt.append(r["seo"]["link"][0]["href"].replace("api.ozon", "ozon"))
+                txt.append("")
                 txt.append(
-                    f"Цена: {price['price']} {f'''<s>{price.get('originalPrice')}</s>''' if price.get('originalPrice') else ''}"
+                    f"<strong>{error.get('title', user_adult_modal.get('subtitle', {}).get('text', ''))}</strong>"
                 )
-            elif add_to_cart.get("price"):
-                txt.append(f"Цена: {add_to_cart['price']}")
-            if price.get("isAvailable"):
-                txt.append(f"Наличие: {'✅' if price['isAvailable'] else '❌'}")
-            elif sale.get("offer", {}).get("isAvailable"):
-                txt.append(f"Наличие: {'✅' if sale['offer']['isAvailable'] else '❌'}")
-            img = gallery.get("coverImage") or heading.get("coverImage")
-        elif fulltext_results_header:
-            txt.append(
-                fulltext_results_header["header"]["text"]
-                .replace("**", "<strong>")
-                .replace("[", "<a href='https://www.ozon.ru")
-                .replace("]", "'>")
-                .replace(")", "</a>")
-            )
-            img = next(
-                (
-                    item["image"]["link"]
-                    for item in search_results.get("items", [])
-                    if item["type"] == "image"
-                ),
-                None,
-            )
+                seo_img = next(
+                    (
+                        meta["content"]
+                        for meta in r["seo"].get("meta", [])
+                        if meta.get("property") == "og:image"
+                    ),
+                    None,
+                )
+                img = seo_img
+            elif out_of_stock:
+                txt.append(f"Разбор карточки OZON <code>{out_of_stock['sku']}</code>")
+                txt.append(
+                    f"\n{out_of_stock['sellerName']} <a href='https://ozon.ru/{out_of_stock['productLink']}'>{out_of_stock['skuName']}</a>"
+                )
+                txt.append(f"\nЦена: {out_of_stock['price']}")
+                txt.append(f"\nНаличие: ❌")
+                img = out_of_stock.get("coverImage")
+            elif price or sale:
+                txt.append(
+                    f"Разбор карточки OZON <code>{gallery.get('sku', '') or heading.get('id', '')}</code>"
+                )
+                txt.append(
+                    f"{brand.get('name', '') + ' ' if brand.get('name') else ''}<a href='https://ozon.ru{heading.get('url', '')}'>{heading.get('title', '')}</a>"
+                )
+                if price.get("price"):
+                    txt.append(
+                        f"Цена: {price['price']} {f'''<s>{price.get('originalPrice')}</s>''' if price.get('originalPrice') else ''}"
+                    )
+                elif add_to_cart.get("price"):
+                    txt.append(f"Цена: {add_to_cart['price']}")
+                if price.get("isAvailable"):
+                    txt.append(f"Наличие: {'✅' if price['isAvailable'] else '❌'}")
+                elif sale.get("offer", {}).get("isAvailable"):
+                    txt.append(
+                        f"Наличие: {'✅' if sale['offer']['isAvailable'] else '❌'}"
+                    )
+                img = gallery.get("coverImage") or heading.get("coverImage")
+            elif fulltext_results_header:
+                txt.append(
+                    fulltext_results_header["header"]["text"]
+                    .replace("**", "<strong>")
+                    .replace("[", "<a href='https://www.ozon.ru")
+                    .replace("]", "'>")
+                    .replace(")", "</a>")
+                )
+                img = next(
+                    (
+                        item["image"]["link"]
+                        for item in search_results.get("items", [])
+                        if item["type"] == "image"
+                    ),
+                    None,
+                )
 
-        if not img:
-            return False
+            if not img:
+                raise Exception("no image")
 
-        return {"media": img, "caption": "\n".join(txt), "parse_mode": "HTML"}
+            return {
+                "media": img,
+                "caption": "\n".join(txt),
+                "parse_mode": "HTML",
+            }
+        except Exception as e:
+            logger.error(e)
+            return None
 
     async def start(self, update: Update, context: CallbackContext):
         logger.info("start")
         await update.message.reply_html(
             "<b>Привет!</b> Это бот для получения картинки товара вайлдберрис. И озона. Наверное."
         )
+
+    async def handle_last_products(self, update: Update, context: CallbackContext):
+        # Получаем пользователя по tg_id
+        try:
+            user = await TgUser.objects.aget(tg_id=update.message.from_user.id)
+            
+            # Извлекаем последние 10 товаров, отсортированных по дате (sent_at)
+            user_products = []
+            async for item in TgUserProduct.objects.filter(tg_user=user).select_related('product').order_by('-sent_at')[:10]:
+                user_products.append(item)
+                
+            if not user_products:
+                await update.message.reply_text("Вы не отправляли товары.")
+                return
+
+            # Формируем список товаров для отправки в media_group
+            media_group = []
+            for user_product in user_products:
+                print(user_product.sent_at)
+                
+                product = user_product.product
+                logger.info(product)
+                # Создаем объект InputMediaPhoto для каждого товара
+                media_group.append(
+                    InputMediaPhoto(
+                        media=product.photo_id,  # Используем photo_id
+                        caption=product.caption,  # Подпись к фото
+                        parse_mode='HTML'  # Форматирование с HTML, если нужно
+                    )
+                )
+
+            # Отправляем media_group с изображениями и подписями
+            await update.message.reply_media_group(
+                media=media_group, 
+                reply_to_message_id=update.message.message_id
+            )
+        except Exception as e:
+            logger.error(e)
+        

@@ -28,7 +28,7 @@ ENV PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=server.settings
 
 RUN poetry run python manage.py collectstatic --noinput
-RUN poetry run python manage.py migrate
+# RUN poetry run python manage.py migrate
 
 # Команда запуска приложения
 CMD ["gunicorn", "server.wsgi:application", "--bind", "0.0.0.0:8000"]

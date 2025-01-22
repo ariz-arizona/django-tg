@@ -66,6 +66,14 @@
         "documentation": {}
     },
     {
+        "label": "load_dotenv",
+        "importPath": "dotenv",
+        "description": "dotenv",
+        "isExtraImport": true,
+        "detail": "dotenv",
+        "documentation": {}
+    },
+    {
         "label": "admin",
         "importPath": "django.contrib",
         "description": "django.contrib",
@@ -260,6 +268,24 @@
         "documentation": {}
     },
     {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "requests",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "requests",
+        "description": "requests",
+        "detail": "requests",
+        "documentation": {}
+    },
+    {
         "label": "AbstractBot",
         "importPath": "tg_bot.bot.abstract",
         "description": "tg_bot.bot.abstract",
@@ -313,6 +339,22 @@
         "description": "server.logger",
         "isExtraImport": true,
         "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
         "documentation": {}
     },
     {
@@ -412,23 +454,6 @@
         "importPath": "asyncio",
         "description": "asyncio",
         "detail": "asyncio",
-        "documentation": {}
-    },
-    {
-        "label": "json",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "json",
-        "description": "json",
-        "detail": "json",
-        "documentation": {}
-    },
-    {
-        "label": "settings",
-        "importPath": "django.conf",
-        "description": "django.conf",
-        "isExtraImport": true,
-        "detail": "django.conf",
         "documentation": {}
     },
     {
@@ -539,7 +564,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "BASE_DIR = Path(__file__).resolve().parent.parent\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\nSECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nTG_WEBHOOK_HOST = \"https://4d8e-146-19-207-68.ngrok-free.app\" \nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),",
+        "peekOfCode": "BASE_DIR = Path(__file__).resolve().parent.parent\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\nSECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG= True\nALLOWED_HOSTS = [\n    'localhost',\n    os.environ.get('TG_WEBHOOK_HOST'),",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -548,25 +573,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "SECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nTG_WEBHOOK_HOST = \"https://4d8e-146-19-207-68.ngrok-free.app\" \nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",",
-        "detail": "app.server.settings",
-        "documentation": {}
-    },
-    {
-        "label": "DEBUG",
-        "kind": 5,
-        "importPath": "app.server.settings",
-        "description": "app.server.settings",
-        "peekOfCode": "DEBUG = True\nTG_WEBHOOK_HOST = \"https://4d8e-146-19-207-68.ngrok-free.app\" \nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",",
-        "detail": "app.server.settings",
-        "documentation": {}
-    },
-    {
-        "label": "TG_WEBHOOK_HOST",
-        "kind": 5,
-        "importPath": "app.server.settings",
-        "description": "app.server.settings",
-        "peekOfCode": "TG_WEBHOOK_HOST = \"https://4d8e-146-19-207-68.ngrok-free.app\" \nALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",\n    \"django.contrib.sessions\",",
+        "peekOfCode": "SECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG= True\nALLOWED_HOSTS = [\n    'localhost',\n    os.environ.get('TG_WEBHOOK_HOST'),\n]\nTG_WEBHOOK_HOST = f\"https://{os.environ.get('TG_WEBHOOK_HOST')}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -575,7 +582,34 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "ALLOWED_HOSTS = [\n    TG_WEBHOOK_HOST.replace('https://', ''),\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",\n    \"django.contrib.sessions\",\n    \"django.contrib.messages\",",
+        "peekOfCode": "ALLOWED_HOSTS = [\n    'localhost',\n    os.environ.get('TG_WEBHOOK_HOST'),\n]\nTG_WEBHOOK_HOST = f\"https://{os.environ.get('TG_WEBHOOK_HOST')}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "TG_WEBHOOK_HOST",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "TG_WEBHOOK_HOST = f\"https://{os.environ.get('TG_WEBHOOK_HOST')}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",\n    \"django.contrib.sessions\",\n    \"django.contrib.messages\",",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "PICTURE_CHAT",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "PICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",\n    \"django.contrib.sessions\",\n    \"django.contrib.messages\",\n    \"django.contrib.staticfiles\",",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "PARSER_URL",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "PARSER_URL = os.environ.get(\"PARSER\")\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",\n    \"django.contrib.sessions\",\n    \"django.contrib.messages\",\n    \"django.contrib.staticfiles\",\n    \"rest_framework\",",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -818,7 +852,25 @@
         "kind": 6,
         "importPath": "app.tg_bot.bot.parser",
         "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "class ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(wb_regexp),\n                self.handle_wildberries_links,\n            ),\n            CommandHandler(\"start\", self.start),",
+        "peekOfCode": "class ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(wb_regexp),\n                self.handle_wildberries_links,\n            ),\n            MessageHandler(",
+        "detail": "app.tg_bot.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "PICTURE_CHAT",
+        "kind": 5,
+        "importPath": "app.tg_bot.bot.parser",
+        "description": "app.tg_bot.bot.parser",
+        "peekOfCode": "PICTURE_CHAT = settings.PICTURE_CHAT\nPARSER_URL = settings.PARSER_URL\n# Класс для парсера бота, который наследует AbstractBot\nwb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [",
+        "detail": "app.tg_bot.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "PARSER_URL",
+        "kind": 5,
+        "importPath": "app.tg_bot.bot.parser",
+        "description": "app.tg_bot.bot.parser",
+        "peekOfCode": "PARSER_URL = settings.PARSER_URL\n# Класс для парсера бота, который наследует AbstractBot\nwb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(",
         "detail": "app.tg_bot.bot.parser",
         "documentation": {}
     },
@@ -827,16 +879,16 @@
         "kind": 5,
         "importPath": "app.tg_bot.bot.parser",
         "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "wb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\npicture_chat = -1001890980411\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(wb_regexp),\n                self.handle_wildberries_links,",
+        "peekOfCode": "wb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(wb_regexp),\n                self.handle_wildberries_links,",
         "detail": "app.tg_bot.bot.parser",
         "documentation": {}
     },
     {
-        "label": "picture_chat",
+        "label": "ozon_regexp",
         "kind": 5,
         "importPath": "app.tg_bot.bot.parser",
         "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "picture_chat = -1001890980411\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(wb_regexp),\n                self.handle_wildberries_links,\n            ),",
+        "peekOfCode": "ozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(wb_regexp),\n                self.handle_wildberries_links,\n            ),",
         "detail": "app.tg_bot.bot.parser",
         "documentation": {}
     },

@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,15 +27,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p="
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-
-TG_WEBHOOK_HOST = "https://4d8e-146-19-207-68.ngrok-free.app" 
+DEBUG= True
 
 ALLOWED_HOSTS = [
-    TG_WEBHOOK_HOST.replace('https://', ''),
+    'localhost',
+    os.environ.get('TG_WEBHOOK_HOST'),
 ]
-
+TG_WEBHOOK_HOST = f"https://{os.environ.get('TG_WEBHOOK_HOST')}"
+PICTURE_CHAT = os.environ.get("PICTURE_CHAT")
+PARSER_URL = os.environ.get("PARSER")
 
 # Application definition
 

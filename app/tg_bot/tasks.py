@@ -42,7 +42,7 @@ async def run_bot(token, handlersClass):
     webhook_url = reverse(viewname="webhook", kwargs={"token": token})
     webhook_url = "".join([settings.TG_WEBHOOK_HOST, webhook_url])
     logger.info(f"Попытка установить вебхук {webhook_url}")
-    await app.bot.set_webhook(webhook_url)  # Асинхронная установка webhook
+    await app.bot.set_webhook(webhook_url, drop_pending_updates=True)  # Асинхронная установка webhook
     
 
     pubsub = redis_client.pubsub()

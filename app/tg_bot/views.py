@@ -30,7 +30,7 @@ def webhook(request, token):
         try:
             # Вы можете просто поместить строку JSON в очередь
             redis_client.rpush("bot_messages_queue", json_str)
-            logger.info(f"Сообщение добавлено в очередь: {json_str["update_id"]}")
+            logger.info(f"Сообщение добавлено в очередь: {json_str['update_id']}")
             return JsonResponse({"status": "ok"})
         except Exception as e:
             logger.error(

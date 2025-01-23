@@ -205,6 +205,7 @@ class ParserBot(AbstractBot):
             r = json.loads(r)
 
             widget_states = r.get("widgetStates", {})
+            page_info = r.get("pageInfo",{})
             txt = []
             img = None
 
@@ -251,8 +252,9 @@ class ParserBot(AbstractBot):
                 txt.append(
                     f"Разбор карточки OZON <code>{gallery.get('sku', '') or heading.get('id', '')}</code>"
                 )
+                brand_name = brand.get('name', '')
                 txt.append(
-                    f"{brand.get('name', '') + ' ' if brand.get('name') else ''}<a href='https://ozon.ru{heading.get('url', '')}'>{heading.get('title', '')}</a>"
+                    f"{brand_name}<a href='https://ozon.ru{page_info.get('url', ozon_id)}'>{heading.get('title', '')}</a>"
                 )
                 if price.get("price"):
                     txt.append(

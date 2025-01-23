@@ -125,15 +125,16 @@ class ParserBot(AbstractBot):
         pictures = []
         for i in items:
             p = await parse_func(i, context)
-            pictures.append(p)
-            product, product_created = await ParseProduct.objects.aget_or_create(
-                product_id=i,
-                photo_id=p["media"],
-                defaults={"caption": p["caption"], "product_type": product_type},
-            )
-            await TgUserProduct.objects.aupdate_or_create(
-                tg_user=user, product=product, defaults={"sent_at": now()}
-            )
+            if p and p['media']:
+                pictures.append(p)
+                product, product_created = await ParseProduct.objects.aget_or_create(
+                    product_id=i,
+                    photo_id=p["media"],
+                    defaults={"caption": p["caption"], "product_type": product_type},
+                )
+                await TgUserProduct.objects.aupdate_or_create(
+                    tg_user=user, product=product, defaults={"sent_at": now()}
+                )
 
         for i in range(0, len(pictures), 10):
             group = pictures[i : i + 10]

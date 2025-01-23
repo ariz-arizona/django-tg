@@ -44,10 +44,6 @@ async def run_bot(token, handlersClass):
     logger.info(f"Попытка установить вебхук {webhook_url}")
     await app.bot.set_webhook(webhook_url, drop_pending_updates=True)  # Асинхронная установка webhook
     
-
-    pubsub = redis_client.pubsub()
-    pubsub.psubscribe("bot_messages_queue")
-
     while True:
         try:
             # Извлекаем сообщение из очереди

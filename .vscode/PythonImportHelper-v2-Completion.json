@@ -1061,7 +1061,34 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class BotAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"chat_id\", \"created_at\", \"updated_at\")\n    search_fields = (\"name\", \"chat_id\")",
+        "peekOfCode": "class BotAdmin(admin.ModelAdmin):\n    list_display = ('name', 'token', 'chat_id', 'created_at', 'updated_at')\n    search_fields = ('name', 'token', 'chat_id')\n    list_filter = ('created_at', 'updated_at')\n    readonly_fields = ('created_at', 'updated_at')\n@admin.register(TgUser)\nclass TgUserAdmin(admin.ModelAdmin):\n    list_display = ('tg_id', 'username', 'first_name', 'last_name', 'language_code', 'is_bot', 'created_at', 'updated_at')\n    search_fields = ('tg_id', 'username', 'first_name', 'last_name')\n    list_filter = ('is_bot', 'created_at', 'updated_at')",
+        "detail": "app.tg_bot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "TgUserAdmin",
+        "kind": 6,
+        "importPath": "app.tg_bot.admin",
+        "description": "app.tg_bot.admin",
+        "peekOfCode": "class TgUserAdmin(admin.ModelAdmin):\n    list_display = ('tg_id', 'username', 'first_name', 'last_name', 'language_code', 'is_bot', 'created_at', 'updated_at')\n    search_fields = ('tg_id', 'username', 'first_name', 'last_name')\n    list_filter = ('is_bot', 'created_at', 'updated_at')\n    readonly_fields = ('created_at', 'updated_at')\n@admin.register(ParseProduct)\nclass ParseProductAdmin(admin.ModelAdmin):\n    list_display = ('product_id', 'photo_id', 'caption', 'product_type', 'created_at', 'updated_at')\n    search_fields = ('product_id', 'caption')\n    list_filter = ('product_type', 'created_at', 'updated_at')",
+        "detail": "app.tg_bot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "ParseProductAdmin",
+        "kind": 6,
+        "importPath": "app.tg_bot.admin",
+        "description": "app.tg_bot.admin",
+        "peekOfCode": "class ParseProductAdmin(admin.ModelAdmin):\n    list_display = ('product_id', 'photo_id', 'caption', 'product_type', 'created_at', 'updated_at')\n    search_fields = ('product_id', 'caption')\n    list_filter = ('product_type', 'created_at', 'updated_at')\n    readonly_fields = ('created_at', 'updated_at')\n@admin.register(TgUserProduct)\nclass TgUserProductAdmin(admin.ModelAdmin):\n    list_display = ('tg_user', 'product', 'sent_at')\n    search_fields = ('tg_user__username', 'product__caption')\n    list_filter = ('sent_at',)",
+        "detail": "app.tg_bot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "TgUserProductAdmin",
+        "kind": 6,
+        "importPath": "app.tg_bot.admin",
+        "description": "app.tg_bot.admin",
+        "peekOfCode": "class TgUserProductAdmin(admin.ModelAdmin):\n    list_display = ('tg_user', 'product', 'sent_at')\n    search_fields = ('tg_user__username', 'product__caption')\n    list_filter = ('sent_at',)\n    readonly_fields = ('sent_at',)",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },

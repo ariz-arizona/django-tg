@@ -6,10 +6,9 @@ from .models import TarotCard, ExtendedMeaning, TarotDeck, TarotCardItem
 
 @admin.register(Bot)
 class BotAdmin(admin.ModelAdmin):
-    list_display = ("name", "token", "chat_id", "created_at", "updated_at")
+    list_display = ("name", "token", "chat_id", "bot_type", "created_at", "updated_at")
     search_fields = ("name", "token", "chat_id")
-    list_filter = ("created_at", "updated_at")
-    readonly_fields = ("created_at", "updated_at")
+    list_filter = ("bot_type", "created_at")
 
 
 @admin.register(ParseProduct)
@@ -41,6 +40,7 @@ class TarotDeckAdmin(admin.ModelAdmin):
     """
     Админка для модели TarotDeck.
     """
+
     list_display = ("name", "link")  # Поля, отображаемые в списке
     search_fields = ("name",)  # Поля для поиска
     list_filter = ("name",)  # Фильтры в правой панели
@@ -51,6 +51,7 @@ class CardAdmin(admin.ModelAdmin):
     """
     Админка для модели Card.
     """
-    list_display = ("deck", "tarot_card",  "img_id")  # Поля, отображаемые в списке
+
+    list_display = ("deck", "tarot_card", "img_id")  # Поля, отображаемые в списке
     search_fields = ("deck__name", "tarot_card__name")  # Поля для поиска
     list_filter = ("deck", "tarot_card")  # Фильтры в правой панели

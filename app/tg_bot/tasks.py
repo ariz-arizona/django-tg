@@ -12,6 +12,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler
 from telegram import Update
 
 from tg_bot.bot.parser import ParserBot
+from tg_bot.bot.tarot import TarotBot
 
 from server.logger import logger
 
@@ -42,8 +43,10 @@ async def run_bot(token, handlersClass):
     webhook_url = reverse(viewname="webhook", kwargs={"token": token})
     webhook_url = "".join([settings.TG_WEBHOOK_HOST, webhook_url])
     logger.info(f"Попытка установить вебхук {webhook_url}")
-    await app.bot.set_webhook(webhook_url, drop_pending_updates=True)  # Асинхронная установка webhook
-    
+    await app.bot.set_webhook(
+        webhook_url, drop_pending_updates=True
+    )  # Асинхронная установка webhook
+
     while True:
         try:
             # Извлекаем сообщение из очереди
@@ -59,7 +62,7 @@ async def run_bot(token, handlersClass):
                     update = Update.de_json(data, app.bot)
                     await app.process_update(update)
                     # await app.update_queue.put(update)
-                    
+
                 except Exception as e:
                     logger.error(f"Ошибка при обработке сообщения: {e}", exc_info=True)
 
@@ -75,8 +78,7 @@ async def run_bot(token, handlersClass):
 @shared_task(bind=True)
 def process_bot(self, token, handlersClass):
     lock_key = f"bot_processing_lock_{token}"
-    
-    
+
     def cleanup_on_exit(signum, frame):
         logger.info("Завершаем работу контейнера и очищаем ресурсы...")
         # Выполним нужные очистки, например, удалим блокировку Redis
@@ -86,7 +88,7 @@ def process_bot(self, token, handlersClass):
     if not redis_client.setnx(lock_key, "locked"):
         logger.info(f"Задача для бота с токеном {token} уже выполняется. Пропускаем.")
         return
-    
+
     signal.signal(signal.SIGTERM, cleanup_on_exit)
 
     try:
@@ -96,12 +98,12 @@ def process_bot(self, token, handlersClass):
         loop = asyncio.get_event_loop()
 
         # Запускаем асинхронный процесс бота внутри текущего цикла событий
-        loop.run_until_complete(run_bot(token, handlersClass))  # Запускаем асинхронную задачу
+        loop.run_until_complete(
+            run_bot(token, handlersClass)
+        )  # Запускаем асинхронную задачу
 
     except Exception as e:
         logger.error(f"Ошибка при обработке бота с токеном {token}: {e}", exc_info=True)
     finally:
         redis_client.delete(lock_key)  # Удаляем блокировку
         logger.info(f"Завершение обработки бота с токеном {token}, блокировка удалена.")
-
-

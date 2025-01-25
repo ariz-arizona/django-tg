@@ -20,7 +20,7 @@ class Command(BaseCommand):
             bots = Bot.objects.all()
             for bot in bots:
                 logger.info(f"Запуск задачи для бота с ID {bot.id}...")
-                process_bot.delay(bot.token, "ParserBot")
+                process_bot.delay(bot.token, bot.bot_type)
 
         except Exception as e:
             logger.error(f"Ошибка при запуске задачи обработки ботов: {e}")

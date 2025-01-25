@@ -87,3 +87,5 @@ local_settings.py
 
 .env
 db.sqlite3
+
+app/tg_bot/tarot_data/

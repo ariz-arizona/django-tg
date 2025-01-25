@@ -14,9 +14,9 @@
 
 1. Команда:
     ```bash
-    POSTGRES_PORT=$(docker inspect postgres --format='{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort}}') POSTGRES_HOST=localhost poetry run python manage.py runserver
+    POSTGRES_PORT=$(docker inspect tgbot_postgres --format='{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort}}') POSTGRES_HOST=localhost poetry run python manage.py runserver
     ```
 1. И редис
    ```bash
-   REDIS_HOST=localhost REDIS_PORT=$(docker inspect redis --format='{{(index (index .NetworkSettings.Ports "6379/tcp") 0).HostPort}}') POSTGRES_PORT=$(docker inspect postgres --format='{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort}}') POSTGRES_HOST=localhost poetry run python manage.py runserver
+   REDIS_HOST=localhost REDIS_PORT=$(docker inspect tgbot_redis --format='{{(index (index .NetworkSettings.Ports "6379/tcp") 0).HostPort}}') POSTGRES_PORT=$(docker inspect tgbot_postgres --format='{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort}}') POSTGRES_HOST=localhost poetry run python manage.py runserver
    ```

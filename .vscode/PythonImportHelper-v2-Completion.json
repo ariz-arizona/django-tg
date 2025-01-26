@@ -194,6 +194,22 @@
         "documentation": {}
     },
     {
+        "label": "InlineKeyboardButton",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "InlineKeyboardMarkup",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
         "label": "Update",
         "importPath": "telegram",
         "description": "telegram",
@@ -259,6 +275,14 @@
     },
     {
         "label": "MessageHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CallbackQueryHandler",
         "importPath": "telegram.ext",
         "description": "telegram.ext",
         "isExtraImport": true,

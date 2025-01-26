@@ -27,7 +27,10 @@ class TgUserProductAdmin(admin.ModelAdmin):
 
 @admin.register(TarotCard)
 class TarotCardAdmin(admin.ModelAdmin):
-    list_display = ("name", "meaning")
+    list_display = ("card_id", "name", "is_major")  # Добавлено card_id для наглядности
+    list_editable = ("is_major",)  # Разрешаем редактирование прямо в списке
+    list_filter = ("is_major",)  # Добавляем фильтр по этому полю
+    search_fields = ("name", "card_id")  # Поиск по названию и ID карты
 
 
 @admin.register(ExtendedMeaning)

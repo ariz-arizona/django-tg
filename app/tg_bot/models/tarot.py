@@ -10,6 +10,7 @@ class TarotCard(models.Model):
     meaning_url = models.URLField(
         verbose_name="Ссылка на значение", blank=True, null=True
     )
+    is_major = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name

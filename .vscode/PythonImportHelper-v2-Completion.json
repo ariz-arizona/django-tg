@@ -186,6 +186,22 @@
         "documentation": {}
     },
     {
+        "label": "InputMediaPhoto",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "Update",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
         "label": "CommandHandler",
         "importPath": "telegram.ext",
         "description": "telegram.ext",
@@ -195,6 +211,38 @@
     },
     {
         "label": "CallbackContext",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CommandHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "MessageHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CallbackContext",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "filters",
         "importPath": "telegram.ext",
         "description": "telegram.ext",
         "isExtraImport": true,
@@ -294,6 +342,22 @@
         "documentation": {}
     },
     {
+        "label": "now",
+        "importPath": "django.utils.timezone",
+        "description": "django.utils.timezone",
+        "isExtraImport": true,
+        "detail": "django.utils.timezone",
+        "documentation": {}
+    },
+    {
+        "label": "AbstractBot",
+        "importPath": "tg_bot.bot.abstract",
+        "description": "tg_bot.bot.abstract",
+        "isExtraImport": true,
+        "detail": "tg_bot.bot.abstract",
+        "documentation": {}
+    },
+    {
         "label": "AbstractBot",
         "importPath": "tg_bot.bot.abstract",
         "description": "tg_bot.bot.abstract",
@@ -327,6 +391,38 @@
     },
     {
         "label": "TgUserProduct",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotDeck",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCardItem",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCard",
         "importPath": "tg_bot.models",
         "description": "tg_bot.models",
         "isExtraImport": true,
@@ -438,11 +534,11 @@
         "documentation": {}
     },
     {
-        "label": "settings",
-        "importPath": "django.conf",
-        "description": "django.conf",
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
         "isExtraImport": true,
-        "detail": "django.conf",
+        "detail": "server.logger",
         "documentation": {}
     },
     {
@@ -467,6 +563,55 @@
         "description": "django.conf",
         "isExtraImport": true,
         "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "random",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "random",
+        "description": "random",
+        "detail": "random",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "ObjectDoesNotExist",
+        "importPath": "django.core.exceptions",
+        "description": "django.core.exceptions",
+        "isExtraImport": true,
+        "detail": "django.core.exceptions",
         "documentation": {}
     },
     {
@@ -491,6 +636,38 @@
         "description": "django.core.management.base",
         "isExtraImport": true,
         "detail": "django.core.management.base",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
         "documentation": {}
     },
     {
@@ -656,6 +833,14 @@
         "description": "tg_bot.bot.parser",
         "isExtraImport": true,
         "detail": "tg_bot.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "TarotBot",
+        "importPath": "tg_bot.bot.tarot",
+        "description": "tg_bot.bot.tarot",
+        "isExtraImport": true,
+        "detail": "tg_bot.bot.tarot",
         "documentation": {}
     },
     {
@@ -1123,6 +1308,15 @@
         "documentation": {}
     },
     {
+        "label": "TarotBot",
+        "kind": 6,
+        "importPath": "app.tg_bot.bot.tarot",
+        "description": "app.tg_bot.bot.tarot",
+        "peekOfCode": "class TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.COMMAND\n                & filters.TEXT\n                & filters.ChatType.PRIVATE\n                & filters.Regex(r\"^\\/card(\\d+)?\"),",
+        "detail": "app.tg_bot.bot.tarot",
+        "documentation": {}
+    },
+    {
         "label": "ImgServer",
         "kind": 6,
         "importPath": "app.tg_bot.bot.wb_image_url",
@@ -1204,11 +1398,29 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0005_alter_bot_options_bot_bot_type",
+        "description": "app.tg_bot.migrations.0005_alter_bot_options_bot_bot_type",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0003_tarotcard_tarotdeck_alter_parseproduct_options_and_more_squashed_0004_alter_tarotcarditem_unique_together_and_more'),\n    ]\n    operations = [\n        migrations.AlterModelOptions(\n            name='bot',\n            options={'verbose_name': 'Бот', 'verbose_name_plural': 'Боты'},\n        ),\n        migrations.AddField(",
+        "detail": "app.tg_bot.migrations.0005_alter_bot_options_bot_bot_type",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0006_tarotcard_is_major",
+        "description": "app.tg_bot.migrations.0006_tarotcard_is_major",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0005_alter_bot_options_bot_bot_type'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='tarotcard',\n            name='is_major',\n            field=models.BooleanField(default=False),\n        ),",
+        "detail": "app.tg_bot.migrations.0006_tarotcard_is_major",
+        "documentation": {}
+    },
+    {
         "label": "Bot",
         "kind": 6,
         "importPath": "app.tg_bot.models.base",
         "description": "app.tg_bot.models.base",
-        "peekOfCode": "class Bot(models.Model):\n    name = models.CharField(max_length=100, verbose_name=\"Название бота\")\n    token = models.CharField(max_length=255, verbose_name=\"Токен\")\n    chat_id = models.CharField(max_length=50, verbose_name=\"Chat ID\")\n    created_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата создания\")\n    updated_at = models.DateTimeField(auto_now=True, verbose_name=\"Дата обновления\")\n    def __str__(self):\n        return self.name\nclass TgUser(models.Model):\n    \"\"\"Модель для хранения данных о пользователе Telegram.\"\"\"",
+        "peekOfCode": "class Bot(models.Model):\n    # Типы ботов\n    BOT_TYPE_CHOICES = [\n        (\"ParserBot\", \"ParserBot\"),\n        (\"TarotBot\", \"TarotBot\"),\n    ]\n    name = models.CharField(max_length=100, verbose_name=\"Название бота\")\n    token = models.CharField(max_length=255, verbose_name=\"Токен\")\n    chat_id = models.CharField(max_length=50, verbose_name=\"Chat ID\")\n    bot_type = models.CharField(",
         "detail": "app.tg_bot.models.base",
         "documentation": {}
     },
@@ -1217,7 +1429,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.models.base",
         "description": "app.tg_bot.models.base",
-        "peekOfCode": "class TgUser(models.Model):\n    \"\"\"Модель для хранения данных о пользователе Telegram.\"\"\"\n    tg_id = models.BigIntegerField(unique=True, verbose_name=\"Telegram ID\")\n    username = models.CharField(max_length=255, blank=True, null=True, verbose_name=\"Username\")\n    first_name = models.CharField(max_length=255, blank=True, null=True, verbose_name=\"Имя\")\n    last_name = models.CharField(max_length=255, blank=True, null=True, verbose_name=\"Фамилия\")\n    language_code = models.CharField(max_length=10, blank=True, null=True, verbose_name=\"Язык пользователя\")\n    is_bot = models.BooleanField(default=False, verbose_name=\"Это бот\")\n    created_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата создания\")\n    updated_at = models.DateTimeField(auto_now=True, verbose_name=\"Дата обновления\")",
+        "peekOfCode": "class TgUser(models.Model):\n    \"\"\"Модель для хранения данных о пользователе Telegram.\"\"\"\n    tg_id = models.BigIntegerField(unique=True, verbose_name=\"Telegram ID\")\n    username = models.CharField(\n        max_length=255, blank=True, null=True, verbose_name=\"Username\"\n    )\n    first_name = models.CharField(\n        max_length=255, blank=True, null=True, verbose_name=\"Имя\"\n    )\n    last_name = models.CharField(",
         "detail": "app.tg_bot.models.base",
         "documentation": {}
     },
@@ -1253,7 +1465,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.models.tarot",
         "description": "app.tg_bot.models.tarot",
-        "peekOfCode": "class TarotCard(models.Model):\n    card_id = models.CharField(max_length=10, unique=True, verbose_name=\"ID карты\")\n    name = models.CharField(max_length=255, verbose_name=\"Название карты\")\n    meaning = models.TextField(verbose_name=\"Основное значение\")\n    meaning_url = models.URLField(\n        verbose_name=\"Ссылка на значение\", blank=True, null=True\n    )\n    def __str__(self):\n        return self.name\n    class Meta:",
+        "peekOfCode": "class TarotCard(models.Model):\n    card_id = models.CharField(max_length=10, unique=True, verbose_name=\"ID карты\")\n    name = models.CharField(max_length=255, verbose_name=\"Название карты\")\n    meaning = models.TextField(verbose_name=\"Основное значение\")\n    meaning_url = models.URLField(\n        verbose_name=\"Ссылка на значение\", blank=True, null=True\n    )\n    is_major = models.BooleanField(default=False)\n    def __str__(self):\n        return self.name",
         "detail": "app.tg_bot.models.tarot",
         "documentation": {}
     },
@@ -1289,7 +1501,7 @@
         "kind": 5,
         "importPath": "app.tg_bot.models.tarot",
         "description": "app.tg_bot.models.tarot",
-        "peekOfCode": "bot_prefix = \"Tarot\"\nclass TarotCard(models.Model):\n    card_id = models.CharField(max_length=10, unique=True, verbose_name=\"ID карты\")\n    name = models.CharField(max_length=255, verbose_name=\"Название карты\")\n    meaning = models.TextField(verbose_name=\"Основное значение\")\n    meaning_url = models.URLField(\n        verbose_name=\"Ссылка на значение\", blank=True, null=True\n    )\n    def __str__(self):\n        return self.name",
+        "peekOfCode": "bot_prefix = \"Tarot\"\nclass TarotCard(models.Model):\n    card_id = models.CharField(max_length=10, unique=True, verbose_name=\"ID карты\")\n    name = models.CharField(max_length=255, verbose_name=\"Название карты\")\n    meaning = models.TextField(verbose_name=\"Основное значение\")\n    meaning_url = models.URLField(\n        verbose_name=\"Ссылка на значение\", blank=True, null=True\n    )\n    is_major = models.BooleanField(default=False)\n    def __str__(self):",
         "detail": "app.tg_bot.models.tarot",
         "documentation": {}
     },
@@ -1298,7 +1510,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class BotAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"token\", \"chat_id\", \"created_at\", \"updated_at\")\n    search_fields = (\"name\", \"token\", \"chat_id\")\n    list_filter = (\"created_at\", \"updated_at\")\n    readonly_fields = (\"created_at\", \"updated_at\")\n@admin.register(ParseProduct)\nclass ParseProductAdmin(admin.ModelAdmin):\n    list_display = (\"product_id\", \"caption\", \"product_type\", \"created_at\")\n    list_filter = (\"product_type\",)\n    search_fields = (\"caption\", \"product_id\")",
+        "peekOfCode": "class BotAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"token\", \"chat_id\", \"bot_type\", \"created_at\", \"updated_at\")\n    search_fields = (\"name\", \"token\", \"chat_id\")\n    list_filter = (\"bot_type\", \"created_at\")\n@admin.register(ParseProduct)\nclass ParseProductAdmin(admin.ModelAdmin):\n    list_display = (\"product_id\", \"caption\", \"product_type\", \"created_at\")\n    list_filter = (\"product_type\",)\n    search_fields = (\"caption\", \"product_id\")\n@admin.register(TgUserProduct)",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },
@@ -1316,7 +1528,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class TgUserProductAdmin(admin.ModelAdmin):\n    list_display = (\"tg_user\", \"product\", \"sent_at\")\n    list_filter = (\"sent_at\",)\n    search_fields = (\"tg_user__username\", \"product__caption\")\n@admin.register(TarotCard)\nclass TarotCardAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"meaning\")\n@admin.register(ExtendedMeaning)\nclass ExtendedMeaningAdmin(admin.ModelAdmin):\n    list_display = (\"tarot_card\", \"category\", \"text\")",
+        "peekOfCode": "class TgUserProductAdmin(admin.ModelAdmin):\n    list_display = (\"tg_user\", \"product\", \"sent_at\")\n    list_filter = (\"sent_at\",)\n    search_fields = (\"tg_user__username\", \"product__caption\")\n@admin.register(TarotCard)\nclass TarotCardAdmin(admin.ModelAdmin):\n    list_display = (\"card_id\", \"name\", \"is_major\")  # Добавлено card_id для наглядности\n    list_editable = (\"is_major\",)  # Разрешаем редактирование прямо в списке\n    list_filter = (\"is_major\",)  # Добавляем фильтр по этому полю\n    search_fields = (\"name\", \"card_id\")  # Поиск по названию и ID карты",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },
@@ -1325,7 +1537,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class TarotCardAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"meaning\")\n@admin.register(ExtendedMeaning)\nclass ExtendedMeaningAdmin(admin.ModelAdmin):\n    list_display = (\"tarot_card\", \"category\", \"text\")\n@admin.register(TarotDeck)\nclass TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"",
+        "peekOfCode": "class TarotCardAdmin(admin.ModelAdmin):\n    list_display = (\"card_id\", \"name\", \"is_major\")  # Добавлено card_id для наглядности\n    list_editable = (\"is_major\",)  # Разрешаем редактирование прямо в списке\n    list_filter = (\"is_major\",)  # Добавляем фильтр по этому полю\n    search_fields = (\"name\", \"card_id\")  # Поиск по названию и ID карты\n@admin.register(ExtendedMeaning)\nclass ExtendedMeaningAdmin(admin.ModelAdmin):\n    list_display = (\"tarot_card\", \"category\", \"text\")\n@admin.register(TarotDeck)\nclass TarotDeckAdmin(admin.ModelAdmin):",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },
@@ -1352,7 +1564,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class CardAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели Card.\n    \"\"\"\n    list_display = (\"deck\", \"tarot_card\",  \"img_id\")  # Поля, отображаемые в списке\n    search_fields = (\"deck__name\", \"tarot_card__name\")  # Поля для поиска\n    list_filter = (\"deck\", \"tarot_card\")  # Фильтры в правой панели",
+        "peekOfCode": "class CardAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели Card.\n    \"\"\"\n    list_display = (\"deck\", \"tarot_card\", \"img_id\")  # Поля, отображаемые в списке\n    search_fields = (\"deck__name\", \"tarot_card__name\")  # Поля для поиска\n    list_filter = (\"deck\", \"tarot_card\")  # Фильтры в правой панели",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },

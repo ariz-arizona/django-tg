@@ -1,5 +1,6 @@
 import re
 import random
+import time
 from typing import List, Optional
 from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -34,7 +35,8 @@ class TarotBot(AbstractBot):
                 self.handle_card,
             ),
             CallbackQueryHandler(self.handle_more_button, pattern=r"^more_\d+_.+$"),
-            CallbackQueryHandler(self.handle_desc_button, pattern=r"^desc$"),
+            CallbackQueryHandler(self.handle_desc_button, pattern=r"^desc_(\d+(?:#\d+)*)$"),
+            CallbackQueryHandler(self.handle_pagination, pattern=r"^meaning_\d+_\d+$"),
         ]
 
     async def get_deck(self, index=None):
@@ -169,7 +171,7 @@ class TarotBot(AbstractBot):
                             "Еще карту",
                             callback_data=f'more_{deck.id}_{"#".join(exclude_cards)}_{int(major)}',
                         ),
-                        InlineKeyboardButton("Базовые значения", callback_data="desc"),
+                        InlineKeyboardButton("Базовые значения", callback_data=f'desc_{"#".join(exclude_cards)}'),
                     ]
                 ]
             ),
@@ -260,7 +262,62 @@ class TarotBot(AbstractBot):
             bool(major),
         )
 
+
+    # Функция для разделения текста на части
+    def split_text(self, text, chunk_size=1024):
+        return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+
+
+    # Функция для создания инлайн-клавиатуры
+    def create_pagination_keyboard(self, card_id, current_page, total_pages):
+        keyboard = []
+        if current_page > 1:
+            keyboard.append(InlineKeyboardButton("⬅️ Назад", callback_data=f"meaning_{card_id}_{current_page - 1}"))
+        if current_page < total_pages:
+            keyboard.append(InlineKeyboardButton("Вперед ➡️", callback_data=f"meaning_{card_id}_{current_page + 1}"))
+        return InlineKeyboardMarkup([keyboard])
+
+    # Функция для отправки текста с пагинацией
+    async def send_paginated_text(self, update, card_id, text):
+        # Разделяем текст на части
+        text_parts = self.split_text(text)
+        total_pages = len(text_parts)
+
+        # Отправляем первую страницу
+        await update.effective_message.reply_text(
+            text=text_parts[0],
+            reply_markup=self.create_pagination_keyboard(card_id, 1, total_pages)
+        )
+
+    # Обработчик для навигации по страницам
+    async def handle_pagination(self, update:Update, context:CallbackContext):
+        query = update.callback_query
+        await query.answer()
+
+        # Извлекаем данные из callback_data
+        _, card_id, page = query.data.split('_')
+        page = int(page)
+
+        # Получаем текст карты (здесь предполагается, что текст уже загружен)
+        card = await TarotCard.objects.aget(card_id=card_id)
+        text_parts = self.split_text(card.meaning)
+
+        # Обновляем сообщение с новой страницей
+        await query.edit_message_text(
+            text=text_parts[page - 1],
+            reply_markup=self.create_pagination_keyboard(card_id, page, len(text_parts))
+        )
+
+
     async def handle_desc_button(self, update: Update, context: CallbackContext):
         query = update.callback_query
         await query.answer()
-        logger.info(query)
+
+        _, cards = query.data.split("_")
+        cards = cards.split('#')
+        
+        for c in cards:
+            card = await TarotCard.objects.aget(card_id=c)
+            await self.send_paginated_text(update, card.card_id, card.meaning)
+            time.sleep(0.3)
+

@@ -19,16 +19,26 @@ class TarotCard(models.Model):
         verbose_name = f"{bot_prefix}: Карта Таро"
         verbose_name_plural = f"{bot_prefix}: Карты Таро"
 
+class Category(models.Model):
+    name = models.CharField(max_length=50, verbose_name="Категория", unique=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = f"{bot_prefix}: Категория"
+        verbose_name_plural = f"{bot_prefix}: Категории"
 
 class ExtendedMeaning(models.Model):
     tarot_card = models.ForeignKey(
         TarotCard, on_delete=models.CASCADE, related_name="extended_meanings"
     )
     category = models.CharField(max_length=50, verbose_name="Категория")
+    category_base = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='cat')
     text = models.TextField(verbose_name="Текст значения")
 
     def __str__(self):
-        return f"{self.tarot_card.name} - {self.category}"
+        return f"{self.tarot_card.name}"
 
     class Meta:
         verbose_name = f"{bot_prefix}: Расширенное толкование"

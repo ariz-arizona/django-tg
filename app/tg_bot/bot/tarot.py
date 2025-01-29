@@ -39,7 +39,7 @@ class TarotBot(AbstractBot):
                 self.handle_desc_button, pattern=r"^desc_(\d+(?:#\d+)*)$"
             ),
             CallbackQueryHandler(
-                self.handle_pagination, pattern=r"^meaning_[a-z]+_\d+_\d+$"
+                self.handle_pagination, pattern=r"^meaning_[a-z0-9]+_\d+_\d+$"
             ),
         ]
 
@@ -352,13 +352,14 @@ class TarotBot(AbstractBot):
 
             # Загружаем значения с prefetch_related
             all_meanings = ExtendedMeaning.objects.prefetch_related(
-                "tarot_card"
+                "tarot_card", "category_base"
             ).filter(tarot_card__card_id=card_id)
 
             # Собираем все значения в список
-            meanings_list = [item.category async for item in all_meanings]
-            meanings_list.append('base')
-            meanings_list.remove(meaning_type)
+            meanings_list = [(item.category_base.id, item.category_base.name) async for item in all_meanings]
+            meanings_list.append(('base', 'Базовый'))
+
+            meanings_list = [x for x in meanings_list if str(x[0]) != str(meaning_type)]
             if not meanings_list:
                 logger.warning(f"Для карты {card_id} не найдено значений.")
                 return None  # или вернуть InlineKeyboardMarkup([]), если нужна пустая клавиатура
@@ -395,8 +396,8 @@ class TarotBot(AbstractBot):
             for group in grouped_buttons:
                 row = [
                     InlineKeyboardButton(
-                        text=item,
-                        callback_data=f"meaning_{item}_{card_id}_1",
+                        text=item[1],
+                        callback_data=f"meaning_{item[0]}_{card_id}_1",
                     )
                     for item in group
                 ]
@@ -434,9 +435,9 @@ class TarotBot(AbstractBot):
             card = await TarotCard.objects.aget(card_id=card_id)
             text = card.meaning
         else:
-            cards = ExtendedMeaning.objects.all().prefetch_related("tarot_card")
+            cards = ExtendedMeaning.objects.all().prefetch_related("tarot_card", "category_base")
             card = await cards.filter(
-                tarot_card__card_id=card_id, category=meaning_type
+                tarot_card__card_id=card_id, category_base=meaning_type
             ).aget()
             text = card.text
 

@@ -1,7 +1,7 @@
 import json
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from tg_bot.models import TarotCard, ExtendedMeaning
+from tg_bot.models import TarotCard, ExtendedMeaning,Category
 from server.logger import logger
 
 class Command(BaseCommand):
@@ -28,11 +28,14 @@ class Command(BaseCommand):
 
             # Создание расширенных значений
             for category, text in card_data["extended_meanings"].items():
+                cat, _ = Category.objects.get_or_create(name=category)
                 ExtendedMeaning.objects.update_or_create(
                     tarot_card=tarot_card,
+                    category_base=cat,
                     category=category,
                     defaults={"text": text},
                 )
+                
 
             logger.info(self.style.SUCCESS(f"Карта '{card_data['name']}' успешно загружена."))
 

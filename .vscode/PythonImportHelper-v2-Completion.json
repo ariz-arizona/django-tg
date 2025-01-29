@@ -478,6 +478,14 @@
         "documentation": {}
     },
     {
+        "label": "Category",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
         "label": "TarotCard",
         "importPath": "tg_bot.models",
         "description": "tg_bot.models",
@@ -745,6 +753,134 @@
     },
     {
         "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
         "importPath": "django.db",
         "description": "django.db",
         "isExtraImport": true,
@@ -1474,6 +1610,96 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0007_category_extendedmeaning_category_new",
+        "description": "app.tg_bot.migrations.0007_category_extendedmeaning_category_new",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0006_tarotcard_is_major'),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='Category',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),\n                ('name', models.CharField(max_length=50, unique=True, verbose_name='Категория')),",
+        "detail": "app.tg_bot.migrations.0007_category_extendedmeaning_category_new",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0008_remove_extendedmeaning_category",
+        "description": "app.tg_bot.migrations.0008_remove_extendedmeaning_category",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0007_category_extendedmeaning_category_new'),\n    ]\n    operations = [\n        migrations.RemoveField(\n            model_name='extendedmeaning',\n            name='category',\n        ),\n    ]",
+        "detail": "app.tg_bot.migrations.0008_remove_extendedmeaning_category",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0009_rename_category_new_extendedmeaning_category",
+        "description": "app.tg_bot.migrations.0009_rename_category_new_extendedmeaning_category",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0008_remove_extendedmeaning_category'),\n    ]\n    operations = [\n        migrations.RenameField(\n            model_name='extendedmeaning',\n            old_name='category_new',\n            new_name='category',\n        ),",
+        "detail": "app.tg_bot.migrations.0009_rename_category_new_extendedmeaning_category",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0010_remove_extendedmeaning_category_and_more",
+        "description": "app.tg_bot.migrations.0010_remove_extendedmeaning_category_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0009_rename_category_new_extendedmeaning_category'),\n    ]\n    operations = [\n        migrations.RemoveField(\n            model_name='extendedmeaning',\n            name='category',\n        ),\n        migrations.AddField(",
+        "detail": "app.tg_bot.migrations.0010_remove_extendedmeaning_category_and_more",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0011_remove_extendedmeaning_category_new_and_more",
+        "description": "app.tg_bot.migrations.0011_remove_extendedmeaning_category_new_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0010_remove_extendedmeaning_category_and_more'),\n    ]\n    operations = [\n        migrations.RemoveField(\n            model_name='extendedmeaning',\n            name='category_new',\n        ),\n        migrations.AddField(",
+        "detail": "app.tg_bot.migrations.0011_remove_extendedmeaning_category_new_and_more",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0012_remove_extendedmeaning_category",
+        "description": "app.tg_bot.migrations.0012_remove_extendedmeaning_category",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0011_remove_extendedmeaning_category_new_and_more'),\n    ]\n    operations = [\n        migrations.RemoveField(\n            model_name='extendedmeaning',\n            name='category',\n        ),\n    ]",
+        "detail": "app.tg_bot.migrations.0012_remove_extendedmeaning_category",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0013_extendedmeaning_category",
+        "description": "app.tg_bot.migrations.0013_extendedmeaning_category",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0012_remove_extendedmeaning_category'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='extendedmeaning',\n            name='category',\n            field=models.CharField(default='1', max_length=50, verbose_name='Категория'),\n            preserve_default=False,",
+        "detail": "app.tg_bot.migrations.0013_extendedmeaning_category",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0014_extendedmeaning_category_base",
+        "description": "app.tg_bot.migrations.0014_extendedmeaning_category_base",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0013_extendedmeaning_category'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='extendedmeaning',\n            name='category_base',\n            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='tg_bot.category'),\n        ),",
+        "detail": "app.tg_bot.migrations.0014_extendedmeaning_category_base",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0015_remove_extendedmeaning_category_base",
+        "description": "app.tg_bot.migrations.0015_remove_extendedmeaning_category_base",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0014_extendedmeaning_category_base'),\n    ]\n    operations = [\n        migrations.RemoveField(\n            model_name='extendedmeaning',\n            name='category_base',\n        ),\n    ]",
+        "detail": "app.tg_bot.migrations.0015_remove_extendedmeaning_category_base",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0016_extendedmeaning_category_base",
+        "description": "app.tg_bot.migrations.0016_extendedmeaning_category_base",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0015_remove_extendedmeaning_category_base'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='extendedmeaning',\n            name='category_base',\n            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='cat', to='tg_bot.category'),\n        ),",
+        "detail": "app.tg_bot.migrations.0016_extendedmeaning_category_base",
+        "documentation": {}
+    },
+    {
         "label": "Bot",
         "kind": 6,
         "importPath": "app.tg_bot.models.base",
@@ -1528,11 +1754,20 @@
         "documentation": {}
     },
     {
+        "label": "Category",
+        "kind": 6,
+        "importPath": "app.tg_bot.models.tarot",
+        "description": "app.tg_bot.models.tarot",
+        "peekOfCode": "class Category(models.Model):\n    name = models.CharField(max_length=50, verbose_name=\"Категория\", unique=True)\n    def __str__(self):\n        return self.name\n    class Meta:\n        verbose_name = f\"{bot_prefix}: Категория\"\n        verbose_name_plural = f\"{bot_prefix}: Категории\"\nclass ExtendedMeaning(models.Model):\n    tarot_card = models.ForeignKey(\n        TarotCard, on_delete=models.CASCADE, related_name=\"extended_meanings\"",
+        "detail": "app.tg_bot.models.tarot",
+        "documentation": {}
+    },
+    {
         "label": "ExtendedMeaning",
         "kind": 6,
         "importPath": "app.tg_bot.models.tarot",
         "description": "app.tg_bot.models.tarot",
-        "peekOfCode": "class ExtendedMeaning(models.Model):\n    tarot_card = models.ForeignKey(\n        TarotCard, on_delete=models.CASCADE, related_name=\"extended_meanings\"\n    )\n    category = models.CharField(max_length=50, verbose_name=\"Категория\")\n    text = models.TextField(verbose_name=\"Текст значения\")\n    def __str__(self):\n        return f\"{self.tarot_card.name} - {self.category}\"\n    class Meta:\n        verbose_name = f\"{bot_prefix}: Расширенное толкование\"",
+        "peekOfCode": "class ExtendedMeaning(models.Model):\n    tarot_card = models.ForeignKey(\n        TarotCard, on_delete=models.CASCADE, related_name=\"extended_meanings\"\n    )\n    category = models.CharField(max_length=50, verbose_name=\"Категория\")\n    category_base = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='cat')\n    text = models.TextField(verbose_name=\"Текст значения\")\n    def __str__(self):\n        return f\"{self.tarot_card.name}\"\n    class Meta:",
         "detail": "app.tg_bot.models.tarot",
         "documentation": {}
     },
@@ -1595,7 +1830,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class TarotCardAdmin(admin.ModelAdmin):\n    list_display = (\"card_id\", \"name\", \"is_major\")  # Добавлено card_id для наглядности\n    list_editable = (\"is_major\",)  # Разрешаем редактирование прямо в списке\n    list_filter = (\"is_major\",)  # Добавляем фильтр по этому полю\n    search_fields = (\"name\", \"card_id\")  # Поиск по названию и ID карты\n@admin.register(ExtendedMeaning)\nclass ExtendedMeaningAdmin(admin.ModelAdmin):\n    list_display = (\"tarot_card\", \"category\", \"text\")\n@admin.register(TarotDeck)\nclass TarotDeckAdmin(admin.ModelAdmin):",
+        "peekOfCode": "class TarotCardAdmin(admin.ModelAdmin):\n    list_display = (\"card_id\", \"name\", \"is_major\")  # Добавлено card_id для наглядности\n    list_editable = (\"is_major\",)  # Разрешаем редактирование прямо в списке\n    list_filter = (\"is_major\",)  # Добавляем фильтр по этому полю\n    search_fields = (\"name\", \"card_id\")  # Поиск по названию и ID карты\n@admin.register(ExtendedMeaning)\nclass ExtendedMeaningAdmin(admin.ModelAdmin):\n    list_display = (\"tarot_card\", \"category\", \"category_base\", \"text\")\n@admin.register(Category)\nclass CategoryAdmin(admin.ModelAdmin):",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },
@@ -1604,7 +1839,16 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class ExtendedMeaningAdmin(admin.ModelAdmin):\n    list_display = (\"tarot_card\", \"category\", \"text\")\n@admin.register(TarotDeck)\nclass TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"\n    list_display = (\"name\", \"link\")  # Поля, отображаемые в списке\n    search_fields = (\"name\",)  # Поля для поиска\n    list_filter = (\"name\",)  # Фильтры в правой панели",
+        "peekOfCode": "class ExtendedMeaningAdmin(admin.ModelAdmin):\n    list_display = (\"tarot_card\", \"category\", \"category_base\", \"text\")\n@admin.register(Category)\nclass CategoryAdmin(admin.ModelAdmin):\n    pass\n@admin.register(TarotDeck)\nclass TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"",
+        "detail": "app.tg_bot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "CategoryAdmin",
+        "kind": 6,
+        "importPath": "app.tg_bot.admin",
+        "description": "app.tg_bot.admin",
+        "peekOfCode": "class CategoryAdmin(admin.ModelAdmin):\n    pass\n@admin.register(TarotDeck)\nclass TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"\n    list_display = (\"name\", \"link\")  # Поля, отображаемые в списке\n    search_fields = (\"name\",)  # Поля для поиска\n    list_filter = (\"name\",)  # Фильтры в правой панели",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },

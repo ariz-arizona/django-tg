@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import Bot, TgUser
 from .models import ParseProduct, TgUserProduct
-from .models import TarotCard, ExtendedMeaning, TarotDeck, TarotCardItem
+from .models import TarotCard, ExtendedMeaning, TarotDeck, TarotCardItem, Category
 
 
 @admin.register(Bot)
@@ -35,7 +35,12 @@ class TarotCardAdmin(admin.ModelAdmin):
 
 @admin.register(ExtendedMeaning)
 class ExtendedMeaningAdmin(admin.ModelAdmin):
-    list_display = ("tarot_card", "category", "text")
+    list_display = ("tarot_card", "category", "category_base", "text")
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    pass
 
 
 @admin.register(TarotDeck)

@@ -36,6 +36,8 @@ ALLOWED_HOSTS = [
 TG_WEBHOOK_HOST = f"https://{os.environ.get('TG_WEBHOOK_HOST')}"
 PICTURE_CHAT = os.environ.get("PICTURE_CHAT")
 PARSER_URL = os.environ.get("PARSER")
+TG_DEBUG = os.environ.get("TG_DEBUG").lower() == "true"
+
 CSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ORIGIN_WHITELIST = [

@@ -156,7 +156,7 @@ class TarotBot(AbstractBot):
         except Exception as e:
             raise RuntimeError(f"Ошибка: {str(e)}") from e
 
-    async def send_card(self, update: Update, cards, exclude_cards, deck, major):
+    async def send_card(self, update: Update, cards, exclude_cards, deck, major, flip):
         await update.effective_message.reply_media_group(
             [
                 InputMediaPhoto(
@@ -165,7 +165,7 @@ class TarotBot(AbstractBot):
                         if settings.TG_DEBUG
                         else c["img_id"]
                     ),
-                    c["name"],
+                    "\n".join(c["name"], c["flipped"] if flip else None),
                 )
                 for c in cards
             ],
@@ -178,7 +178,7 @@ class TarotBot(AbstractBot):
                     [
                         InlineKeyboardButton(
                             "Еще карту",
-                            callback_data=f'more_{deck.id}_{"#".join(exclude_cards)}_{int(major)}',
+                            callback_data=f'more_{deck.id}_{"#".join(exclude_cards)}_{int(major)}_{int(flip)}',
                         ),
                         InlineKeyboardButton(
                             "Базовые значения",
@@ -261,6 +261,7 @@ class TarotBot(AbstractBot):
                 [c["card_id"] for c in cards],
                 deck,
                 options.get("major", False),
+                options.get("flip", False),
             )
             logger.info("Карты успешно отправлены.")
 
@@ -276,7 +277,7 @@ class TarotBot(AbstractBot):
         logger.info(f"Получен callback-запрос: {query.data}")
 
         try:
-            _, deck_id, exclude_cards, major = query.data.split("_")
+            _, deck_id, exclude_cards, major, flip = query.data.split("_")
             exclude_cards = exclude_cards.split("#") if exclude_cards else []
         except ValueError as e:
             logger.error(f"Ошибка при разборе query.data: {query.data}, ошибка: {e}")
@@ -318,7 +319,14 @@ class TarotBot(AbstractBot):
         logger.info(f"Обновленный список исключений: {full_exclude}")
 
         try:
-            await self.send_card(update, new_card, full_exclude, deck, bool(major))
+            await self.send_card(
+                update,
+                new_card,
+                full_exclude,
+                deck,
+                bool(major),
+                bool(flip),
+            )
             logger.info(f"Карта отправлена: {new_card}")
         except Exception as e:
             logger.error(f"Ошибка при отправке карты: {e}")
@@ -356,8 +364,11 @@ class TarotBot(AbstractBot):
             ).filter(tarot_card__card_id=card_id)
 
             # Собираем все значения в список
-            meanings_list = [(item.category_base.id, item.category_base.name) async for item in all_meanings]
-            meanings_list.append(('base', 'Базовый'))
+            meanings_list = [
+                (item.category_base.id, item.category_base.name)
+                async for item in all_meanings
+            ]
+            meanings_list.append(("base", "Базовый"))
 
             meanings_list = [x for x in meanings_list if str(x[0]) != str(meaning_type)]
             if not meanings_list:
@@ -435,7 +446,9 @@ class TarotBot(AbstractBot):
             card = await TarotCard.objects.aget(card_id=card_id)
             text = card.meaning
         else:
-            cards = ExtendedMeaning.objects.all().prefetch_related("tarot_card", "category_base")
+            cards = ExtendedMeaning.objects.all().prefetch_related(
+                "tarot_card", "category_base"
+            )
             card = await cards.filter(
                 tarot_card__card_id=card_id, category_base=meaning_type
             ).aget()

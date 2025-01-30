@@ -17,6 +17,7 @@ python-telegram-bot = "^21.10"
 aiohttp = "^3.11.11"
 python-dotenv = "^1.0.1"
 requests = "^2.32.3"
+beautifulsoup4 = "^4.12.3"
 
 
 [build-system]

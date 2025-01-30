@@ -664,6 +664,14 @@
         "documentation": {}
     },
     {
+        "label": "BeautifulSoup",
+        "importPath": "bs4",
+        "description": "bs4",
+        "isExtraImport": true,
+        "detail": "bs4",
+        "documentation": {}
+    },
+    {
         "label": "ObjectDoesNotExist",
         "importPath": "django.core.exceptions",
         "description": "django.core.exceptions",
@@ -1394,7 +1402,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.bot.tarot",
         "description": "app.tg_bot.bot.tarot",
-        "peekOfCode": "class TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.COMMAND\n                & filters.TEXT\n                & filters.ChatType.PRIVATE\n                & filters.Regex(r\"^\\/card(\\d+)?\"),",
+        "peekOfCode": "class TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            CommandHandler(\"one\", self.handle_one_command, filters.ChatType.PRIVATE),\n            MessageHandler(\n                filters.COMMAND\n                & filters.TEXT\n                & filters.ChatType.PRIVATE",
         "detail": "app.tg_bot.bot.tarot",
         "documentation": {}
     },

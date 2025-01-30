@@ -2,6 +2,11 @@ import re
 import random
 import time
 from typing import List, Optional, Dict
+
+import aiohttp
+import random
+from bs4 import BeautifulSoup
+
 from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     CommandHandler,
@@ -27,6 +32,7 @@ class TarotBot(AbstractBot):
 
     def get_handlers(self):
         return [
+            CommandHandler("one", self.handle_one_command, filters.ChatType.PRIVATE),
             MessageHandler(
                 filters.COMMAND
                 & filters.TEXT
@@ -157,6 +163,7 @@ class TarotBot(AbstractBot):
             raise RuntimeError(f"Ошибка: {str(e)}") from e
 
     async def send_card(self, update: Update, cards, exclude_cards, deck, major, flip):
+        logger.info(f"исключить: {exclude_cards} колода: {deck} старшие: {major} {int(major)} перевернуто: {flip} {int(flip)}")
         await update.effective_message.reply_media_group(
             [
                 InputMediaPhoto(
@@ -165,7 +172,13 @@ class TarotBot(AbstractBot):
                         if settings.TG_DEBUG
                         else c["img_id"]
                     ),
-                    "\n".join(c["name"], c["flipped"] if flip else None),
+                    "\n".join(
+                        [
+                            str(item)
+                            for item in [c["name"], 'Перевернуто' if flip and c["flipped"] else None]
+                            if item is not None
+                        ]
+                    ),
                 )
                 for c in cards
             ],
@@ -278,6 +291,8 @@ class TarotBot(AbstractBot):
 
         try:
             _, deck_id, exclude_cards, major, flip = query.data.split("_")
+            major = int(major)
+            flip = int(flip)
             exclude_cards = exclude_cards.split("#") if exclude_cards else []
         except ValueError as e:
             logger.error(f"Ошибка при разборе query.data: {query.data}, ошибка: {e}")
@@ -476,3 +491,55 @@ class TarotBot(AbstractBot):
             card = await TarotCard.objects.aget(card_id=c)
             await self.send_paginated_text(update, card.card_id, card.meaning)
             time.sleep(0.3)
+
+    async def load_page(self, url):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                return await response.text()
+
+    async def handle_one_command(self, update: Update, context: CallbackContext):
+        tarot_url = "https://www.tarot.com"
+        decks_url = "/tarot/decks"
+
+        tech_msg = await update.effective_message.reply_text(
+            "Выбираю колоду", reply_to_message_id=update.effective_message.message_id
+        )
+        tech_msg_id = tech_msg.message_id
+
+        content = await self.load_page(f"{tarot_url}{decks_url}")
+        dom = BeautifulSoup(content, "html.parser")
+
+        decks_raw = dom.select(".tarot-deck-list a")
+        decks = [el["href"] for el in decks_raw if el.get("href")]
+
+        random_deck_id = random.randint(0, len(decks) - 1)
+        random_deck = decks[random_deck_id]
+
+        await context.bot.edit_message_text(
+            "Выбираю карту",
+            chat_id=update.effective_chat.id,  # ID чата
+            message_id=tech_msg_id,  # ID сообщения, которое нужно отредактировать
+        )
+
+        content = await self.load_page(f"{tarot_url}{random_deck}")
+        dom = BeautifulSoup(content, "html.parser")
+
+        cards_raw = dom.select('#majorarcana ~ row a[data-category*="Tarot Decks:"]')
+        cards = []
+        for el in cards_raw:
+            name = el.text.strip()
+            img = el.find("img")["src"]
+            if "mid_size" in img:
+                img = img.replace("mid_size", "full_size")
+            url = f"{tarot_url}{el['href']}"
+            cards.append({"name": name, "url": url, "img": img})
+
+        random_card_id = random.randint(0, len(cards) - 1)
+        random_card = cards[random_card_id]
+
+        await update.effective_message.reply_photo(
+            random_card["img"],
+            f"{random_card['name']}\n{random_card['url']}",
+            reply_to_message_id=update.effective_message.message_id,
+        )
+        await context.bot.delete_message(update.effective_chat.id, tech_msg_id)

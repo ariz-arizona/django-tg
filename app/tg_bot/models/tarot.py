@@ -1,4 +1,7 @@
 from django.db import models
+from django.utils import timezone
+
+from tg_bot.models import TgUser
 
 bot_prefix = "Tarot"
 
@@ -19,7 +22,8 @@ class TarotCard(models.Model):
         verbose_name = f"{bot_prefix}: Карта Таро"
         verbose_name_plural = f"{bot_prefix}: Карты Таро"
 
-class Category(models.Model):
+
+class TarotMeaningCategory(models.Model):
     name = models.CharField(max_length=50, verbose_name="Категория", unique=True)
 
     def __str__(self):
@@ -29,12 +33,15 @@ class Category(models.Model):
         verbose_name = f"{bot_prefix}: Категория"
         verbose_name_plural = f"{bot_prefix}: Категории"
 
+
 class ExtendedMeaning(models.Model):
     tarot_card = models.ForeignKey(
         TarotCard, on_delete=models.CASCADE, related_name="extended_meanings"
     )
     category = models.CharField(max_length=50, verbose_name="Категория")
-    category_base = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='cat')
+    category_base = models.ForeignKey(
+        TarotMeaningCategory, on_delete=models.SET_NULL, null=True, related_name="cat"
+    )
     text = models.TextField(verbose_name="Текст значения")
 
     def __str__(self):
@@ -90,3 +97,28 @@ class TarotCardItem(models.Model):
         verbose_name = f"{bot_prefix}: Карта в колоде"
         verbose_name_plural = f"{bot_prefix}: Карты в колодах"
         unique_together = ("deck", "tarot_card")
+
+
+class TarotUserReading(models.Model):
+    user = models.ForeignKey(
+        "TgUser",  # Укажите имя модели, если TgUser определена в другом месте
+        on_delete=models.SET_NULL,
+        related_name="readings",
+        null=True,
+        verbose_name="Пользователь",  # Человекочитаемое имя для поля
+    )
+    date = models.DateTimeField(
+        default=timezone.now, verbose_name="Дата гадания"
+    )  # Дата и время гадания
+    text = models.TextField(blank=True, verbose_name="Текст гадания")  # Текст гадания
+
+    def __str__(self):
+        username = self.user.username if self.user else "Unknown User"
+        return f"Reading by {username} on {self.date}"
+
+    class Meta:
+        verbose_name = f"{bot_prefix}: Пользовательское гадание"
+        verbose_name_plural = f"{bot_prefix}: Пользовательские гадания"
+        indexes = [
+            models.Index(fields=["user", "date"]),
+        ]

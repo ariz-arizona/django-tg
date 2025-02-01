@@ -1259,7 +1259,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "DEBUG = True\nALLOWED_HOSTS = [\n    \"localhost\",\n    os.environ.get(\"TG_WEBHOOK_HOST\"),\n]\nTG_WEBHOOK_HOST = f\"https://{os.environ.get('TG_WEBHOOK_HOST')}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = os.environ.get(\"TG_DEBUG\").lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)",
+        "peekOfCode": "DEBUG = True\nALLOWED_HOSTS = [\n    \"localhost\",\n    os.environ.get(\"TG_WEBHOOK_HOST\"),\n]\nTG_WEBHOOK_HOST = f\"https://{os.environ.get('TG_WEBHOOK_HOST')}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or 'false').lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1268,7 +1268,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "ALLOWED_HOSTS = [\n    \"localhost\",\n    os.environ.get(\"TG_WEBHOOK_HOST\"),\n]\nTG_WEBHOOK_HOST = f\"https://{os.environ.get('TG_WEBHOOK_HOST')}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = os.environ.get(\"TG_DEBUG\").lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False",
+        "peekOfCode": "ALLOWED_HOSTS = [\n    \"localhost\",\n    os.environ.get(\"TG_WEBHOOK_HOST\"),\n]\nTG_WEBHOOK_HOST = f\"https://{os.environ.get('TG_WEBHOOK_HOST')}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or 'false').lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1277,7 +1277,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "TG_WEBHOOK_HOST = f\"https://{os.environ.get('TG_WEBHOOK_HOST')}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = os.environ.get(\"TG_DEBUG\").lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition",
+        "peekOfCode": "TG_WEBHOOK_HOST = f\"https://{os.environ.get('TG_WEBHOOK_HOST')}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or 'false').lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1286,7 +1286,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "PICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = os.environ.get(\"TG_DEBUG\").lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [",
+        "peekOfCode": "PICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or 'false').lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1295,7 +1295,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "PARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = os.environ.get(\"TG_DEBUG\").lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",",
+        "peekOfCode": "PARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or 'false').lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1304,7 +1304,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "TG_DEBUG = os.environ.get(\"TG_DEBUG\").lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",",
+        "peekOfCode": "TG_DEBUG = (os.environ.get(\"TG_DEBUG\") or 'false').lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",",
         "detail": "app.server.settings",
         "documentation": {}
     },

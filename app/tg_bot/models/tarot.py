@@ -149,8 +149,8 @@ class OraculumDeck(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Колода оракула"
-        verbose_name_plural = "Колоды оракула"
+        verbose_name = f"{bot_prefix}: Колода оракула"
+        verbose_name_plural = f"{bot_prefix}: Колоды оракула"
 
 
 class OraculumItem(models.Model):
@@ -194,5 +194,5 @@ class OraculumItem(models.Model):
         return f"{self.name} (из колоды: {self.deck.name})"
 
     class Meta:
-        verbose_name = "Карта оракула"
-        verbose_name_plural = "Карты оракула"
+        verbose_name = f"{bot_prefix}: Карта оракула"
+        verbose_name_plural = f"{bot_prefix}: Карты оракула"

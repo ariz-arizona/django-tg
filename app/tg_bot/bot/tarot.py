@@ -43,6 +43,17 @@ class TarotBot(AbstractBot):
 
     def get_handlers(self):
         return [
+            MessageHandler(
+                filters.COMMAND
+                & filters.TEXT
+                & filters.ChatType.PRIVATE
+                & filters.Regex(r"^\/decks( oraculum)?$"),
+                self.handle_decks,
+            ),
+            CallbackQueryHandler(
+                self.handle_decks_page,
+                pattern=r"^deckspage_\d+_(oraculum|tarot)$",
+            ),
             CommandHandler("last", self.handle_last_readings, filters.ChatType.PRIVATE),
             CommandHandler("one", self.handle_one_command, filters.ChatType.PRIVATE),
             MessageHandler(
@@ -772,3 +783,123 @@ class TarotBot(AbstractBot):
             )
         except Exception as e:
             logger.error(e)
+
+    async def make_decks_page(
+        self,
+        current_page: int = 0,
+        items_per_page: int = 13,
+        deck_type: str = "tarot",
+    ):
+        """
+        Формирует страницу с колодами и inline-клавиатуру для пагинации.
+        """
+        # Выбираем модель колоды в зависимости от типа
+        if deck_type == "oraculum":
+            all_decks = OraculumDeck.objects.all()
+        elif deck_type == "tarot":
+            all_decks = TarotDeck.objects.all()
+        else:
+            raise ValueError("Неизвестный тип колоды")
+
+        all_decks_count = await all_decks.acount()
+
+        # Разбиваем колоды на страницы
+        decks_pages = [
+            all_decks[i : i + items_per_page]
+            for i in range(0, all_decks_count, items_per_page)
+        ]
+
+        # Формируем текст текущей страницы
+        if current_page >= len(decks_pages):
+            current_page = 0  # Если страница выходит за пределы, возвращаемся на первую
+
+        decks_page = decks_pages[current_page]
+        decks_text = []
+        command_name = 'card'
+        if deck_type == 'oraculum':
+            command_name = 'oraculum'
+        async for deck in decks_page:
+            decks_text.append(f"<code>/{command_name} deck {deck.id}</code> - {deck.name}")
+        decks_text = "\n".join(decks_text)
+
+        keyboard = []
+        # Добавляем кнопку "Назад", если есть предыдущая страница
+        if current_page > 0:
+            keyboard.append(
+                InlineKeyboardButton(
+                    text="⬅️ Назад",
+                    callback_data=f"deckspage_{current_page - 1}_{deck_type}",
+                )
+            )
+
+        # Добавляем кнопку "Вперед", если есть следующая страница
+        if current_page < len(decks_pages) - 1:
+            keyboard.append(
+                InlineKeyboardButton(
+                    text="➡️ Вперед",
+                    callback_data=f"deckspage_{current_page + 1}_{deck_type}",
+                )
+            )
+
+        return decks_text, InlineKeyboardMarkup([keyboard])
+
+    async def handle_decks(self, update: Update, context: CallbackContext):
+        """
+        Обработчик команды /decks.
+        """
+        try:
+            msg_text = update.message.text
+            logger.info(f"Обработка команды /oraculum с текстом: {msg_text[:100]}")
+
+            # Определяем тип колоды (по умолчанию — oraculum)
+            deck_type = "tarot"
+            if bool(re.search(r"oraculum", msg_text)):
+                deck_type = "oraculum"
+
+            # Формируем первую страницу с колодами
+            decks_text, keyboard = await self.make_decks_page(
+                current_page=0, deck_type=deck_type
+            )
+
+            # Отправляем сообщение с колодами и inline-клавиатурой
+            await update.message.reply_text(
+                decks_text,
+                reply_markup=keyboard,
+                parse_mode="HTML",
+                disable_web_page_preview=True,
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при обработке команды /decks: {e}", exc_info=True)
+            await update.message.reply_text(
+                "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
+            )
+
+    async def handle_decks_page(self, update: Update, context: CallbackContext):
+        """
+        Обработчик callback-запросов для переключения между страницами колод.
+        """
+        query = update.callback_query
+        await query.answer()
+
+        try:
+            # Получаем номер страницы и тип колоды из callback_data
+            _, page_number, deck_type = query.data.split("_")
+            page_number = int(page_number)
+
+            # Формируем новую страницу с колодами
+            decks_text, keyboard = await self.make_decks_page(
+                current_page=page_number, deck_type=deck_type
+            )
+
+            # Редактируем сообщение с новой страницей
+            await query.edit_message_text(
+                decks_text,
+                reply_markup=keyboard,
+                parse_mode="HTML",
+                disable_web_page_preview=True,
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при обработке callback-запроса: {e}", exc_info=True)
+            await query.edit_message_text(
+                "Произошла ошибка. Пожалуйста, попробуйте снова."
+            )

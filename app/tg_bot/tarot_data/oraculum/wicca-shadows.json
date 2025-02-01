@@ -1,0 +1,290 @@
+[
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Apjg7cBd8rUSei0j938qdTUdnvdCgACV68xG-cYJFCQ4Db29jjKFgEAAwIAA3gAAysE",
+        "name": "Великий Дух",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Atjg7cFmW0BWROljE_wDiYruhlhCAACyq8xG_9RHFDGcExJdpvlXQEAAwIAA3gAAysE",
+        "name": "Богиня",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Axjg7cJA2sJWrPFas9oXmsAAT9yUs8AAievMRu5Uh1QeEu6PcWyEwkBAAMCAAN4AAMrBA",
+        "name": "Рогатый Бог",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6A1jg7cM_EzetneqlvByH1lsPFyrlQACSK8xG1hpJVDMOPOKpBRvlAEAAwIAA3gAAysE",
+        "name": "Тройной закон",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6A5jg7cQgvz8WRkv8M3CSpoNnv_CLQAC0K4xG1DTJFCgC4gMmkxwqwEAAwIAA3gAAysE",
+        "name": "Йоль",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6A9jg7cUbkWKEWKEdIjEHbKlbaoyrQACcq8xG93dHVDACkkbEW7MuQEAAwIAA3gAAysE",
+        "name": "Имболк",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6BBjg7cY9jWcEAWlbuIv50Mu1MqvlgACSK8xG8FzHFCUtiGPuBVGeAEAAwIAA3gAAysE",
+        "name": "Остара",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6BFjg7cbOSGZpis9CUF79iAvszTVAgACUq8xG_M0HVBahHt5kxxqNQEAAwIAA3gAAysE",
+        "name": "Бельтейн",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6BJjg7cfYVnmMO4PB0WEM02cMQxtugAC7K4xG8SrJFA-MvOwBhg22AEAAwIAA3gAAysE",
+        "name": "Лита",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6BNjg7cj-vLVRMU21U8TQJGDPWLNIgACBa8xGzveJFCRZ1f26n0_7wEAAwIAA3gAAysE",
+        "name": "Ламмас",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6BRjg7cmSlZZ6tTvBNpraBT6I0paeAACrq8xG2a5JVA-_2JLPEK0_wEAAwIAA3gAAysE",
+        "name": "Мабон",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6BVjg7cqEvRtw0ccVS5Fm8MfvHNSKgACya8xG7lNHFCHYfwVWBaVAgEAAwIAA3gAAysE",
+        "name": "Самайн",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6BZjg7cu3pEhJOXplwiy-APcdWTS-wACgq8xG78ZJVAEHtGzkX9CMgEAAwIAA3gAAysE",
+        "name": "Воздух",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Bdjg7cy95hRKwU5lb0D6EcAAZIJxagAAs-vMRvYKCRQHavV-iV2xQkBAAMCAAN4AAMrBA",
+        "name": "Земля",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgIAAxkBAAEaZjpjg7hKLkg0zOxzAAHke1IuUNOhEVkAAoLCMRtgbyBIgyv5hg4h-QEBAAMCAAN4AAMrBA",
+        "name": "Вода",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Bhjg7c4zjfdRUqJpFrmjkJJuaMJSwAC4q4xG-gqJVDSAxAsr5c2vQEAAwIAA3gAAysE",
+        "name": "Огонь",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Bljg7c8PzE2Mw7T5T5YKO5BzgWjfQAC1a8xG0N-HVAWj90CujqIMgEAAwIAA3gAAysE",
+        "name": "Ковен",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Bpjg7dAVS6Le8SOFFHm33hoQFMGNQACh68xGxiDJFC6uP2deMHyzgEAAwIAA3gAAysE",
+        "name": "Алтарь",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Btjg7dEDR9wVRyXbpXeBAcEsTrqhQAC3K8xG5ayJFAVMVXhb6pIVQEAAwIAA3gAAysE",
+        "name": "Атам",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Bxjg7dIgcSa8DtPi88q5WY1D1r46AACXa8xG3f_JVAw16IugSi6SwEAAwIAA3gAAysE",
+        "name": "Пентакль",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6B1jg7dMNvDF25hRGhcbaDJ4albXSAAC164xG0WNJVCFL__2LG-fKgEAAwIAA3gAAysE",
+        "name": "Жезл",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6B5jg7dQJ-VnleLRwhqt95dcOlEVtwACv68xG16sHFCB24-LxwVw4gEAAwIAA3gAAysE",
+        "name": "Чаша",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6B9jg7dTAc3dVvajStkFFIwCn37xkwACZq8xG6IqJVC3MQABOQ8MsoMBAAMCAAN4AAMrBA",
+        "name": "Метла",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6CBjg7dXYFlnbBwNjoYPf8HMcHTx1AACZ64xG0g_JVDhLhr5lHphNQEAAwIAA3gAAysE",
+        "name": "Котёл",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6CFjg7dbKPL13FnUQz9pWMzdJhymewACka4xGwsdJVDGo_efQq45-QEAAwIAA3gAAysE",
+        "name": "Книга Теней",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6CJjg7dfwrOSJd6M0ENpW2fndJiK4gACx68xG0G3JVDdqVSl4UMQDAEAAwIAA3gAAysE",
+        "name": "Жрец",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6CNjg7diIYEAAVqyvgMBrZagve8v5oUAAhSvMRsPNh1QDWsj-1bXQBcBAAMCAAN4AAMrBA",
+        "name": "Жрица",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6CRjg7dmn0Z3HKnrDa-l2gMphSLPmQACha8xG4bxJVD4WmsrykEofwEAAwIAA3gAAysE",
+        "name": "Старуха",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6CVjg7dp3_atU3cq21AKP5r2HxBMDAACY68xGxtOHFAzEPL8n5ZK1QEAAwIAA3gAAysE",
+        "name": "Дева",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6CZjg7dtfsJp4Uk0esQv01G-x-IqJwACUq8xG2d6JVDMDyBuvrJRewEAAwIAA3gAAysE",
+        "name": "Заклинание",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Chjg7dxj7rM_j-3xiACUe670rviZgACka8xGxWtJFDnu7gcbneacQEAAwIAA3gAAysE",
+        "name": "Ритуал",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6C5jg7d1ok-ZT38fElNsJbqSGS0pWwACNq8xGw9SJVDwNNhYufJghwEAAwIAA3gAAysE",
+        "name": "Полнолуние",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6DVjg7d4lPG35OEccGETpvIcuWFMjwACTK8xG8qLJVCAUm8uAabE2gEAAwIAA3gAAysE",
+        "name": "Новолуние",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Dpjg7d80jH6uVxZL1ho_0Oi8fXX9wACfa8xGyLYJFDc0zR3Z7PDPwEAAwIAA3gAAysE",
+        "name": "Сова",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6EBjg7eAsmoj4CQMvvYsZ1muD501AQACV68xG34sJFCqfhTzooZiXQEAAwIAA3gAAysE",
+        "name": "Рогатый заяц",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6ERjg7eEt60VsooORAEsWUpaExJkNQAC2q8xG5GHJVCGm5rgCEoICwEAAwIAA3gAAysE",
+        "name": "Медведь",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6EVjg7eIaztZVtj6Ca2OB2I9_7EfeQACiK8xG_JuJFA8tUT8fHSLowEAAwIAA3gAAysE",
+        "name": "Мандрагора",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6EZjg7eM18ENgY3jYLoO2tt-RFnt3wACra8xG3ObJVAekutKuyDZIwEAAwIAA3gAAysE",
+        "name": "Кристалл",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Edjg7eQa4mhgUxSjLOKbZdDXMPnLwACga8xG_c7JFCS8JMrlvekrwEAAwIAA3gAAysE",
+        "name": "Жаба",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Ehjg7eT9dFzlxPhs-Pza8xtxcVQggACdK8xG51RJVCnWx7iCJo9FAEAAwIAA3gAAysE",
+        "name": "Магический круг",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Eljg7eXeEj-KdxSBEYHCfZC9uRJ-wAC0a8xG9oVJFAyCtFsSDqf7AEAAwIAA3gAAysE",
+        "name": "Цветочная фея",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Epjg7ebLtrNr112xERaDWCrzSnKXgACca8xGxPaJFBQbopOSmnTggEAAwIAA3gAAysE",
+        "name": "Серый гусь",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Etjg7efmCCopZkz325IjVG8KYf2dQACPK8xG4qJJVCyOch1O2b_3gEAAwIAA3gAAysE",
+        "name": "Свеча",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6Exjg7ej-fYyUJrVdWwlhUN5dkDfjAACL68xG2QKJFDl88e222wGAQEAAwIAA3gAAysE",
+        "name": "Лунный кот",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6E1jg7enb_Ua-30iMFHFSgy2YdExqwACeK8xGxKUHVDQ9ejrYCDBRQEAAwIAA3gAAysE",
+        "name": "Ворон",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6E5jg7eqjJC0Jdyd5oABfnwaQL4TawACja8xG9spJVCVIpU3-VTi8AEAAwIAA3gAAysE",
+        "name": "Бабочка",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6E9jg7eu326ko1_-sZOyUkngluAPAwACn64xG9SSJFAsJ9UvHLNXNAEAAwIAA3gAAysE",
+        "name": "Чёрная луна",
+        "description": "",
+        "direct": ""
+    },
+    {
+        "fileId": "AgACAgQAAxkDAAEI6FBjg7eyWHzIdWCBQ5_Wr8ZB1M_DHQACJq8xG90fJFA6-7dnfm6JXQEAAwIAA3gAAysE",
+        "name": "Пустая карта",
+        "description": "",
+        "direct": ""
+    }
+]

@@ -1,0 +1,462 @@
+[
+    {
+        "name": "Таро Романтическая Викториана / Victorian Romantic tarot",
+        "url": "https://www.rozamira-tarot.ru/tarot/r/taro-romanticheskaya-viktoriana-victorian-romantic-tarot.html",
+        "id": "victorian-romantic"
+    },
+    {
+        "name": "Таро волшебников",
+        "url": "http://tarot.my1.ru/forum/6-901-1",
+        "id": "wizards"
+    },
+    {
+        "name": "Ибис Таро / Ibis Tarot",
+        "url": "https://www.rozamira-tarot.ru/tarot/i/ibis-taro-egipetskoe-taro-ibis-tarot.html",
+        "id": "ibis-tarot"
+    },
+    {
+        "name": "Gilded tarot Чиро Марчетти",
+        "url": "https://elizabehtin.wordpress.com/2015/01/09/gilded-tarot-chiro-marchetti/",
+        "id": "gilded"
+    },
+    {
+        "name": "Золотое Таро Климта",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=33",
+        "id": "klimt"
+    },
+    {
+        "name": "Кельтское Таро",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=52",
+        "id": "celtic"
+    },
+    {
+        "name": "Марсельское Таро",
+        "url": "https://arcantaro.ru/deck/49/",
+        "id": "marseille"
+    },
+    {
+        "name": "Мистическое Таро Мечтателя",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=47",
+        "id": "dreamers-mystical"
+    },
+    {
+        "name": "Мифологическое таро",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=59",
+        "id": "myth"
+    },
+    {
+        "name": "Пираты Карибского моря",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=53",
+        "id": "pirates-caribbean"
+    },
+    {
+        "name": "Сказочное Таро",
+        "url": "https://arcantaro.ru/deck/73/",
+        "id": "fairy"
+    },
+    {
+        "name": "Средневековое Таро",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=38",
+        "id": "medieval"
+    },
+    {
+        "name": "Ступени Золотого Таро",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=21",
+        "id": "golden-tarot-levels"
+    },
+    {
+        "name": "Таро Безумной Луны",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=55",
+        "id": "taro-bezumnoj-luny"
+    },
+    {
+        "name": "Таро Белой и Черной магии",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=51",
+        "id": "white-black-magic"
+    },
+    {
+        "name": "Таро Босха",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=15",
+        "id": "bosch"
+    },
+    {
+        "name": "Таро Ботичелли",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=0",
+        "id": "botticelli"
+    },
+    {
+        "name": "Таро Брейгеля",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=30",
+        "id": "bruegel"
+    },
+    {
+        "name": "Ведьмовское Таро (Таро Ведьм) / Witchy Tarot",
+        "url": "http://mirtaro.com/ведьмовское-таро-witchy-tarot-by-laura-tuan-and-antonella-platano/",
+        "id": "witchy"
+    },
+    {
+        "name": "Таро Висконти",
+        "url": "https://arcantaro.ru/deck/44/",
+        "id": "visconti"
+    },
+    {
+        "name": "Таро Гномов",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=14",
+        "id": "gnomes"
+    },
+    {
+        "name": "Таро Джейн Остин",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=27",
+        "id": "jane-austin"
+    },
+    {
+        "name": "Таро Драконов",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=35",
+        "id": "dragons"
+    },
+    {
+        "name": "Ремесла друидов",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=39",
+        "id": "druids"
+    },
+    {
+        "name": "Таро Золотого рассвета",
+        "url": "https://arcantaro.ru/deck/48/",
+        "id": "golden-dawn-2"
+    },
+    {
+        "name": "Таро Золотой зари",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=50",
+        "id": "golden-dawn"
+    },
+    {
+        "name": "Таро Иллюминатов",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=57",
+        "id": "illuminati"
+    },
+    {
+        "name": "Таро Колесо Года",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=3",
+        "id": "wheel-year"
+    },
+    {
+        "name": "Таро Ленорман",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=28",
+        "id": "taro-lenorman"
+    },
+    {
+        "name": "Мир Леонардо Да Винчи",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=42",
+        "id": "taro-leonardo-da-vinci"
+    },
+    {
+        "name": "Таро Магических Символов",
+        "url": "https://magic-kniga.ru/items/1518",
+        "id": "magic-symbols"
+    },
+    {
+        "name": "Таро Магия Снов",
+        "url": "https://tarotman.ru/galereya-kart-taro/magiya-snov.html",
+        "id": "dream-magic"
+    },
+    {
+        "name": "Таро Мистерии Авалона",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=32",
+        "id": "mysteries-avalon"
+    },
+    {
+        "name": "Таро Мона Лиза",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=45",
+        "id": "mona-lisa"
+    },
+    {
+        "name": "Таро New Vision",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=58",
+        "id": "new-vision"
+    },
+    {
+        "name": "Таро Ритуалы Ордена «Золотой Зари»",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=49",
+        "id": "rituals-golden-dawn"
+    },
+    {
+        "name": "Герметическое таро",
+        "url": "https://arcantaro.ru/deck/2/",
+        "id": "hermetic"
+    },
+    {
+        "name": "Таро Ошо Дзен",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=10",
+        "id": "osho-zen"
+    },
+    {
+        "name": "Предсказательное таро Порог Вечности",
+        "url": "https://www.rozamira-tarot.ru/tarot/r/xenson-roberts-taro-hanson-roberts-tarot.html",
+        "id": "hanson-roberts"
+    },
+    {
+        "name": "Путешествие на Восток",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=13",
+        "id": "journey-east"
+    },
+    {
+        "name": "Таро Ренессанс",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=34",
+        "id": "renaissance"
+    },
+    {
+        "name": "Ренессанса Джейн Лайл",
+        "url": "https://arcantaro.ru/deck/108/",
+        "id": "new-renaissance"
+    },
+    {
+        "name": "Таро Святого Грааля",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=36",
+        "id": "holy-grail"
+    },
+    {
+        "name": "Таро Снов Чиро Марчетти",
+        "url": "https://tarotman.ru/galereya-kart-taro/chiro-marchetti-taro-snov.html",
+        "id": "ciro-marchetti-dreams"
+    },
+    {
+        "name": "Таро Союз Богинь",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=56",
+        "id": "taro-soyuz-bogin"
+    },
+    {
+        "name": "Таро Тота Алистера Кроули",
+        "url": "https://steve-p.org/cards/Thot.html",
+        "id": "taro-tota-alistera-krouli"
+    },
+    {
+        "name": "Таро Короля-Солнце (Таро Трех Мушкетеров) / I Tarocchi del Re Sole",
+        "url": "https://www.rozamira-tarot.ru/tarot/m/taro-korolya-solnce-taro-trex-mushketerov-i-tarocchi-del-re-sole-tarot-of-the-3-musketeers.html",
+        "id": "musketeers"
+    },
+    {
+        "name": "Таро Тысяча и одна Ночь",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=12",
+        "id": "thousand-one-night"
+    },
+    {
+        "name": "Универсальный ключ",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=2",
+        "id": "universal-key"
+    },
+    {
+        "name": "Таро Цветов",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=54",
+        "id": "flowers"
+    },
+    {
+        "name": "Таро Эльфов",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=43",
+        "id": "elves"
+    },
+    {
+        "name": "Таро Эра Водолея",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=8",
+        "id": "age-of-aquaris"
+    },
+    {
+        "name": "Золотое Флорентийское Таро",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=46",
+        "id": "florentine"
+    },
+    {
+        "name": "Цыганское Таро Бакленда / Buckland Romani Tarot",
+        "url": "https://www.rozamira-tarot.ru/tarot/b/cyganskoe-taro-baklenda-buckland-romani-tarot.html",
+        "id": "buckland-romani"
+    },
+    {
+        "name": "Star Wars Taro",
+        "url": "https://www.canva.com/design/DAE8QvguN2o/0cnomYOjAcrTT6MlZGPyuw/view",
+        "id": "sw"
+    },
+    {
+        "name": "Rider-Waite-Smith Tarot",
+        "url": "https://steve-p.org/cards/RWSa.html",
+        "id": "rider-waite"
+    },
+    {
+        "name": "Таро Белых Кошек",
+        "url": "https://kattarot.ucoz.com/index/taro_belykh_koshek/0-16",
+        "id": "white-cats"
+    },
+    {
+        "name": "The Urban Tarot (U.S. Games Systems)",
+        "url": "https://steve-p.org/cards/UrbT.html",
+        "id": "urban-tarot"
+    },
+    {
+        "name": "The Somnia Tarot",
+        "url": "https://www.nicolasbrunophotography.com/THE-SOMNIA-TAROT",
+        "id": "the-somnia-tarot"
+    },
+    {
+        "name": "Таро 78 Волшебников / Sorcerers Tarot",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=25",
+        "id": "78-wizards"
+    },
+    {
+        "name": "Таро Агни Рерихов",
+        "url": "http://demonessa22.ucoz.ru/publ/prorabotki_kolod/taro_agni_rerikhov/36-1-0-276",
+        "id": "rorich"
+    },
+    {
+        "name": "The Fountain Tarot",
+        "url": "http://mirtaro.com/the-fountain-tarot/",
+        "id": "the-fountain-tarot"
+    },
+    {
+        "name": "Таро Забытых Легенд / Tarot of the Forgotten Legends",
+        "url": "https://modernmagic.ru/taro-zabytyh-legend-galereya",
+        "id": "forgotten-legends"
+    },
+    {
+        "name": "Таро Таинственного леса",
+        "url": "https://arcantaro.ru/deck/20/",
+        "id": "magical-forest"
+    },
+    {
+        "name": "Золотое Таро Уэйт Арт-Нуво / Golden Art Nouveau Tarot",
+        "url": "https://www.rozamira-tarot.ru/galeria/albom-golden-art-nouveau-tarot-zolotoe-taro-ueyt-art-nuvo.html",
+        "id": "golden-art-nouveau"
+    },
+    {
+        "name": "Supernatural Tarot",
+        "url": "https://www.rozamira-tarot.ru/galeria/albom-supernatural-tarot-sverhestestvennoe-taro.html",
+        "id": "supernatural"
+    },
+    {
+        "name": "Таро Темного леса / Darkwood Tarot",
+        "url": "https://www.rozamira-tarot.ru/galeria/albom-dark-wood-tarot-taro-temnogo-lesa.html",
+        "id": "darkwood"
+    },
+    {
+        "name": "Таро Ведьма Каждый День / Everyday Witch Tarot",
+        "url": "https://www.rozamira-tarot.ru/galeria/albom-everyday-witch-tarot-taro-vedma-kazhdyiy-den.html",
+        "id": "everyday-witch"
+    },
+    {
+        "name": "Manara",
+        "url": "https://www.rozamira-tarot.ru/galeria/albom-manara-erotic-tarot-manara-eroticheskoe-taro.html",
+        "id": "manara"
+    },
+    {
+        "name": "Таро Теневого Света / Shadow Light Tarot",
+        "url": "https://www.rozamira-tarot.ru/galeria/albom-shadow-light-tarot-taro-tenevogo-sveta-taro-svetoteni.html",
+        "id": "shadow-light"
+    },
+    {
+        "name": "Таро Русалок / Mermaid Tarot",
+        "url": "http://marytcusack.com/maryc/decks/html/Tarot/Mermaid.html",
+        "id": "mermaid"
+    },
+    {
+        "name": "Omegaland Tarot",
+        "url": "https://www.rozamira-tarot.ru/tarot/omegalend-taro-omegaland-tarot.html",
+        "id": "omegaland"
+    },
+    {
+        "name": "Gay Tarot",
+        "url": "https://www.rozamira-tarot.ru/tarot/g/gej-taro-gay-tarot.html",
+        "id": "gay-tarot"
+    },
+    {
+        "name": "Таро Сумасшедшего Дома / Madhouse Tarot",
+        "url": "https://www.tarotmania.ch/store/products/madhouse-tarot-deck-unique-illustrated-occult-cards-for-prediction",
+        "id": "madhouse"
+    },
+    {
+        "name": "Интуитивное таро Ночной Богини / The Intuitive Night Goddess Tarot",
+        "url": "https://www.linzisilverman.com/ingtarot",
+        "id": "intuitive-night-goddess"
+    },
+    {
+        "name": "Черный Гримуар",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=69",
+        "id": "black-grimoire"
+    },
+    {
+        "name": "Таро Николетты Чеколли",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=73",
+        "id": "nicoletta-ceccoli"
+    },
+    {
+        "name": "Так и внизу (Книга Теней Том 2)",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=71",
+        "id": "so-below"
+    },
+    {
+        "name": "78 дверей",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=5",
+        "id": "78-doors"
+    },
+    {
+        "name": "Игра Престолов",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=65",
+        "id": "game-thrones"
+    },
+    {
+        "name": "Таро Светлого Провидца",
+        "url": "https://magiachisel.ru/KartyTaro/GalereyaTaro.aspx?kl=79",
+        "id": "bright-seer"
+    },
+    {
+        "name": "Таро Злодеев Диснея / Disney Villains Tarot",
+        "url": "https://www.rozamira-tarot.ru/tarot/d/taro-zlodeev-disneya-disney-villains-tarot.html",
+        "id": "disney-villains"
+    },
+    {
+        "name": "Таро Черных Котов / Black Cats Tarot",
+        "url": "https://www.rozamira-tarot.ru/tarot/b/taro-chernyx-kotov-black-cats-tarot.html",
+        "id": "black-cats"
+    },
+    {
+        "name": "Таро Золотого Колеса / Tarot of the Golden Wheel",
+        "url": "https://www.rozamira-tarot.ru/tarot/g/taro-zolotogo-kolesa-tarot-of-the-golden-wheel.html",
+        "id": "golden-wheel"
+    },
+    {
+        "name": "Таро Вуду Нового Орлеана / New Orleans Voodoo Tarot",
+        "url": "https://www.rozamira-tarot.ru/tarot/taro-vudu-novogo-orleana-new-orleans-voodoo-tarot.html",
+        "id": "new-orlean-voodoo"
+    },
+    {
+        "name": "Neon Moon",
+        "url": "http://pixeloccult.com/neonmoontarot/Cards.html",
+        "id": "neon"
+    },
+    {
+        "name": "Таро Викторианских Фей / Victorian Fairy Tarot",
+        "url": "https://www.rozamira-tarot.ru/tarot/f/taro-viktorianskix-fej-victorian-fairy-tarot.html",
+        "id": "victorian-fairy"
+    },
+    {
+        "name": "Языческое таро",
+        "url": "https://arcantaro.ru/deck/91/",
+        "id": "wicca"
+    },
+    {
+        "name": "Таро Лунатиков",
+        "url": "http://opakyl.ru/taro.php?id=6&gallery=12&cards=arkan",
+        "id": "lunatic"
+    },
+    {
+        "name": "Third Eye Tarot (Britt's Art)",
+        "url": "https://vk.com/album-81047727_269214185",
+        "id": "third-eye"
+    },
+    {
+        "name": "Dragon Age Tarot",
+        "url": "https://micromys.tumblr.com/tagged/dragon%20age%20tarot",
+        "id": "dragon-age"
+    },
+    {
+        "name": "MIMIT | Mini Mice Tarot",
+        "url": "https://www.kickstarter.com/projects/deeblistudio/mimit-mini-mice-tarot-0",
+        "id": "mimit"
+    }
+]

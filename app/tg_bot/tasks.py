@@ -50,7 +50,7 @@ async def run_bot(token, handlersClass):
     while True:
         try:
             # Извлекаем сообщение из очереди
-            message = redis_client.lpop("bot_messages_queue")
+            message = redis_client.lpop(f"bot_messages_queue_{token}")
             if message:
                 try:
                     # Декодируем сообщение

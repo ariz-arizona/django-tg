@@ -1,5 +1,5 @@
 import re
-import random
+import traceback
 import time
 from typing import List, Optional, Dict
 
@@ -118,7 +118,6 @@ class TarotBot(AbstractBot):
             # 1. Проверка существования колоды
             if not await TarotDeck.objects.filter(id=deck_id).aexists():
                 raise ValueError(f"Колода {deck_id} не найдена")
-
             # 2. Базовый запрос карт колоды
             filters = {"deck_id": deck_id}
             if major and not len(card_ids):
@@ -180,6 +179,8 @@ class TarotBot(AbstractBot):
 
             # 8. Формируем результат
             combined = manual_cards + random_cards
+            # logger.info(type(combined[0]))
+            # logger.info(await combined[0])
             return [
                 {
                     "card_instance": card,
@@ -244,7 +245,7 @@ class TarotBot(AbstractBot):
         except Exception as e:
             raise RuntimeError(f"Ошибка: {str(e)}") from e
 
-    def format_card_name(self, card, flip):
+    async def format_card_name(self, card, flip):
         return "\n".join(
             [
                 str(item)
@@ -278,7 +279,7 @@ class TarotBot(AbstractBot):
                         if settings.TG_DEBUG
                         else c["img_id"]
                     ),
-                    self.format_card_name(c, flip),
+                    await self.format_card_name(c, flip),
                 )
                 for c in cards
             ],
@@ -286,28 +287,34 @@ class TarotBot(AbstractBot):
         )
 
         text = [deck.name]
+        reply_markup = None
         if isinstance(deck, TarotDeck):
             text.append(deck.link)
-
-        await update.effective_message.reply_text(
-            text="\n".join(text),
-            reply_markup=InlineKeyboardMarkup(
-                [
+            reply_markup = (
+                
                     [
-                        InlineKeyboardButton(
-                            "Еще карту",
-                            callback_data=f'more_{deck.id}_{"#".join(exclude_cards)}_{int(major)}_{int(flip)}',
-                        ),
-                        InlineKeyboardButton(
-                            "Базовые значения",
-                            callback_data=f'desc_{"#".join(exclude_cards)}',
-                        ),
+                        [
+                            InlineKeyboardButton(
+                                "Еще карту",
+                                callback_data=f'more_{deck.id}_{"#".join(exclude_cards)}_{int(major)}_{int(flip)}',
+                            ),
+                            InlineKeyboardButton(
+                                "Базовые значения",
+                                callback_data=f'desc_{"#".join(exclude_cards)}',
+                            ),
+                        ]
                     ]
-                ]
-            ),
-            reply_to_message_id=update.effective_message.message_id,
-            disable_web_page_preview=True,
-        )
+                
+            )
+        params = {
+            "text": "\n".join(text),
+            "reply_to_message_id": update.effective_message.message_id,
+            "disable_web_page_preview": True,
+        }
+        if reply_markup:
+            params["reply_markup"] = InlineKeyboardMarkup(reply_markup)
+
+        await update.effective_message.reply_text(**params)
 
     async def handle_card(self, update: Update, context: CallbackContext):
         """
@@ -386,7 +393,7 @@ class TarotBot(AbstractBot):
             reading = await TarotUserReading.objects.acreate(
                 user=user,
                 text=f"ТАРО: {deck.name} "
-                + ", ".join([self.format_card_name(c, options["flip"]) for c in cards]),
+                + ", ".join([await self.format_card_name(c, options["flip"]) for c in cards]),
                 message_id=update.effective_message.message_id,
             )
             reading_ids[user.id] = update.effective_message.message_id
@@ -402,7 +409,7 @@ class TarotBot(AbstractBot):
                 options.get("major", False),
                 options.get("flip", False),
             )
-            logger.info("Карты успешно отправлены.")
+            logger.info(f"Карта отправлена: {[str(n.get(k)) for k in ['card_id', 'name'] for n in cards]}")
 
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /card: {e}", exc_info=True)
@@ -459,6 +466,16 @@ class TarotBot(AbstractBot):
             )
             logger.info(f"Получено карт: {len(cards)}")
 
+            reading = await TarotUserReading.objects.acreate(
+                user=user,
+                text=f"ОРАКУЛ: {deck.name} "
+                + ", ".join([await self.format_card_name(c, options["flip"]) for c in cards]),
+                message_id=update.effective_message.message_id,
+            )
+            reading_ids[user.id] = update.effective_message.message_id
+
+            logger.info(f"Результат гадания сохранен: {reading}")
+
             # Отправка карт
             await self.send_card(
                 update,
@@ -468,7 +485,7 @@ class TarotBot(AbstractBot):
                 options.get("major", False),
                 options.get("flip", False),
             )
-            logger.info("Карты успешно отправлены.")
+            logger.info(f"Карта отправлена: {[str(n.get(k)) for k in ['card_id', 'name'] for n in cards]}")
 
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /oraculum: {e}", exc_info=True)
@@ -511,13 +528,14 @@ class TarotBot(AbstractBot):
                 exclude_cards=exclude_cards,
                 major=bool(major),
             )
-            logger.info(f"Выбраны новые карты: {new_card}")
+            # logger.info(f"Выбраны новые карты: {new_card}")
             new_card_text = "\n".join(
-                [",".join([self.format_card_name(c, flip) for c in new_card])]
+                [",".join([await self.format_card_name(c, flip) for c in new_card])]
             )
 
         except Exception as e:
-            logger.error(f"Ошибка получения карт: {e}")
+            logger.error(f"Ошибка получения карт: {e}", exc_info=True)
+            logger.error(traceback.format_exc())
             await query.edit_message_text("Ошибка получения карт.")
             return
 
@@ -560,7 +578,7 @@ class TarotBot(AbstractBot):
                 bool(major),
                 bool(flip),
             )
-            logger.info(f"Карта отправлена: {new_card}")
+            logger.info(f"Карта отправлена: {[str(n.get(k)) for k in ['card_id', 'name'] for n in new_card]}")
         except Exception as e:
             logger.error(f"Ошибка при отправке карты: {e}")
             await query.edit_message_text("Ошибка при отправке карты.")
@@ -815,11 +833,13 @@ class TarotBot(AbstractBot):
 
         decks_page = decks_pages[current_page]
         decks_text = []
-        command_name = 'card'
-        if deck_type == 'oraculum':
-            command_name = 'oraculum'
+        command_name = "card"
+        if deck_type == "oraculum":
+            command_name = "oraculum"
         async for deck in decks_page:
-            decks_text.append(f"<code>/{command_name} deck {deck.id}</code> - {deck.name}")
+            decks_text.append(
+                f"<code>/{command_name} deck {deck.id}</code> - {deck.name}"
+            )
         decks_text = "\n".join(decks_text)
 
         keyboard = []

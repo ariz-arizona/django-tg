@@ -1,7 +1,14 @@
 from django.contrib import admin
 from .models import Bot, TgUser
 from .models import ParseProduct, TgUserProduct
-from .models import TarotCard, ExtendedMeaning, TarotDeck, TarotCardItem, TarotMeaningCategory
+from .models import (
+    TarotCard,
+    ExtendedMeaning,
+    TarotDeck,
+    TarotCardItem,
+    TarotMeaningCategory,
+    TarotUserReading,
+)
 
 
 @admin.register(Bot)
@@ -63,3 +70,31 @@ class CardAdmin(admin.ModelAdmin):
     list_display = ("deck", "tarot_card", "img_id")  # Поля, отображаемые в списке
     search_fields = ("deck__name", "tarot_card__name")  # Поля для поиска
     list_filter = ("deck", "tarot_card")  # Фильтры в правой панели
+
+
+@admin.register(TarotUserReading)
+class TarotUserReadingAdmin(admin.ModelAdmin):
+    # Поля, которые будут отображаться в списке записей
+    list_display = ("user", "date", "text", "message_id")
+
+    # Поля, по которым можно фильтровать записи
+    list_filter = ("user", "date")
+
+    # Поля, по которым можно искать записи
+    search_fields = ("text", "user__username", "message_id")
+
+    # Поля, которые будут использоваться для детального просмотра записи
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": ("user", "date", "text", "message_id"),
+            },
+        ),
+    )
+
+    # Автоматическое заполнение поля даты при создании записи
+    def get_readonly_fields(self, request, obj=None):
+        if obj:  # Если объект уже существует, запрещаем редактирование даты
+            return self.readonly_fields + ("date",)
+        return self.readonly_fields

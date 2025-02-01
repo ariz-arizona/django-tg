@@ -111,6 +111,9 @@ class TarotUserReading(models.Model):
         default=timezone.now, verbose_name="Дата гадания"
     )  # Дата и время гадания
     text = models.TextField(blank=True, verbose_name="Текст гадания")  # Текст гадания
+    message_id = models.IntegerField(
+        null=True, blank=True, verbose_name="ID сообщения"
+    )  # Идентификатор сообщения в Telegram
 
     def __str__(self):
         username = self.user.username if self.user else "Unknown User"

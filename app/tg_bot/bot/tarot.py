@@ -20,10 +20,19 @@ from django.utils.timezone import now
 from django.core.exceptions import ObjectDoesNotExist
 
 from tg_bot.bot.abstract import AbstractBot
-from tg_bot.models import TgUser, TarotDeck, TarotCardItem, TarotCard, ExtendedMeaning
+from tg_bot.models import (
+    TgUser,
+    TarotDeck,
+    TarotCardItem,
+    TarotCard,
+    ExtendedMeaning,
+    TarotUserReading,
+)
 
 from server.logger import logger
 from django.conf import settings
+
+reading_ids = {}
 
 
 class TarotBot(AbstractBot):
@@ -32,6 +41,7 @@ class TarotBot(AbstractBot):
 
     def get_handlers(self):
         return [
+            CommandHandler("last", self.handle_last_readings, filters.ChatType.PRIVATE),
             CommandHandler("one", self.handle_one_command, filters.ChatType.PRIVATE),
             MessageHandler(
                 filters.COMMAND
@@ -162,8 +172,22 @@ class TarotBot(AbstractBot):
         except Exception as e:
             raise RuntimeError(f"Ошибка: {str(e)}") from e
 
+    def format_card_name(self, card, flip):
+        return "\n".join(
+            [
+                str(item)
+                for item in [
+                    card["name"],
+                    "Перевернуто" if flip and card["flipped"] else None,
+                ]
+                if item is not None
+            ]
+        )
+
     async def send_card(self, update: Update, cards, exclude_cards, deck, major, flip):
-        logger.info(f"исключить: {exclude_cards} колода: {deck} старшие: {major} {int(major)} перевернуто: {flip} {int(flip)}")
+        logger.info(
+            f"исключить: {exclude_cards} колода: {deck} старшие: {major} {int(major)} перевернуто: {flip} {int(flip)}"
+        )
         await update.effective_message.reply_media_group(
             [
                 InputMediaPhoto(
@@ -172,13 +196,7 @@ class TarotBot(AbstractBot):
                         if settings.TG_DEBUG
                         else c["img_id"]
                     ),
-                    "\n".join(
-                        [
-                            str(item)
-                            for item in [c["name"], 'Перевернуто' if flip and c["flipped"] else None]
-                            if item is not None
-                        ]
-                    ),
+                    self.format_card_name(c, flip),
                 )
                 for c in cards
             ],
@@ -210,17 +228,18 @@ class TarotBot(AbstractBot):
         """
         msg_text = update.message.text
         logger.info(f"Обработка команды /card с текстом: {msg_text[:100]}")
-        
-        # user, created = await TgUser.objects.aget_or_create(
-        #     tg_id=update.message.from_user.id,
-        #     defaults={
-        #         "username": update.message.from_user.username,
-        #         "first_name": update.message.from_user.first_name,
-        #         "last_name": update.message.from_user.last_name,
-        #         "language_code": update.message.from_user.language_code,
-        #         "is_bot": update.message.from_user.is_bot,
-        #     },
-        # )
+
+        user, created = await TgUser.objects.aget_or_create(
+            tg_id=update.effective_user.id,
+            defaults={
+                "username": update.effective_user.username,
+                "first_name": update.effective_user.first_name,
+                "last_name": update.effective_user.last_name,
+                "language_code": update.effective_user.language_code,
+                "is_bot": update.effective_user.is_bot,
+            },
+        )
+
         # Парсинг параметров
         options: Dict[str, any] = {}
 
@@ -277,6 +296,15 @@ class TarotBot(AbstractBot):
             )
             logger.info(f"Получено карт: {len(cards)}")
 
+            reading = await TarotUserReading.objects.acreate(
+                user=user,
+                text=f"ТАРО: {deck.name} " + ", ".join([self.format_card_name(c, options["flip"]) for c in cards]),
+                message_id=update.effective_message.message_id,
+            )
+            reading_ids[user.id] = update.effective_message.message_id
+
+            logger.info(f"Результат гадания сохранен: {reading}")
+
             # Отправка карт
             await self.send_card(
                 update,
@@ -330,6 +358,10 @@ class TarotBot(AbstractBot):
                 major=bool(major),
             )
             logger.info(f"Выбраны новые карты: {new_card}")
+            new_card_text = "\n".join(
+                [",".join([self.format_card_name(c, flip) for c in new_card])]
+            )
+
         except Exception as e:
             logger.error(f"Ошибка получения карт: {e}")
             await query.edit_message_text("Ошибка получения карт.")
@@ -337,13 +369,35 @@ class TarotBot(AbstractBot):
 
         if not new_card:
             logger.info("Нет доступных карт для выбора.")
-            await query.edit_message_text("Нет доступных карт для выбора.")
+            await update.effective_message.reply_text("Нет доступных карт для выбора.")
             return
 
         full_exclude = exclude_cards + [c["card_id"] for c in new_card]
         logger.info(f"Обновленный список исключений: {full_exclude}")
 
         try:
+            user, _ = await TgUser.objects.aget_or_create(
+                tg_id=update.effective_user.id,
+                defaults={
+                    "username": update.effective_user.username,
+                    "first_name": update.effective_user.first_name,
+                    "last_name": update.effective_user.last_name,
+                    "language_code": update.effective_user.language_code,
+                    "is_bot": update.effective_user.is_bot,
+                },
+            )
+            initial_message_id = reading_ids.get(user.id)
+            reading, created = await TarotUserReading.objects.aupdate_or_create(
+                message_id=initial_message_id, user=user
+            )
+            reading.text = (
+                f"ТАРО: {deck.name} {new_card_text}"
+                if created
+                else f"{reading.text}, {new_card_text}"
+            )
+            reading.data = now()
+            await reading.asave()
+
             await self.send_card(
                 update,
                 new_card,
@@ -553,3 +607,25 @@ class TarotBot(AbstractBot):
             reply_to_message_id=update.effective_message.message_id,
         )
         await context.bot.delete_message(update.effective_chat.id, tech_msg_id)
+
+    async def handle_last_readings(self, update: Update, context: CallbackContext):
+        # Получаем пользователя по tg_id
+        try:
+            user = await TgUser.objects.aget(tg_id=update.effective_user.id)
+            user_readings = []
+            async for item in (
+                TarotUserReading.objects.filter(user=user)
+                .select_related("user")
+                .order_by("-date")[:5]
+            ):
+                user_readings.append(f"{item.date}: {item.text}")
+
+            if not user_readings:
+                await update.message.reply_text("Гаданий не найдено.")
+                return
+            await update.effective_message.reply_text(
+                "\n".join(user_readings),
+                reply_to_message_id=update.effective_message.message_id,
+            )
+        except Exception as e:
+            logger.error(e)

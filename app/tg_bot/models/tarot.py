@@ -191,7 +191,7 @@ class OraculumItem(models.Model):
     )
 
     def __str__(self):
-        return f"{self.name} (из колоды: {self.deck})"
+        return f"{self.name} (из колоды: {self.deck.name})"
 
     class Meta:
         verbose_name = f"{bot_prefix}: Карта оракула"

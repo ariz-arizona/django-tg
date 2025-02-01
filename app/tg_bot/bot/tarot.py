@@ -29,6 +29,7 @@ from tg_bot.models import (
     TarotUserReading,
     OraculumDeck,
     OraculumItem,
+    Rune,
 )
 
 from server.logger import logger
@@ -43,6 +44,17 @@ class TarotBot(AbstractBot):
 
     def get_handlers(self):
         return [
+            MessageHandler(
+                filters.COMMAND
+                & filters.TEXT
+                & filters.ChatType.PRIVATE
+                & filters.Regex(r"^\/fut(h?)ark( triplet)?$"),
+                self.handle_futark,
+            ),
+            CallbackQueryHandler(
+                self.handle_futark_callback,
+                pattern=r"^futhark_",
+            ),
             MessageHandler(
                 filters.COMMAND
                 & filters.TEXT
@@ -78,6 +90,26 @@ class TarotBot(AbstractBot):
                 self.handle_oraculum,
             ),
         ]
+
+    async def save_reading(self, user, message_id, text):
+        user, created = await TgUser.objects.aget_or_create(
+            tg_id=user.id,
+            defaults={
+                "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "language_code": user.language_code,
+                "is_bot": user.is_bot,
+            },
+        )
+
+        reading = await TarotUserReading.objects.acreate(
+            user=user,
+            text=text,
+            message_id=message_id,
+        )
+        reading_ids[user.id] = message_id
+        return reading
 
     async def get_deck(self, deck_id=None, deck_type="tarot"):
         # Получаем список всех ID колод
@@ -290,22 +322,18 @@ class TarotBot(AbstractBot):
         reply_markup = None
         if isinstance(deck, TarotDeck):
             text.append(deck.link)
-            reply_markup = (
-                
-                    [
-                        [
-                            InlineKeyboardButton(
-                                "Еще карту",
-                                callback_data=f'more_{deck.id}_{"#".join(exclude_cards)}_{int(major)}_{int(flip)}',
-                            ),
-                            InlineKeyboardButton(
-                                "Базовые значения",
-                                callback_data=f'desc_{"#".join(exclude_cards)}',
-                            ),
-                        ]
-                    ]
-                
-            )
+            reply_markup = [
+                [
+                    InlineKeyboardButton(
+                        "Еще карту",
+                        callback_data=f'more_{deck.id}_{"#".join(exclude_cards)}_{int(major)}_{int(flip)}',
+                    ),
+                    InlineKeyboardButton(
+                        "Базовые значения",
+                        callback_data=f'desc_{"#".join(exclude_cards)}',
+                    ),
+                ]
+            ]
         params = {
             "text": "\n".join(text),
             "reply_to_message_id": update.effective_message.message_id,
@@ -322,17 +350,6 @@ class TarotBot(AbstractBot):
         """
         msg_text = update.message.text
         logger.info(f"Обработка команды /card с текстом: {msg_text[:100]}")
-
-        user, created = await TgUser.objects.aget_or_create(
-            tg_id=update.effective_user.id,
-            defaults={
-                "username": update.effective_user.username,
-                "first_name": update.effective_user.first_name,
-                "last_name": update.effective_user.last_name,
-                "language_code": update.effective_user.language_code,
-                "is_bot": update.effective_user.is_bot,
-            },
-        )
 
         # Парсинг параметров
         options: Dict[str, any] = {}
@@ -389,14 +406,14 @@ class TarotBot(AbstractBot):
                 options.get("major", False),
             )
             logger.info(f"Получено карт: {len(cards)}")
-
-            reading = await TarotUserReading.objects.acreate(
-                user=user,
-                text=f"ТАРО: {deck.name} "
-                + ", ".join([await self.format_card_name(c, options["flip"]) for c in cards]),
-                message_id=update.effective_message.message_id,
+            reading = await self.save_reading(
+                update.effective_user,
+                update.effective_message.message_id,
+                f"ТАРО: {deck.name} "
+                + ", ".join(
+                    [await self.format_card_name(c, options["flip"]) for c in cards]
+                ),
             )
-            reading_ids[user.id] = update.effective_message.message_id
 
             logger.info(f"Результат гадания сохранен: {reading}")
 
@@ -409,7 +426,9 @@ class TarotBot(AbstractBot):
                 options.get("major", False),
                 options.get("flip", False),
             )
-            logger.info(f"Карта отправлена: {[str(n.get(k)) for k in ['card_id', 'name'] for n in cards]}")
+            logger.info(
+                f"Карта отправлена: {[str(n.get(k)) for k in ['card_id', 'name'] for n in cards]}"
+            )
 
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /card: {e}", exc_info=True)
@@ -420,17 +439,6 @@ class TarotBot(AbstractBot):
     async def handle_oraculum(self, update: Update, context: CallbackContext):
         msg_text = update.message.text
         logger.info(f"Обработка команды /oraculum с текстом: {msg_text[:100]}")
-
-        user, created = await TgUser.objects.aget_or_create(
-            tg_id=update.effective_user.id,
-            defaults={
-                "username": update.effective_user.username,
-                "first_name": update.effective_user.first_name,
-                "last_name": update.effective_user.last_name,
-                "language_code": update.effective_user.language_code,
-                "is_bot": update.effective_user.is_bot,
-            },
-        )
 
         # Парсинг параметров
         options: Dict[str, any] = {}
@@ -465,14 +473,14 @@ class TarotBot(AbstractBot):
                 deck.id if deck else None, options.get("counter", 1), []
             )
             logger.info(f"Получено карт: {len(cards)}")
-
-            reading = await TarotUserReading.objects.acreate(
-                user=user,
-                text=f"ОРАКУЛ: {deck.name} "
-                + ", ".join([await self.format_card_name(c, options["flip"]) for c in cards]),
-                message_id=update.effective_message.message_id,
+            reading = await self.save_reading(
+                update.effective_user,
+                update.effective_message.message_id,
+                f"ОРАКУЛ: {deck.name} "
+                + ", ".join(
+                    [await self.format_card_name(c, options["flip"]) for c in cards]
+                ),
             )
-            reading_ids[user.id] = update.effective_message.message_id
 
             logger.info(f"Результат гадания сохранен: {reading}")
 
@@ -485,7 +493,9 @@ class TarotBot(AbstractBot):
                 options.get("major", False),
                 options.get("flip", False),
             )
-            logger.info(f"Карта отправлена: {[str(n.get(k)) for k in ['card_id', 'name'] for n in cards]}")
+            logger.info(
+                f"Карта отправлена: {[str(n.get(k)) for k in ['card_id', 'name'] for n in cards]}"
+            )
 
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /oraculum: {e}", exc_info=True)
@@ -578,7 +588,9 @@ class TarotBot(AbstractBot):
                 bool(major),
                 bool(flip),
             )
-            logger.info(f"Карта отправлена: {[str(n.get(k)) for k in ['card_id', 'name'] for n in new_card]}")
+            logger.info(
+                f"Карта отправлена: {[str(n.get(k)) for k in ['card_id', 'name'] for n in new_card]}"
+            )
         except Exception as e:
             logger.error(f"Ошибка при отправке карты: {e}")
             await query.edit_message_text("Ошибка при отправке карты.")
@@ -773,6 +785,14 @@ class TarotBot(AbstractBot):
         random_card_id = random.randint(0, len(cards) - 1)
         random_card = cards[random_card_id]
 
+        reading = await self.save_reading(
+            update.effective_user,
+            update.effective_message.message_id,
+            f"ONE: " + f"{random_card['name']}\n{random_card['url']}",
+        )
+
+        logger.info(f"Результат гадания сохранен: {reading}")
+
         await update.effective_message.reply_photo(
             random_card["img"],
             f"{random_card['name']}\n{random_card['url']}",
@@ -917,6 +937,124 @@ class TarotBot(AbstractBot):
                 reply_markup=keyboard,
                 parse_mode="HTML",
                 disable_web_page_preview=True,
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при обработке callback-запроса: {e}", exc_info=True)
+            await query.edit_message_text(
+                "Произошла ошибка. Пожалуйста, попробуйте снова."
+            )
+
+    async def handle_futark(self, update: Update, context: CallbackContext):
+        """
+        Обработчик команды /futark.
+        """
+        msg_text = update.message.text
+        logger.info(f"Обработка команды /futark с текстом: {msg_text[:100]}")
+
+        try:
+            # Получаем все руны из базы данных
+            runes = [rune async for rune in Rune.objects.all()]
+
+            if "triplet" in msg_text.lower():
+                # Выбираем 3 случайные руны
+                selected_runes = random.sample(runes, 3)
+                rune_texts = []
+                keyboard = []
+
+                for i, rune in enumerate(selected_runes):
+                    inverted = random.choice(
+                        [True, False]
+                    )  # Случайно определяем, перевернута ли руна
+                    rune_texts.append(
+                        f"<b>{rune.symbol}</b> {rune.type}{' (Перевернутая)' if inverted else ''}"
+                    )
+                    keyboard.append(
+                        InlineKeyboardButton(
+                            text=f"{rune.symbol} {rune.type}{' 🔄' if inverted else ''}",
+                            callback_data=f"futhark_{rune.id}_{int(bool(inverted))}_{i + 1}",
+                        )
+                    )
+                reading_data = await self.save_reading(
+                    update.effective_user,
+                    update.effective_message.message_id,
+                    f"FUTARK: {' '.join(rune_texts)}",
+                )
+
+                logger.info(f"Результат гадания сохранен: {reading_data}")
+
+                # Отправляем сообщение с рунами и inline-клавиатурой
+                await update.message.reply_text(
+                    "\n".join(rune_texts),
+                    parse_mode="HTML",
+                    reply_markup=InlineKeyboardMarkup([keyboard]),
+                )
+            else:
+                # Выбираем одну случайную руну
+                random_rune = random.choice(runes)
+                inverted = "flip" in msg_text.lower() and random.choice([True, False])
+                logger.info(random_rune.symbol)
+                # Формируем текст сообщения
+                text_parts = [f"<b>{random_rune.symbol}</b>", random_rune.type]
+                if inverted:
+                    text_parts.append("Перевернуто")
+
+                reading_data = await self.save_reading(
+                    update.effective_user,
+                    update.effective_message.message_id,
+                    f"FUTARK: {' '.join(text_parts)}",
+                )
+
+                logger.info(f"Результат гадания сохранен: {reading_data}")
+
+                # Отправляем текст и стикер
+                await update.message.reply_text(
+                    "\n".join(text_parts), parse_mode="HTML"
+                )
+                await update.message.reply_sticker(random_rune.sticker)
+
+        except Exception as e:
+            logger.error(f"Ошибка при обработке команды /futark: {e}", exc_info=True)
+            await update.message.reply_text(
+                "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
+            )
+
+    async def handle_futark_callback(self, update: Update, context: CallbackContext):
+        """
+        Обработчик callback-запросов для рун.
+        """
+        query = update.callback_query
+        await query.answer()
+
+        try:
+            # Парсим callback_data
+            callback_data = query.data
+            rune_id, inverted, position = callback_data.split("_")[1:]
+
+            # Получаем описание руны
+            rune = await Rune.objects.aget(id=rune_id)
+            keys = rune.straight_keys
+            meaning = rune.straight_meaning
+            pos_1 = rune.straight_pos_1
+            pos_2 = rune.straight_pos_2
+            pos_3 = rune.straight_pos_3
+            if inverted:
+                keys = rune.inverted_keys
+                meaning = rune.inverted_meaning
+                pos_1 = rune.inverted_pos_1
+                pos_2 = rune.inverted_pos_2
+                pos_3 = rune.inverted_pos_3
+            position = int(position)
+            if position == 1:
+                position_text = pos_1
+            elif position == 2:
+                position_text = pos_2
+            elif position == 3:
+                position_text = pos_3
+
+            # Отправляем описание руны
+            await update.effective_message.reply_html(
+                f"<b>{rune.symbol}</b> {rune.type}\n\n{keys}\n\n{meaning}\n\n{position_text}",
+                reply_to_message_id=update.effective_message.message_id,
             )
         except Exception as e:
             logger.error(f"Ошибка при обработке callback-запроса: {e}", exc_info=True)

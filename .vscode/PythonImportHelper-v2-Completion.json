@@ -495,6 +495,14 @@
         "documentation": {}
     },
     {
+        "label": "Rune",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
         "label": "OraculumItem",
         "importPath": "tg_bot.models",
         "description": "tg_bot.models",
@@ -504,6 +512,14 @@
     },
     {
         "label": "OraculumDeck",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Rune",
         "importPath": "tg_bot.models",
         "description": "tg_bot.models",
         "isExtraImport": true,
@@ -695,6 +711,14 @@
         "documentation": {}
     },
     {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
         "label": "traceback",
         "kind": 6,
         "isExtraImport": true,
@@ -794,19 +818,11 @@
         "documentation": {}
     },
     {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
+        "label": "BaseCommand",
+        "importPath": "django.core.management.base",
+        "description": "django.core.management.base",
         "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
+        "detail": "django.core.management.base",
         "documentation": {}
     },
     {
@@ -946,7 +962,55 @@
         "documentation": {}
     },
     {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
         "importPath": "django.db",
         "description": "django.db",
         "isExtraImport": true,
@@ -1564,7 +1628,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.bot.tarot",
         "description": "app.tg_bot.bot.tarot",
-        "peekOfCode": "class TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.COMMAND\n                & filters.TEXT\n                & filters.ChatType.PRIVATE\n                & filters.Regex(r\"^\\/decks( oraculum)?$\"),",
+        "peekOfCode": "class TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),\n            MessageHandler(\n                filters.COMMAND\n                & filters.TEXT",
         "detail": "app.tg_bot.bot.tarot",
         "documentation": {}
     },
@@ -1573,7 +1637,7 @@
         "kind": 5,
         "importPath": "app.tg_bot.bot.tarot",
         "description": "app.tg_bot.bot.tarot",
-        "peekOfCode": "reading_ids = {}\nclass TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.COMMAND\n                & filters.TEXT\n                & filters.ChatType.PRIVATE",
+        "peekOfCode": "reading_ids = {}\nclass TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),\n            MessageHandler(\n                filters.COMMAND",
         "detail": "app.tg_bot.bot.tarot",
         "documentation": {}
     },
@@ -1611,6 +1675,15 @@
         "description": "app.tg_bot.management.commands.load_oraculum_decks",
         "peekOfCode": "class Command(BaseCommand):\n    help = \"Загружает колоды и карты из JSON-файлов в папке decks.\"\n    def handle(self, *args, **kwargs):\n        # Путь к файлу decks.json\n        decks_file_path = settings.BASE_DIR / \"tg_bot\" / \"tarot_data\" / \"oraculum.json\"\n        # Проверяем, существует ли файл\n        if not decks_file_path.exists():\n            self.stdout.write(self.style.ERROR(f\"Файл {decks_file_path} не найден.\"))\n            return\n        # Чтение файла decks.json",
         "detail": "app.tg_bot.management.commands.load_oraculum_decks",
+        "documentation": {}
+    },
+    {
+        "label": "Command",
+        "kind": 6,
+        "importPath": "app.tg_bot.management.commands.load_runes",
+        "description": "app.tg_bot.management.commands.load_runes",
+        "peekOfCode": "class Command(BaseCommand):\n    help = \"Загружает данные о рунах из JSON-файла\"\n    def handle(self, *args, **kwargs):\n        json_file_path = settings.BASE_DIR / \"tg_bot\" / \"tarot_data\" / \"futark.json\"\n        with open(json_file_path, \"r\", encoding=\"utf-8\") as file:\n            runes_data = json.load(file)\n        for rune_data in runes_data:\n            # Извлечение данных о рунах\n            rune_meaning = rune_data.get(\"meaning\", {})\n            # Проверка наличия \"straight\" и \"inverted\"",
+        "detail": "app.tg_bot.management.commands.load_runes",
         "documentation": {}
     },
     {
@@ -1740,6 +1813,24 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0024_rune_alter_oraculumdeck_options_and_more",
+        "description": "app.tg_bot.migrations.0024_rune_alter_oraculumdeck_options_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0023_rename_file_id_oraculumitem_img_id'),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='Rune',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),\n                ('type', models.CharField(max_length=50, verbose_name='Тип руны')),",
+        "detail": "app.tg_bot.migrations.0024_rune_alter_oraculumdeck_options_and_more",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0025_alter_rune_inverted_keys_alter_rune_inverted_meaning_and_more",
+        "description": "app.tg_bot.migrations.0025_alter_rune_inverted_keys_alter_rune_inverted_meaning_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0024_rune_alter_oraculumdeck_options_and_more'),\n    ]\n    operations = [\n        migrations.AlterField(\n            model_name='rune',\n            name='inverted_keys',\n            field=models.TextField(blank=True, null=True, verbose_name='Ключи (перевернутое)'),\n        ),",
+        "detail": "app.tg_bot.migrations.0025_alter_rune_inverted_keys_alter_rune_inverted_meaning_and_more",
+        "documentation": {}
+    },
+    {
         "label": "Bot",
         "kind": 6,
         "importPath": "app.tg_bot.models.base",
@@ -1857,6 +1948,15 @@
         "documentation": {}
     },
     {
+        "label": "Rune",
+        "kind": 6,
+        "importPath": "app.tg_bot.models.tarot",
+        "description": "app.tg_bot.models.tarot",
+        "peekOfCode": "class Rune(models.Model):\n    type = models.CharField(max_length=50, verbose_name=\"Тип руны\")\n    symbol = models.CharField(max_length=10, verbose_name=\"Символ руны\")\n    sticker = models.CharField(max_length=100, verbose_name=\"ID стикера\")\n    # Прямое значение\n    straight_keys = models.TextField(verbose_name=\"Ключи (прямое)\")\n    straight_meaning = models.TextField(verbose_name=\"Значение (прямое)\")\n    straight_pos_1 = models.TextField(verbose_name=\"Позиция 1 (прямое)\")\n    straight_pos_2 = models.TextField(verbose_name=\"Позиция 2 (прямое)\")\n    straight_pos_3 = models.TextField(verbose_name=\"Позиция 3 (прямое)\")",
+        "detail": "app.tg_bot.models.tarot",
+        "documentation": {}
+    },
+    {
         "label": "bot_prefix",
         "kind": 5,
         "importPath": "app.tg_bot.models.tarot",
@@ -1951,7 +2051,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class OraculumDeckAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"description\", \"created_at\")\n    search_fields = (\"name\", \"description\")\n    list_filter = (\"created_at\",)\n@admin.register(OraculumItem)\nclass OraculumItemAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"deck\", \"description\")\n    search_fields = (\"name\", \"description\", \"deck__name\")\n    list_filter = (\"deck\",)",
+        "peekOfCode": "class OraculumDeckAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"description\", \"created_at\")\n    search_fields = (\"name\", \"description\")\n    list_filter = (\"created_at\",)\n@admin.register(OraculumItem)\nclass OraculumItemAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"deck\", \"description\")\n    search_fields = (\"name\", \"description\", \"deck__name\")\n    list_filter = (\"deck\",)\n@admin.register(Rune)",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },
@@ -1960,7 +2060,16 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class OraculumItemAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"deck\", \"description\")\n    search_fields = (\"name\", \"description\", \"deck__name\")\n    list_filter = (\"deck\",)",
+        "peekOfCode": "class OraculumItemAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"deck\", \"description\")\n    search_fields = (\"name\", \"description\", \"deck__name\")\n    list_filter = (\"deck\",)\n@admin.register(Rune)\nclass RuneAdmin(admin.ModelAdmin):\n    list_display = (\"symbol\", \"type\", \"sticker\")\n    search_fields = (\"type\", \"symbol\")\n    list_filter = (\"type\",)\n    fieldsets = (",
+        "detail": "app.tg_bot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "RuneAdmin",
+        "kind": 6,
+        "importPath": "app.tg_bot.admin",
+        "description": "app.tg_bot.admin",
+        "peekOfCode": "class RuneAdmin(admin.ModelAdmin):\n    list_display = (\"symbol\", \"type\", \"sticker\")\n    search_fields = (\"type\", \"symbol\")\n    list_filter = (\"type\",)\n    fieldsets = (\n        (\"Основная информация\", {\n            \"fields\": (\"type\", \"symbol\", \"sticker\"),\n        }),\n        (\"Прямое значение\", {\n            \"fields\": (",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },

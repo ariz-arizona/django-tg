@@ -51,7 +51,7 @@ class Command(BaseCommand):
                     deck=deck,
                     name=card_data["name"],
                     defaults={
-                        "file_id":card_data["fileId"],
+                        "img_id":card_data["fileId"],
                         "description": card_data.get("description", None),
                         "direct": card_data.get("direct", None),
                         "inverted": card_data.get("inverted", None),

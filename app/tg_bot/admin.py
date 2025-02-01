@@ -8,6 +8,8 @@ from .models import (
     TarotCardItem,
     TarotMeaningCategory,
     TarotUserReading,
+    Oraculum,
+    OraculumDeck,
 )
 
 
@@ -98,3 +100,17 @@ class TarotUserReadingAdmin(admin.ModelAdmin):
         if obj:  # Если объект уже существует, запрещаем редактирование даты
             return self.readonly_fields + ("date",)
         return self.readonly_fields
+
+
+@admin.register(OraculumDeck)
+class OraculumDeckAdmin(admin.ModelAdmin):
+    list_display = ("name", "description", "created_at")
+    search_fields = ("name", "description")
+    list_filter = ("created_at",)
+
+
+@admin.register(Oraculum)
+class OraculumAdmin(admin.ModelAdmin):
+    list_display = ("name", "deck", "description")
+    search_fields = ("name", "description", "deck__name")
+    list_filter = ("deck",)

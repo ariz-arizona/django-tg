@@ -629,3 +629,4 @@ class TarotBot(AbstractBot):
             )
         except Exception as e:
             logger.error(e)
+

@@ -125,3 +125,74 @@ class TarotUserReading(models.Model):
         indexes = [
             models.Index(fields=["user", "date"]),
         ]
+
+
+class OraculumDeck(models.Model):
+    name = models.CharField(
+        max_length=255,
+        verbose_name="Название колоды",
+        help_text="Название колоды (например, 'Колода МЛАДЕНЦА').",
+    )
+    description = models.TextField(
+        verbose_name="Описание колоды",
+        help_text="Краткое описание колоды.",
+        blank=True,
+        null=True,
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата создания",
+        help_text="Дата и время создания колоды.",
+    )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Колода оракула"
+        verbose_name_plural = "Колоды оракула"
+
+
+class Oraculum(models.Model):
+    deck = models.ForeignKey(
+        OraculumDeck,
+        on_delete=models.CASCADE,
+        related_name="cards",
+        verbose_name="Колода",
+        help_text="Колода, к которой относится карта.",
+    )
+    file_id = models.CharField(
+        max_length=255,
+        verbose_name="ID файла",
+        help_text="Идентификатор файла (например, изображения карты).",
+    )
+    name = models.CharField(
+        max_length=255,
+        verbose_name="Название карты",
+        help_text="Название карты (например, 'МЛАДЕНЕЦ').",
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Описание карты",
+        help_text="Краткое описание карты.",
+    )
+    direct = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Прямое значение",
+        help_text="Значение карты в прямом положении.",
+    )
+    inverted = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Перевернутое значение",
+        help_text="Значение карты в перевернутом положении.",
+    )
+
+    def __str__(self):
+        return f"{self.name} (из колоды: {self.deck.name})"
+
+    class Meta:
+        verbose_name = "Карта оракула"
+        verbose_name_plural = "Карты оракула"

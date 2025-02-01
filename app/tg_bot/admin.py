@@ -8,7 +8,7 @@ from .models import (
     TarotCardItem,
     TarotMeaningCategory,
     TarotUserReading,
-    Oraculum,
+    OraculumItem,
     OraculumDeck,
 )
 
@@ -109,8 +109,8 @@ class OraculumDeckAdmin(admin.ModelAdmin):
     list_filter = ("created_at",)
 
 
-@admin.register(Oraculum)
-class OraculumAdmin(admin.ModelAdmin):
+@admin.register(OraculumItem)
+class OraculumItemAdmin(admin.ModelAdmin):
     list_display = ("name", "deck", "description")
     search_fields = ("name", "description", "deck__name")
     list_filter = ("deck",)

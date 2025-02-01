@@ -153,7 +153,7 @@ class OraculumDeck(models.Model):
         verbose_name_plural = "Колоды оракула"
 
 
-class Oraculum(models.Model):
+class OraculumItem(models.Model):
     deck = models.ForeignKey(
         OraculumDeck,
         on_delete=models.CASCADE,
@@ -161,7 +161,7 @@ class Oraculum(models.Model):
         verbose_name="Колода",
         help_text="Колода, к которой относится карта.",
     )
-    file_id = models.CharField(
+    img_id = models.CharField(
         max_length=255,
         verbose_name="ID файла",
         help_text="Идентификатор файла (например, изображения карты).",

@@ -1,7 +1,7 @@
 import json
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from tg_bot.models import Oraculum, OraculumDeck
+from tg_bot.models import OraculumItem, OraculumDeck
 from server.logger import logger
 
 
@@ -47,7 +47,7 @@ class Command(BaseCommand):
 
             # Обработка карт в колоде
             for card_data in cards_data:
-                Oraculum.objects.get_or_create(
+                OraculumItem.objects.get_or_create(
                     deck=deck,
                     name=card_data["name"],
                     defaults={

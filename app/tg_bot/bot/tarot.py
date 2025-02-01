@@ -27,6 +27,8 @@ from tg_bot.models import (
     TarotCard,
     ExtendedMeaning,
     TarotUserReading,
+    OraculumDeck,
+    OraculumItem,
 )
 
 from server.logger import logger
@@ -57,11 +59,21 @@ class TarotBot(AbstractBot):
             CallbackQueryHandler(
                 self.handle_pagination, pattern=r"^meaning_[a-z0-9]+_\d+_\d+$"
             ),
+            MessageHandler(
+                filters.COMMAND
+                & filters.TEXT
+                & filters.ChatType.PRIVATE
+                & filters.Regex(r"^\/oraculum(\d+)?"),
+                self.handle_oraculum,
+            ),
         ]
 
-    async def get_deck(self, deck_id=None):
+    async def get_deck(self, deck_id=None, deck_type="tarot"):
         # Получаем список всех ID колод
-        deck_ids: List[int] = [deck.id async for deck in TarotDeck.objects.all()]
+        model = TarotDeck.objects
+        if deck_type == "oraculum":
+            model = OraculumDeck.objects
+        deck_ids: List[int] = [deck.id async for deck in model.all()]
         logger.info(f"Получаем колоду с ID {deck_id}")
 
         if not deck_ids:
@@ -75,8 +87,8 @@ class TarotBot(AbstractBot):
 
         # Получаем колоду по ID
         try:
-            return await TarotDeck.objects.aget(id=deck_id)
-        except TarotDeck.DoesNotExist:
+            return await model.aget(id=deck_id)
+        except Exception:
             # На случай, если колода была удалена между получением списка ID и запросом
             raise ValueError("Не удалось получить колоду.")
 
@@ -86,7 +98,7 @@ class TarotBot(AbstractBot):
         counter: int = 1,
         card_ids: Optional[List[str]] = None,  # Используем card_id (str)
         major: bool = False,
-        exclude_cards: Optional[List[str]] = None,  # Новый параметр для исключения карт
+        exclude_cards: Optional[List[str]] = None,
     ) -> List[dict]:
         try:
             if card_ids is None:
@@ -159,12 +171,61 @@ class TarotBot(AbstractBot):
             combined = manual_cards + random_cards
             return [
                 {
+                    "card_instance": card,
                     "card_id": card.tarot_card.card_id,
                     "img_id": card.img_id,
                     "name": card.tarot_card.name,
                     "flipped": random.choice([True, False]),
                 }
                 for card in combined[:counter]
+            ]
+
+        except ObjectDoesNotExist as e:
+            raise ValueError("Карта не найдена") from e
+        except Exception as e:
+            raise RuntimeError(f"Ошибка: {str(e)}") from e
+
+    async def get_oraculum_cards(self, deck_id, counter, exclude_cards):
+        try:
+            # 1. Проверка существования колоды
+            if not await OraculumDeck.objects.filter(id=deck_id).aexists():
+                raise ValueError(f"Колода {deck_id} не найдена")
+
+            # 2. Базовый запрос карт колоды
+            base_query = OraculumItem.objects.filter(deck_id=deck_id)
+
+            # 3. Исключение указанных карт
+            if exclude_cards:
+                base_query = base_query.exclude(id__in=exclude_cards)
+
+            # 4. Получаем все доступные ID карт
+            all_card_ids: List[int] = [
+                card_id async for card_id in base_query.values_list("id", flat=True)
+            ]
+
+            if len(all_card_ids) < counter:
+                raise ValueError(
+                    f"Недостаточно карт в колоде. Требуется: {counter}, доступно: {len(all_card_ids)}"
+                )
+
+            # 5. Выборка случайных ID карт
+            random_ids: List[int] = random.sample(all_card_ids, counter)
+
+            # 6. Получение карт по выбранным ID
+            random_cards: List[OraculumItem] = [
+                await base_query.aget(id=cid) for cid in random_ids
+            ]
+
+            # 7. Формирование результата
+            return [
+                {
+                    "card_instance": card,
+                    "card_id": card.id,
+                    "img_id": card.img_id,
+                    "name": card.name,
+                    "flipped": random.choice([True, False]),  # Переворот карты
+                }
+                for card in random_cards
             ]
 
         except ObjectDoesNotExist as e:
@@ -179,6 +240,16 @@ class TarotBot(AbstractBot):
                 for item in [
                     card["name"],
                     "Перевернуто" if flip and card["flipped"] else None,
+                    (
+                        f'{card["card_instance"].description} '
+                        + (
+                            card["card_instance"].inverted
+                            if flip and card["flipped"]
+                            else card["card_instance"].direct
+                        )
+                        if isinstance(card["card_instance"], OraculumItem)
+                        else None
+                    ),
                 ]
                 if item is not None
             ]
@@ -202,8 +273,13 @@ class TarotBot(AbstractBot):
             ],
             reply_to_message_id=update.effective_message.message_id,
         )
+
+        text = [deck.name]
+        if isinstance(deck, TarotDeck):
+            text.append(deck.link)
+
         await update.effective_message.reply_text(
-            "\n".join([deck.name, deck.link]),
+            text="\n".join(text),
             reply_markup=InlineKeyboardMarkup(
                 [
                     [
@@ -298,7 +374,8 @@ class TarotBot(AbstractBot):
 
             reading = await TarotUserReading.objects.acreate(
                 user=user,
-                text=f"ТАРО: {deck.name} " + ", ".join([self.format_card_name(c, options["flip"]) for c in cards]),
+                text=f"ТАРО: {deck.name} "
+                + ", ".join([self.format_card_name(c, options["flip"]) for c in cards]),
                 message_id=update.effective_message.message_id,
             )
             reading_ids[user.id] = update.effective_message.message_id
@@ -318,6 +395,72 @@ class TarotBot(AbstractBot):
 
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /card: {e}", exc_info=True)
+            await update.message.reply_text(
+                "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
+            )
+
+    async def handle_oraculum(self, update: Update, context: CallbackContext):
+        msg_text = update.message.text
+        logger.info(f"Обработка команды /oraculum с текстом: {msg_text[:100]}")
+
+        user, created = await TgUser.objects.aget_or_create(
+            tg_id=update.effective_user.id,
+            defaults={
+                "username": update.effective_user.username,
+                "first_name": update.effective_user.first_name,
+                "last_name": update.effective_user.last_name,
+                "language_code": update.effective_user.language_code,
+                "is_bot": update.effective_user.is_bot,
+            },
+        )
+
+        # Парсинг параметров
+        options: Dict[str, any] = {}
+
+        try:
+            # Парсинг количества карт (counter)
+            counter_found = re.search(r"(oraculum)\d", msg_text)
+            options["counter"] = (
+                int(counter_found.group(0).replace("oraculum", ""))
+                if counter_found
+                else 1
+            )
+            options["counter"] = max(1, min(options.get("counter", 1), 10))
+            logger.info(f"Парсинг количества карт: counter={options.get('counter')}")
+
+            # Парсинг колоды (deck)
+            deck_found = re.search(r"deck \d+", msg_text)
+            options["deck"] = (
+                int(deck_found.group(0).replace("deck ", "")) if deck_found else None
+            )
+            logger.info(f"Парсинг колоды: deck={options.get('deck')}")
+
+            # Парсинг переворота карты (flip)
+            options["flip"] = bool(re.search(r"flip", msg_text))
+            logger.info(f"Парсинг переворота карты: flip={options.get('flip')}")
+
+            deck = await self.get_deck(options.get("deck"), "oraculum")
+            logger.info(f"Используемая колода: {deck.id if deck else 'не указана'}")
+
+            # Получение карт
+            cards = await self.get_oraculum_cards(
+                deck.id if deck else None, options.get("counter", 1), []
+            )
+            logger.info(f"Получено карт: {len(cards)}")
+
+            # Отправка карт
+            await self.send_card(
+                update,
+                cards,
+                [],
+                deck,
+                options.get("major", False),
+                options.get("flip", False),
+            )
+            logger.info("Карты успешно отправлены.")
+
+        except Exception as e:
+            logger.error(f"Ошибка при обработке команды /oraculum: {e}", exc_info=True)
             await update.message.reply_text(
                 "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
             )
@@ -629,4 +772,3 @@ class TarotBot(AbstractBot):
             )
         except Exception as e:
             logger.error(e)
-

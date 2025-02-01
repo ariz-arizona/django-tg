@@ -8,5 +8,5 @@ from .tarot import (
     TarotMeaningCategory,
     TarotUserReading,
     OraculumDeck,
-    Oraculum,
+    OraculumItem,
 )

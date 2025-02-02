@@ -50,10 +50,15 @@ class ParserBot(AbstractBot):
                     card = await response.json()
                     product = card["data"]["products"][0]
 
-                    # Работа с изображением
-                    image = f"{image_url(card_id)}1.webp"
-                    async with session.head(image) as response:
-                        image_size = int(response.headers.get("content-length", 0))
+                    async for image in [f"{image_url(card_id)}1.webp", f"{image_url(card_id)}1.jpg"]:
+                        async with session.head(image) as response:
+                            if response.status == 200:
+                                image_size = int(response.headers.get("content-length", 0))
+                                break
+                    else:
+                        # Если ни один файл не найден
+                        logger.error("Файлы .webp и .jpg отсутствуют.")
+                        return None
 
                     if image_size > max_size:
                         async with session.get(image) as img_response:

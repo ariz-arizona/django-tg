@@ -55,10 +55,10 @@ async def run_bot(token, handlersClass):
                 try:
                     # Декодируем сообщение
                     json_str = message.decode("utf-8")
-                    logger.info(f"Сообщение из очереди: {json_str[0:50]}")
+                    data = json.loads(json_str)
+                    logger.info(f"Сообщение из очереди update_id: {data["update_id"]}")
 
                     # Преобразуем в объект Update
-                    data = json.loads(json_str)
                     update = Update.de_json(data, app.bot)
                     await app.process_update(update)
                     # await app.update_queue.put(update)

@@ -835,9 +835,9 @@ class TarotBot(AbstractBot):
         """
         # Выбираем модель колоды в зависимости от типа
         if deck_type == "oraculum":
-            all_decks = OraculumDeck.objects.all()
+            all_decks = OraculumDeck.objects.all().order_by('id')
         elif deck_type == "tarot":
-            all_decks = TarotDeck.objects.all()
+            all_decks = TarotDeck.objects.all().order_by('id')
         else:
             raise ValueError("Неизвестный тип колоды")
 

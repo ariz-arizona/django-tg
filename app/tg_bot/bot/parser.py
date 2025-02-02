@@ -153,7 +153,9 @@ class ParserBot(AbstractBot):
     async def handle_links_based_on_message(
         self, update: Update, context: CallbackContext
     ):
-        message_text = update.message.text
+        if not update.effective_message:
+            return
+        message_text = update.effective_message.text
 
         # Ищем ссылки Wildberries
         wb_matches = re.findall(wb_regexp, message_text)

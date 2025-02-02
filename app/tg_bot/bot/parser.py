@@ -11,7 +11,7 @@ from django.db.models import Q
 from django.conf import settings
 
 from tg_bot.bot.abstract import AbstractBot
-from tg_bot.bot.wb_image_url import image_url
+from tg_bot.bot.wb_image_url import Se
 from tg_bot.models import TgUser, ParseProduct, TgUserProduct
 
 from server.logger import logger
@@ -36,7 +36,9 @@ class ParserBot(AbstractBot):
                 filters.TEXT & ~filters.COMMAND & filters.Regex(combined_regexp),
                 self.handle_links_based_on_message,
             ),
-            CommandHandler("last", self.handle_last_products),  # Обработчик для команды /last
+            CommandHandler(
+                "last", self.handle_last_products
+            ),  # Обработчик для команды /last
             CommandHandler("start", self.start),
             CommandHandler("search", self.handle_search_command, has_args=True),
         ]
@@ -53,18 +55,30 @@ class ParserBot(AbstractBot):
                     card = await response.json()
                     product = card["data"]["products"][0]
 
-                    for image in [f"{image_url(card_id)}1.webp", f"{image_url(card_id)}1.jpg"]:
-                        async with session.head(image) as response:
-                            if response.status == 200:
-                                image_size = int(response.headers.get("content-length", 0))
-                                break
-                    else:
-                        # Если ни один файл не найден
-                        logger.error("Файлы .webp и .jpg отсутствуют.")
-                        return None
+                    for image in ["1.webp", "1.jpg"]:
+                        try:
+                            image_url = f"{Se.construct_host_v2(card_id, 'nm')}/images/big/{image}"
+                            logger.info(f"Проверка URL: {image_url}")
+
+                            async with session.head(image_url) as response:
+                                logger.info(f"Ответ сервера: {response.status}")
+
+                                if response.status == 200:
+                                    image_size = int(
+                                        response.headers.get("content-length", 0)
+                                    )
+                                    logger.info(
+                                        f"Размер изображения: {image_size} байт"
+                                    )
+                                    break
+
+                        except aiohttp.ClientError as e:
+                            logger.error(f"Ошибка при запросе к {image_url}: {e}")
+                        except Exception as e:
+                            logger.error(f"Неожиданная ошибка: {e}")
 
                     if image_size > max_size:
-                        async with session.get(image) as img_response:
+                        async with session.get(image_url) as img_response:
                             image_data = await img_response.read()
                             sent_photo = await context.bot.send_photo(
                                 PICTURE_CHAT, image_data
@@ -133,12 +147,23 @@ class ParserBot(AbstractBot):
         pictures = []
         for i in items:
             p = await parse_func(i, context)
-            if p and p['media']:
+            if p and p["media"]:
                 pictures.append(p)
-                product, product_created = await ParseProduct.objects.aget_or_create(
+                # Проверяем, есть ли уже записи с таким product_id
+                existing_products = ParseProduct.objects.filter(product_id=i).order_by('-created_at')
+
+                if await existing_products.acount():
+                    # Если найдено более одной записи, удаляем все, кроме самой новой
+                    async for product in existing_products[1:]:
+                        await ParseProduct.objects.filter(id=product.id).adelete()
+                        
+                product, product_created = await ParseProduct.objects.aupdate_or_create(
                     product_id=i,
-                    photo_id=p["media"],
-                    defaults={"caption": p["caption"], "product_type": product_type},
+                    defaults={
+                        "photo_id": p["media"],
+                        "caption": p["caption"],
+                        "product_type": product_type,
+                    },
                 )
                 await TgUserProduct.objects.aupdate_or_create(
                     tg_user=user, product=product, defaults={"sent_at": now()}
@@ -216,7 +241,7 @@ class ParserBot(AbstractBot):
             r = json.loads(r)
 
             widget_states = r.get("widgetStates", {})
-            page_info = r.get("pageInfo",{})
+            page_info = r.get("pageInfo", {})
             txt = []
             img = None
 
@@ -263,7 +288,7 @@ class ParserBot(AbstractBot):
                 txt.append(
                     f"Разбор карточки OZON <code>{gallery.get('sku', '') or heading.get('id', '')}</code>"
                 )
-                brand_name = brand.get('name', '')
+                brand_name = brand.get("name", "")
                 txt.append(
                     f"{brand_name}<a href='https://ozon.ru{page_info.get('url', ozon_id)}'>{heading.get('title', '')}</a>"
                 )
@@ -319,12 +344,16 @@ class ParserBot(AbstractBot):
         # Получаем пользователя по tg_id
         try:
             user = await TgUser.objects.aget(tg_id=update.message.from_user.id)
-            
+
             # Извлекаем последние 10 товаров, отсортированных по дате (sent_at)
             user_products = []
-            async for item in TgUserProduct.objects.filter(tg_user=user).select_related('product').order_by('-sent_at')[:10]:
+            async for item in (
+                TgUserProduct.objects.filter(tg_user=user)
+                .select_related("product")
+                .order_by("-sent_at")[:10]
+            ):
                 user_products.append(item)
-                
+
             if not user_products:
                 await update.message.reply_text("Вы не отправляли товары.")
                 return
@@ -339,38 +368,45 @@ class ParserBot(AbstractBot):
                     InputMediaPhoto(
                         media=product.photo_id,  # Используем photo_id
                         caption=product.caption,  # Подпись к фото
-                        parse_mode='HTML'  # Форматирование с HTML, если нужно
+                        parse_mode="HTML",  # Форматирование с HTML, если нужно
                     )
                 )
 
             # Отправляем media_group с изображениями и подписями
             await update.message.reply_media_group(
-                media=media_group, 
-                reply_to_message_id=update.message.message_id
+                media=media_group, reply_to_message_id=update.message.message_id
             )
         except Exception as e:
             logger.error(e)
-        
+
     async def handle_search_command(self, update: Update, context: CallbackContext):
         try:
             # Получаем текст запроса из команды
-            query = update.message.text.split(maxsplit=1)[1].strip()  # /search ЗАПРОС -> ЗАПРОС
+            query = update.message.text.split(maxsplit=1)[
+                1
+            ].strip()  # /search ЗАПРОС -> ЗАПРОС
             query = query[:50]
             if not query:
-                await update.message.reply_text("Пожалуйста, укажите запрос для поиска.")
+                await update.message.reply_text(
+                    "Пожалуйста, укажите запрос для поиска."
+                )
                 return
 
             # Ищем в базе данных записи, где caption содержит запрос
             results = ParseProduct.objects.filter(
                 Q(caption__icontains=query)  # Поиск по подстроке (без учета регистра)
-            ).order_by('-created_at')[:10]  # Берем последние 10 записей
-            
+            ).order_by("-created_at")[
+                :10
+            ]  # Берем последние 10 записей
+
             user_products = []
             async for item in results:
                 user_products.append(item)
-                
+
             if not user_products:
-                await update.message.reply_text(f"По запросу '{(query)}' ничего не найдено.")
+                await update.message.reply_text(
+                    f"По запросу '{(query)}' ничего не найдено."
+                )
                 return
 
             # Формируем сообщение с результатами
@@ -383,14 +419,13 @@ class ParserBot(AbstractBot):
                     InputMediaPhoto(
                         media=product.photo_id,  # Используем photo_id
                         caption=product.caption,  # Подпись к фото
-                        parse_mode='HTML'  # Форматирование с HTML, если нужно
+                        parse_mode="HTML",  # Форматирование с HTML, если нужно
                     )
                 )
 
             # Отправляем media_group с изображениями и подписями
             await update.message.reply_media_group(
-                media=media_group, 
-                reply_to_message_id=update.message.message_id
+                media=media_group, reply_to_message_id=update.message.message_id
             )
 
         except IndexError:
@@ -399,4 +434,6 @@ class ParserBot(AbstractBot):
         except Exception as e:
             # Обработка ошибок
             logger.error(f"Ошибка при выполнении команды /search: {e}", exc_info=True)
-            await update.message.reply_text("Произошла ошибка при выполнении поиска. Пожалуйста, попробуйте снова.")
+            await update.message.reply_text(
+                "Произошла ошибка при выполнении поиска. Пожалуйста, попробуйте снова."
+            )

@@ -472,7 +472,7 @@
         "documentation": {}
     },
     {
-        "label": "image_url",
+        "label": "Se",
         "importPath": "tg_bot.bot.wb_image_url",
         "description": "tg_bot.bot.wb_image_url",
         "isExtraImport": true,
@@ -1591,7 +1591,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.bot.parser",
         "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "class ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(combined_regexp),\n                self.handle_links_based_on_message,\n            ),\n            CommandHandler(\"last\", self.handle_last_products),  # Обработчик для команды /last",
+        "peekOfCode": "class ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(combined_regexp),\n                self.handle_links_based_on_message,\n            ),\n            CommandHandler(",
         "detail": "app.tg_bot.bot.parser",
         "documentation": {}
     },
@@ -1668,29 +1668,11 @@
         "documentation": {}
     },
     {
-        "label": "ImgServer",
+        "label": "Se",
         "kind": 6,
         "importPath": "app.tg_bot.bot.wb_image_url",
         "description": "app.tg_bot.bot.wb_image_url",
-        "peekOfCode": "class ImgServer:\n    @staticmethod\n    def vol_host_v2(e):\n        if 0 <= e <= 143:\n            t = \"01\"\n        elif e <= 287:\n            t = \"02\"\n        elif e <= 431:\n            t = \"03\"\n        elif e <= 719:",
-        "detail": "app.tg_bot.bot.wb_image_url",
-        "documentation": {}
-    },
-    {
-        "label": "image_url",
-        "kind": 2,
-        "importPath": "app.tg_bot.bot.wb_image_url",
-        "description": "app.tg_bot.bot.wb_image_url",
-        "peekOfCode": "def image_url(e, t='big'):\n    s = int(e)\n    return f\"{img_server.construct_host_v2(s)}/images/{t}/\"\nclass ImgServer:\n    @staticmethod\n    def vol_host_v2(e):\n        if 0 <= e <= 143:\n            t = \"01\"\n        elif e <= 287:\n            t = \"02\"",
-        "detail": "app.tg_bot.bot.wb_image_url",
-        "documentation": {}
-    },
-    {
-        "label": "img_server",
-        "kind": 5,
-        "importPath": "app.tg_bot.bot.wb_image_url",
-        "description": "app.tg_bot.bot.wb_image_url",
-        "peekOfCode": "img_server = ImgServer()",
+        "peekOfCode": "class Se:\n    @staticmethod\n    def vol_host_v2(e):\n        t = e // 100000\n        if 0 <= t <= 143:\n            r = \"01\"\n        elif t <= 287:\n            r = \"02\"\n        elif t <= 431:\n            r = \"03\"",
         "detail": "app.tg_bot.bot.wb_image_url",
         "documentation": {}
     },

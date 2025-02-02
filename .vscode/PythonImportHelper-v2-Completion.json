@@ -1628,7 +1628,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.bot.tarot",
         "description": "app.tg_bot.bot.tarot",
-        "peekOfCode": "class TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),\n            MessageHandler(\n                filters.COMMAND\n                & filters.TEXT",
+        "peekOfCode": "class TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(filters.PHOTO, self.handle_photo_msg),\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),\n            MessageHandler(\n                filters.COMMAND",
         "detail": "app.tg_bot.bot.tarot",
         "documentation": {}
     },
@@ -1637,7 +1637,7 @@
         "kind": 5,
         "importPath": "app.tg_bot.bot.tarot",
         "description": "app.tg_bot.bot.tarot",
-        "peekOfCode": "reading_ids = {}\nclass TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),\n            MessageHandler(\n                filters.COMMAND",
+        "peekOfCode": "reading_ids = {}\nclass TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(filters.PHOTO, self.handle_photo_msg),\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),\n            MessageHandler(",
         "detail": "app.tg_bot.bot.tarot",
         "documentation": {}
     },

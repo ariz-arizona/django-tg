@@ -44,6 +44,7 @@ class TarotBot(AbstractBot):
 
     def get_handlers(self):
         return [
+            MessageHandler(filters.PHOTO, self.handle_photo_msg),
             CommandHandler("start", self.handle_help),
             CommandHandler("help", self.handle_help),
             MessageHandler(
@@ -53,7 +54,6 @@ class TarotBot(AbstractBot):
                 & filters.Regex(r"^\/all deck \d+$"),
                 self.handle_all_by_deck,
             ),
-            
             CallbackQueryHandler(
                 self.handle_allcard_callback,
                 pattern=r"^allcard_",
@@ -1157,7 +1157,7 @@ class TarotBot(AbstractBot):
 
             # Получаем данные карты
             card = await self.get_cards(deck_id, 1, [card_index])
-            card =card[0]
+            card = card[0]
             if not card:
                 await query.edit_message_text("Карта не найдена.")
                 return
@@ -1185,6 +1185,8 @@ class TarotBot(AbstractBot):
             await query.edit_message_text(
                 "Произошла ошибка. Пожалуйста, попробуйте снова."
             )
+    async def handle_photo_msg(self, update: Update, context: CallbackContext):
+        logger.info(update)
 
     async def handle_help(self, update: Update, context: CallbackContext):
         """

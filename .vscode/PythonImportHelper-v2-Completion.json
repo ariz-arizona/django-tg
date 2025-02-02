@@ -1654,7 +1654,16 @@
         "kind": 5,
         "importPath": "app.tg_bot.bot.tarot",
         "description": "app.tg_bot.bot.tarot",
-        "peekOfCode": "reading_ids = {}\nclass TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(filters.PHOTO, self.handle_photo_msg),\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),\n            MessageHandler(",
+        "peekOfCode": "reading_ids = {}\nuser_exclude_cards = {}\nclass TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(filters.PHOTO, self.handle_photo_msg),\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),",
+        "detail": "app.tg_bot.bot.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "user_exclude_cards",
+        "kind": 5,
+        "importPath": "app.tg_bot.bot.tarot",
+        "description": "app.tg_bot.bot.tarot",
+        "peekOfCode": "user_exclude_cards = {}\nclass TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(filters.PHOTO, self.handle_photo_msg),\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),\n            MessageHandler(",
         "detail": "app.tg_bot.bot.tarot",
         "documentation": {}
     },

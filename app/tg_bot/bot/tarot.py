@@ -36,6 +36,7 @@ from server.logger import logger
 from django.conf import settings
 
 reading_ids = {}
+user_exclude_cards = {}
 
 
 class TarotBot(AbstractBot):
@@ -313,9 +314,9 @@ class TarotBot(AbstractBot):
             ]
         )
 
-    async def send_card(self, update: Update, cards, exclude_cards, deck, major, flip):
+    async def send_card(self, update: Update, cards, meaning_cards, deck, major, flip):
         logger.info(
-            f"исключить: {exclude_cards} колода: {deck} старшие: {major} {int(major)} перевернуто: {flip} {int(flip)}"
+            f"значение: {meaning_cards} колода: {deck} старшие: {major} {int(major)} перевернуто: {flip} {int(flip)}"
         )
         await update.effective_message.reply_media_group(
             [
@@ -340,11 +341,11 @@ class TarotBot(AbstractBot):
                 [
                     InlineKeyboardButton(
                         "Еще карту",
-                        callback_data=f'more_{deck.id}_{"#".join(exclude_cards)}_{int(major)}_{int(flip)}',
+                        callback_data=f"more_{deck.id}_{int(major)}_{int(flip)}",
                     ),
                     InlineKeyboardButton(
-                        "Базовые значения",
-                        callback_data=f'desc_{"#".join(exclude_cards)}',
+                        f"Базовые значения (для {len(meaning_cards)} карт)",
+                        callback_data=f"desc_{'#'.join(meaning_cards)}",
                     ),
                 ]
             ]
@@ -430,6 +431,7 @@ class TarotBot(AbstractBot):
             )
 
             logger.info(f"Результат гадания сохранен: {reading}")
+            user_exclude_cards[update.effective_user.id] = [c["card_id"] for c in cards]
 
             # Отправка карт
             await self.send_card(
@@ -523,10 +525,10 @@ class TarotBot(AbstractBot):
         logger.info(f"Получен callback-запрос: {query.data}")
 
         try:
-            _, deck_id, exclude_cards, major, flip = query.data.split("_")
+            _, deck_id, major, flip = query.data.split("_")
             major = int(major)
             flip = int(flip)
-            exclude_cards = exclude_cards.split("#") if exclude_cards else []
+            exclude_cards = user_exclude_cards.get(update.effective_user.id, [])
         except ValueError as e:
             logger.error(f"Ошибка при разборе query.data: {query.data}, ошибка: {e}")
             await query.edit_message_text("Ошибка обработки запроса.")
@@ -594,16 +596,18 @@ class TarotBot(AbstractBot):
             reading.data = now()
             await reading.asave()
 
+            user_exclude_cards[update.effective_user.id] = full_exclude
+
             await self.send_card(
                 update,
                 new_card,
-                full_exclude,
+                [c["card_id"] for c in new_card],
                 deck,
                 bool(major),
                 bool(flip),
             )
             logger.info(
-                f"Карта отправлена: {[str(n.get(k)) for k in ['card_id', 'name'] for n in new_card]}"
+                f"Карта отправлена: {[str(n.get(k)) for k in ['name'] for n in new_card]}"
             )
         except Exception as e:
             logger.error(f"Ошибка при отправке карты: {e}")
@@ -719,17 +723,17 @@ class TarotBot(AbstractBot):
         _, meaning_type, card_id, page = query.data.split("_")
         page = int(page)
 
+        base_card = await TarotCard.objects.aget(card_id=card_id)
+        extended_cards = ExtendedMeaning.objects.all().prefetch_related(
+            "tarot_card", "category_base"
+        )
+        extended_card = await extended_cards.filter(
+            tarot_card__card_id=card_id, category_base=meaning_type
+        ).aget()
         if meaning_type == "base":
-            card = await TarotCard.objects.aget(card_id=card_id)
-            text = card.meaning
+            text = base_card.meaning
         else:
-            cards = ExtendedMeaning.objects.all().prefetch_related(
-                "tarot_card", "category_base"
-            )
-            card = await cards.filter(
-                tarot_card__card_id=card_id, category_base=meaning_type
-            ).aget()
-            text = card.text
+            text = extended_card.text
 
         text_parts = self.split_text(text)
         keyboard = await self.create_pagination_keyboard(
@@ -738,8 +742,14 @@ class TarotBot(AbstractBot):
 
         # Обновляем сообщение с новой страницей
         await query.edit_message_text(
-            text=text_parts[page - 1],
+            text=(
+                f"<strong>{base_card.name}</strong>\n"
+                f"{'Базовый' if meaning_type == 'base' else extended_card.category_base}\n"
+                "\n"
+                f"{text_parts[page - 1]}"
+            ),
             reply_markup=keyboard,
+            parse_mode="HTML",
         )
 
     async def handle_desc_button(self, update: Update, context: CallbackContext):
@@ -751,7 +761,8 @@ class TarotBot(AbstractBot):
 
         for c in cards:
             card = await TarotCard.objects.aget(card_id=c)
-            await self.send_paginated_text(update, card.card_id, card.meaning)
+            text = card.name + "\n" + card.meaning
+            await self.send_paginated_text(update, card.card_id, text)
             time.sleep(0.3)
 
     async def load_page(self, url):
@@ -1185,6 +1196,7 @@ class TarotBot(AbstractBot):
             await query.edit_message_text(
                 "Произошла ошибка. Пожалуйста, попробуйте снова."
             )
+
     async def handle_photo_msg(self, update: Update, context: CallbackContext):
         logger.info(update)
 

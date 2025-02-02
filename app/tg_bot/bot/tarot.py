@@ -724,12 +724,13 @@ class TarotBot(AbstractBot):
         page = int(page)
 
         base_card = await TarotCard.objects.aget(card_id=card_id)
-        extended_cards = ExtendedMeaning.objects.all().prefetch_related(
-            "tarot_card", "category_base"
-        )
-        extended_card = await extended_cards.filter(
-            tarot_card__card_id=card_id, category_base=meaning_type
-        ).aget()
+        if meaning_type != "base":
+            extended_cards = ExtendedMeaning.objects.all().prefetch_related(
+                "tarot_card", "category_base"
+            )
+            extended_card = await extended_cards.filter(
+                tarot_card__card_id=card_id, category_base=meaning_type
+            ).aget()
         if meaning_type == "base":
             text = base_card.meaning
         else:

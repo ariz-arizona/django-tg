@@ -337,12 +337,12 @@ class TarotBot(AbstractBot):
         )
 
         text = [deck.name]
-        reply_markup = [
+        reply_markup = [[
             InlineKeyboardButton(
                 "Еще карту",
                 callback_data=f"moreoracle_{deck.id}_{int(major)}_{int(flip)}",
             )
-        ]
+        ]]
         if isinstance(deck, TarotDeck):
             text.append(deck.link)
             reply_markup = [
@@ -507,7 +507,7 @@ class TarotBot(AbstractBot):
             )
 
             logger.info(f"Результат гадания сохранен: {reading}")
-            user_exclude_cards[update.effective_user.id] = [c["id"] for c in cards]
+            user_exclude_cards[update.effective_user.id] = [c["card_id"] for c in cards]
 
             # Отправка карт
             await self.send_card(

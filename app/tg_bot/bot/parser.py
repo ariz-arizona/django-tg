@@ -1,3 +1,4 @@
+import __future__
 import re
 import aiohttp
 import json
@@ -6,13 +7,14 @@ from telegram import Update, InputMediaPhoto
 from telegram.ext import CommandHandler, MessageHandler, CallbackContext, filters
 
 from django.utils.timezone import now
+from django.db.models import Q
+from django.conf import settings
 
 from tg_bot.bot.abstract import AbstractBot
 from tg_bot.bot.wb_image_url import image_url
 from tg_bot.models import TgUser, ParseProduct, TgUserProduct
 
 from server.logger import logger
-from django.conf import settings
 
 PICTURE_CHAT = settings.PICTURE_CHAT
 PARSER_URL = settings.PARSER_URL
@@ -36,6 +38,7 @@ class ParserBot(AbstractBot):
             ),
             CommandHandler("last", self.handle_last_products),  # Обработчик для команды /last
             CommandHandler("start", self.start),
+            CommandHandler("search", self.handle_search_command, has_args=True),
         ]
 
     async def wb(self, card_id, context: CallbackContext):
@@ -50,7 +53,7 @@ class ParserBot(AbstractBot):
                     card = await response.json()
                     product = card["data"]["products"][0]
 
-                    async for image in [f"{image_url(card_id)}1.webp", f"{image_url(card_id)}1.jpg"]:
+                    for image in [f"{image_url(card_id)}1.webp", f"{image_url(card_id)}1.jpg"]:
                         async with session.head(image) as response:
                             if response.status == 200:
                                 image_size = int(response.headers.get("content-length", 0))
@@ -329,8 +332,6 @@ class ParserBot(AbstractBot):
             # Формируем список товаров для отправки в media_group
             media_group = []
             for user_product in user_products:
-                print(user_product.sent_at)
-                
                 product = user_product.product
                 logger.info(product)
                 # Создаем объект InputMediaPhoto для каждого товара
@@ -350,3 +351,52 @@ class ParserBot(AbstractBot):
         except Exception as e:
             logger.error(e)
         
+    async def handle_search_command(self, update: Update, context: CallbackContext):
+        try:
+            # Получаем текст запроса из команды
+            query = update.message.text.split(maxsplit=1)[1].strip()  # /search ЗАПРОС -> ЗАПРОС
+            query = query[:50]
+            if not query:
+                await update.message.reply_text("Пожалуйста, укажите запрос для поиска.")
+                return
+
+            # Ищем в базе данных записи, где caption содержит запрос
+            results = ParseProduct.objects.filter(
+                Q(caption__icontains=query)  # Поиск по подстроке (без учета регистра)
+            ).order_by('-created_at')[:10]  # Берем последние 10 записей
+            
+            user_products = []
+            async for item in results:
+                user_products.append(item)
+                
+            if not user_products:
+                await update.message.reply_text(f"По запросу '{(query)}' ничего не найдено.")
+                return
+
+            # Формируем сообщение с результатами
+            media_group = []
+            for user_product in user_products:
+                product = user_product
+
+                # Создаем объект InputMediaPhoto для каждого товара
+                media_group.append(
+                    InputMediaPhoto(
+                        media=product.photo_id,  # Используем photo_id
+                        caption=product.caption,  # Подпись к фото
+                        parse_mode='HTML'  # Форматирование с HTML, если нужно
+                    )
+                )
+
+            # Отправляем media_group с изображениями и подписями
+            await update.message.reply_media_group(
+                media=media_group, 
+                reply_to_message_id=update.message.message_id
+            )
+
+        except IndexError:
+            # Если запрос не указан
+            await update.message.reply_text("Пожалуйста, укажите запрос для поиска.")
+        except Exception as e:
+            # Обработка ошибок
+            logger.error(f"Ошибка при выполнении команды /search: {e}", exc_info=True)
+            await update.message.reply_text("Произошла ошибка при выполнении поиска. Пожалуйста, попробуйте снова.")

@@ -1,4 +1,4 @@
-def image_url(e, t='c516x688'):
+def image_url(e, t='big'):
     s = int(e)
     return f"{img_server.construct_host_v2(s)}/images/{t}/"
 

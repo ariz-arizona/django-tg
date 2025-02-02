@@ -104,6 +104,9 @@ class TarotBot(AbstractBot):
                 & filters.Regex(r"^\/oraculum(\d+)?"),
                 self.handle_oraculum,
             ),
+            CallbackQueryHandler(
+                self.handle_moreoracle_button, pattern=r"^moreoracle_\d+_.+$"
+            ),
         ]
 
     async def save_reading(self, user, message_id, text):
@@ -334,7 +337,12 @@ class TarotBot(AbstractBot):
         )
 
         text = [deck.name]
-        reply_markup = None
+        reply_markup = [
+            InlineKeyboardButton(
+                "Еще карту",
+                callback_data=f"moreoracle_{deck.id}_{int(major)}_{int(flip)}",
+            )
+        ]
         if isinstance(deck, TarotDeck):
             text.append(deck.link)
             reply_markup = [
@@ -499,6 +507,7 @@ class TarotBot(AbstractBot):
             )
 
             logger.info(f"Результат гадания сохранен: {reading}")
+            user_exclude_cards[update.effective_user.id] = [c["id"] for c in cards]
 
             # Отправка карт
             await self.send_card(
@@ -518,6 +527,98 @@ class TarotBot(AbstractBot):
             await update.message.reply_text(
                 "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
             )
+
+    async def handle_moreoracle_button(self, update: Update, context: CallbackContext):
+        query = update.callback_query
+        await query.answer()
+        logger.info(f"Получен callback-запрос: {query.data}")
+
+        try:
+            _, deck_id, major, flip = query.data.split("_")
+            major = int(major)
+            flip = int(flip)
+            exclude_cards = user_exclude_cards.get(update.effective_user.id, [])
+        except ValueError as e:
+            logger.error(f"Ошибка при разборе query.data: {query.data}, ошибка: {e}")
+            await query.edit_message_text("Ошибка обработки запроса.")
+            return
+
+        logger.info(
+            f"Запрошена ещё одна карта для колоды {deck_id}. Исключаемые карты: {exclude_cards}"
+        )
+
+        try:
+            deck = await self.get_deck(int(deck_id), "oraculum")
+            logger.info(f"Загружена колода: {deck}")
+        except Exception as e:
+            logger.error(f"Ошибка загрузки колоды {deck_id}: {e}")
+            await query.edit_message_text("Ошибка загрузки колоды.")
+            return
+
+        try:
+            new_card = await self.get_oraculum_cards(
+                deck_id=int(deck_id),
+                counter=1,
+                exclude_cards=exclude_cards,
+            )
+            # logger.info(f"Выбраны новые карты: {new_card}")
+            new_card_text = "\n".join(
+                [",".join([await self.format_card_name(c, flip) for c in new_card])]
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка получения карт: {e}", exc_info=True)
+            logger.error(traceback.format_exc())
+            await query.edit_message_text("Ошибка получения карт.")
+            return
+
+        if not new_card:
+            logger.info("Нет доступных карт для выбора.")
+            await update.effective_message.reply_text("Нет доступных карт для выбора.")
+            return
+
+        full_exclude = exclude_cards + [c["card_id"] for c in new_card]
+        logger.info(f"Обновленный список исключений: {full_exclude}")
+
+        try:
+            user, _ = await TgUser.objects.aget_or_create(
+                tg_id=update.effective_user.id,
+                defaults={
+                    "username": update.effective_user.username,
+                    "first_name": update.effective_user.first_name,
+                    "last_name": update.effective_user.last_name,
+                    "language_code": update.effective_user.language_code,
+                    "is_bot": update.effective_user.is_bot,
+                },
+            )
+            initial_message_id = reading_ids.get(user.id)
+            reading, created = await TarotUserReading.objects.aupdate_or_create(
+                message_id=initial_message_id, user=user
+            )
+            reading.text = (
+                f"ОРАКУЛ: {deck.name} {new_card_text}"
+                if created
+                else f"{reading.text}, {new_card_text}"
+            )
+            reading.data = now()
+            await reading.asave()
+
+            user_exclude_cards[update.effective_user.id] = full_exclude
+
+            await self.send_card(
+                update,
+                new_card,
+                [c["card_id"] for c in new_card],
+                deck,
+                bool(major),
+                bool(flip),
+            )
+            logger.info(
+                f"Карта отправлена: {[str(n.get(k)) for k in ['name'] for n in new_card]}"
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при отправке карты: {e}")
+            await query.edit_message_text("Ошибка при отправке карты.")
 
     async def handle_more_button(self, update: Update, context: CallbackContext):
         query = update.callback_query

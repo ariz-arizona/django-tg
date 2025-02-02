@@ -152,7 +152,7 @@ class ParserBot(AbstractBot):
                 # Проверяем, есть ли уже записи с таким product_id
                 existing_products = ParseProduct.objects.filter(product_id=i).order_by('-created_at')
 
-                if await existing_products.acount():
+                if (await existing_products.acount()) > 1:
                     # Если найдено более одной записи, удаляем все, кроме самой новой
                     async for product in existing_products[1:]:
                         await ParseProduct.objects.filter(id=product.id).adelete()

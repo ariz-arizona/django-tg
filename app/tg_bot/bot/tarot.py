@@ -337,12 +337,14 @@ class TarotBot(AbstractBot):
         )
 
         text = [deck.name]
-        reply_markup = [[
-            InlineKeyboardButton(
-                "Еще карту",
-                callback_data=f"moreoracle_{deck.id}_{int(major)}_{int(flip)}",
-            )
-        ]]
+        reply_markup = [
+            [
+                InlineKeyboardButton(
+                    "Еще карту",
+                    callback_data=f"moreoracle_{deck.id}_{int(major)}_{int(flip)}",
+                )
+            ]
+        ]
         if isinstance(deck, TarotDeck):
             text.append(deck.link)
             reply_markup = [
@@ -1157,20 +1159,44 @@ class TarotBot(AbstractBot):
             callback_data = query.data
             rune_id, inverted, position = callback_data.split("_")[1:]
 
+            inverted = bool(int(inverted))
+            position = int(position)
+
+            logger.info(
+                f"Обработка футарк колбэка {callback_data}: руна {rune_id}, перевернуто {inverted} на позиции {position}"
+            )
+
             # Получаем описание руны
             rune = await Rune.objects.aget(id=rune_id)
-            keys = rune.straight_keys
-            meaning = rune.straight_meaning
-            pos_1 = rune.straight_pos_1
-            pos_2 = rune.straight_pos_2
-            pos_3 = rune.straight_pos_3
-            if inverted:
-                keys = rune.inverted_keys
-                meaning = rune.inverted_meaning
-                pos_1 = rune.inverted_pos_1
-                pos_2 = rune.inverted_pos_2
-                pos_3 = rune.inverted_pos_3
-            position = int(position)
+
+            if inverted == False:
+                keys = rune.straight_keys
+                meaning = rune.straight_meaning
+                pos_1 = rune.straight_pos_1
+                pos_2 = rune.straight_pos_2
+                pos_3 = rune.straight_pos_3
+            elif inverted == True:
+                keys = (
+                    rune.inverted_keys
+                    or f"для прямой руны: {rune.straight_keys}"
+                )
+                meaning = (
+                    rune.inverted_meaning
+                    or f"для прямой руны: {rune.straight_meaning}"
+                )
+                pos_1 = (
+                    rune.inverted_pos_1
+                    or f"для прямой руны: {rune.straight_pos_1}"
+                )
+                pos_2 = (
+                    rune.inverted_pos_2
+                    or f"для прямой руны: {rune.straight_pos_2}"
+                )
+                pos_3 = (
+                    rune.inverted_pos_3
+                    or f"для прямой руны: {rune.straight_pos_3}"
+                )
+
             if position == 1:
                 position_text = pos_1
             elif position == 2:
@@ -1180,7 +1206,12 @@ class TarotBot(AbstractBot):
 
             # Отправляем описание руны
             await update.effective_message.reply_html(
-                f"<b>{rune.symbol}</b> {rune.type}\n\n{keys}\n\n{meaning}\n\n{position_text}",
+                (
+                    f"<b>{rune.symbol}</b> {rune.type}{' (Перевернуто)' if inverted else ''}"
+                    f"\n\nКлючи: {keys}"
+                    f"\n\nЗначение: {meaning}"
+                    f"\n\nПоложение: {position_text}"
+                ),
                 reply_to_message_id=update.effective_message.message_id,
             )
         except Exception as e:

@@ -83,7 +83,7 @@ class ParserBot(AbstractBot):
                             sent_photo = await context.bot.send_photo(
                                 PICTURE_CHAT, image_data
                             )
-                            image = sent_photo.photo[-1].file_id
+                            image_url = sent_photo.photo[-1].file_id
 
                     # Парсинг данных
                     sku = card_id
@@ -121,7 +121,7 @@ class ParserBot(AbstractBot):
 
                     # Возвращаем сообщение
                     return {
-                        "media": image,
+                        "media": image_url,
                         "caption": "\n".join(txt),
                         "parse_mode": "HTML",
                     }

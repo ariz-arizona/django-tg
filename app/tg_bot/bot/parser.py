@@ -53,7 +53,7 @@ class ParserBot(AbstractBot):
             async with session.get(card_url) as response:
                 try:
                     card = await response.json()
-                    product = card["data"]["products"][0]
+                    product = card["products"][0]
 
                     for image in ["1.webp", "1.jpg"]:
                         try:
@@ -90,36 +90,55 @@ class ParserBot(AbstractBot):
                     brand = product["brand"]
                     link = f"https://wildberries.ru/catalog/{card_id}/detail.aspx"
                     name = product["name"]
-                    price = {"price": product["priceU"] / 100}
 
-                    if "salePriceU" in product:
-                        price["discount"] = product["salePriceU"] / 100
+                    sizes = []
+                    for size in product["sizes"]:
+                        size_name = size["name"]
+                        available = len(size["stocks"]) > 0
 
-                    sizes = [
-                        {"name": size["name"], "available": len(size["stocks"]) > 0}
-                        for size in product["sizes"]
-                    ]
+                        # Защита от отсутствия поля price
+                        price_data = size.get("price")
+                        if not price_data:
+                            continue
+
+                        current_price = price_data.get("product")
+                        if current_price is None:
+                            current_price = price_data.get(
+                                "basic", 0
+                            )  # fallback на basic
+
+                        price_rub = current_price / 100
+
+                        sizes.append(
+                            {
+                                "name": size_name,
+                                "available": available,
+                                "price": price_rub,
+                            }
+                        )
+
+                    active_prices = {s["price"] for s in sizes if s["available"]}
+                    show_common_price = len(active_prices) == 1
 
                     # Формируем текст
                     txt.append(f"Разбор карточки WB <code>{sku}</code>")
                     txt.append(f'{brand} <a href="{link}">{name}</a>')
+                    if show_common_price:
+                        common_price = next(iter(active_prices))
+                        txt.append(f"Цена: {common_price} ₽")
+
+                    txt.append("Размеры и цена:")
                     txt.append(
-                        "Цена: "
-                        + (
-                            f"{price['discount']} <s>{price['price']}</s>"
-                            if "discount" in price
-                            else f"{price['price']}"
-                        )
-                    )
-                    txt.append(
-                        "Размеры: \n"
-                        + ", ".join(
-                            f"{'✅' if size['available'] else '❌'} {size['name']}"
+                        ", ".join(
+                            (
+                                f"{'✅' if size['available'] else '❌'} "
+                                f"<b>{size['name']}</b>"
+                                f"{' '.join(['', '—',str(size['price']),'₽']) if not show_common_price else ''}"
+                            )
                             for size in sizes
                         )
                     )
 
-                    # Возвращаем сообщение
                     return {
                         "media": image_url,
                         "caption": "\n".join(txt),
@@ -150,13 +169,15 @@ class ParserBot(AbstractBot):
             if p and p["media"]:
                 pictures.append(p)
                 # Проверяем, есть ли уже записи с таким product_id
-                existing_products = ParseProduct.objects.filter(product_id=i).order_by('-created_at')
+                existing_products = ParseProduct.objects.filter(product_id=i).order_by(
+                    "-created_at"
+                )
 
                 if (await existing_products.acount()) > 1:
                     # Если найдено более одной записи, удаляем все, кроме самой новой
                     async for product in existing_products[1:]:
                         await ParseProduct.objects.filter(id=product.id).adelete()
-                        
+
                 product, product_created = await ParseProduct.objects.aupdate_or_create(
                     product_id=i,
                     defaults={

@@ -99,29 +99,26 @@ class ParserBot(AbstractBot):
                     for size in product["sizes"]:
                         size_name = size["name"]
                         available = len(size["stocks"]) > 0
+                        obj = {
+                            "name": size_name,
+                            "available": available,
+                        }
 
                         # Защита от отсутствия поля price
-                        price_data = size.get("price")
-                        if not price_data:
-                            continue
+                        price_data = size.get("price", None)
+                        if price_data:
+                            current_price = price_data.get("product")
+                            if current_price is None:
+                                current_price = price_data.get(
+                                    "basic", 0
+                                )  # fallback на basic
 
-                        current_price = price_data.get("product")
-                        if current_price is None:
-                            current_price = price_data.get(
-                                "basic", 0
-                            )  # fallback на basic
+                            price_rub = current_price / 100
+                            obj["price"] = price_rub
 
-                        price_rub = current_price / 100
+                        sizes.append(obj)
 
-                        sizes.append(
-                            {
-                                "name": size_name,
-                                "available": available,
-                                "price": price_rub,
-                            }
-                        )
-
-                    active_prices = {s["price"] for s in sizes if s["available"]}
+                    active_prices = {s.get("price", None) for s in sizes if s["available"]}
                     show_common_price = len(active_prices) == 1
 
                     # Формируем текст
@@ -137,7 +134,7 @@ class ParserBot(AbstractBot):
                             (
                                 f"{'✅' if size['available'] else '❌'} "
                                 f"<b>{size['name']}</b>"
-                                f"{' '.join(['', '—',str(size['price']),'₽']) if not show_common_price else ''}"
+                                f"{' '.join(['', '—',str(size['price']),'₽']) if not show_common_price and hasattr(size, 'price') else ''}"
                             )
                             for size in sizes
                         )

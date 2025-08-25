@@ -1591,7 +1591,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.bot.parser",
         "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "class ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(combined_regexp),\n                self.handle_links_based_on_message,\n            ),\n            CommandHandler(",
+        "peekOfCode": "class ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (\n                    (filters.TEXT & filters.Regex(combined_regexp))\n                    | (filters.CAPTION & filters.CaptionRegex(combined_regexp))\n                )",
         "detail": "app.tg_bot.bot.parser",
         "documentation": {}
     },
@@ -1618,7 +1618,7 @@
         "kind": 5,
         "importPath": "app.tg_bot.bot.parser",
         "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "wb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(combined_regexp),",
+        "peekOfCode": "wb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (",
         "detail": "app.tg_bot.bot.parser",
         "documentation": {}
     },
@@ -1627,7 +1627,7 @@
         "kind": 5,
         "importPath": "app.tg_bot.bot.parser",
         "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "ozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(combined_regexp),\n                self.handle_links_based_on_message,",
+        "peekOfCode": "ozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (\n                    (filters.TEXT & filters.Regex(combined_regexp))",
         "detail": "app.tg_bot.bot.parser",
         "documentation": {}
     },
@@ -1636,7 +1636,7 @@
         "kind": 5,
         "importPath": "app.tg_bot.bot.parser",
         "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "combined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                filters.TEXT & ~filters.COMMAND & filters.Regex(combined_regexp),\n                self.handle_links_based_on_message,\n            ),",
+        "peekOfCode": "combined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (\n                    (filters.TEXT & filters.Regex(combined_regexp))\n                    | (filters.CAPTION & filters.CaptionRegex(combined_regexp))",
         "detail": "app.tg_bot.bot.parser",
         "documentation": {}
     },

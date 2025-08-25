@@ -33,7 +33,11 @@ class ParserBot(AbstractBot):
     def get_handlers(self):
         return [
             MessageHandler(
-                filters.TEXT & ~filters.COMMAND & filters.Regex(combined_regexp),
+                (
+                    (filters.TEXT & filters.Regex(combined_regexp))
+                    | (filters.CAPTION & filters.CaptionRegex(combined_regexp))
+                )
+                & ~filters.COMMAND,
                 self.handle_links_based_on_message,
             ),
             CommandHandler(
@@ -204,7 +208,7 @@ class ParserBot(AbstractBot):
     ):
         if not update.effective_message:
             return
-        message_text = update.effective_message.text
+        message_text = update.effective_message.caption or update.effective_message.text
 
         # Ищем ссылки Wildberries
         wb_matches = re.findall(wb_regexp, message_text)

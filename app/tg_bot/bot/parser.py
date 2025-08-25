@@ -44,7 +44,7 @@ class ParserBot(AbstractBot):
         ]
 
     async def wb(self, card_id, context: CallbackContext):
-        card_url = f"https://card.wb.ru/cards/detail?dest=-1059500,-72639,-3826860,-5551776&nm={card_id}"
+        card_url = f"https://card.wb.ru/cards/v4/detail?curr=rub&dest=-1059500,-72639,-3826860,-5551776&nm={card_id}"
         max_size = 51000  # Максимальный размер изображения
         txt = []
 

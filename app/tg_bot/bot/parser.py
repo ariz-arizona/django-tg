@@ -12,7 +12,7 @@ from django.conf import settings
 
 from tg_bot.bot.abstract import AbstractBot
 from tg_bot.bot.wb_image_url import Se
-from tg_bot.models import TgUser, ParseProduct, TgUserProduct, Brand, Category
+from tg_bot.models import TgUser, ParseProduct, TgUserProduct, Brand, Category, ProductImage
 
 from server.logger import logger
 

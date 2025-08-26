@@ -1115,6 +1115,22 @@
         "documentation": {}
     },
     {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "models",
         "importPath": "django.db",
         "description": "django.db",
@@ -1989,6 +2005,15 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0030_parseproduct_name",
+        "description": "app.tg_bot.migrations.0030_parseproduct_name",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0029_alter_tguserproduct_unique_together'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='parseproduct',\n            name='name',\n            field=models.CharField(blank=True, help_text='Официальное название товара (опционально)', max_length=255, null=True, verbose_name='Название товара'),\n        ),",
+        "detail": "app.tg_bot.migrations.0030_parseproduct_name",
+        "documentation": {}
+    },
+    {
         "label": "Bot",
         "kind": 6,
         "importPath": "app.tg_bot.models.base",
@@ -2029,7 +2054,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.models.parser",
         "description": "app.tg_bot.models.parser",
-        "peekOfCode": "class ParseProduct(models.Model):\n    \"\"\"Модель для хранения данных о продукте.\"\"\"\n    product_id = models.CharField(max_length=255, verbose_name=\"ID товара\")\n    caption = models.TextField(verbose_name=\"Подпись к фото\")\n    product_type = models.CharField(\n        max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name=\"Тип продукта\"\n    )\n    created_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата создания\")\n    updated_at = models.DateTimeField(auto_now=True, verbose_name=\"Дата обновления\")\n    brand = models.ForeignKey(",
+        "peekOfCode": "class ParseProduct(models.Model):\n    \"\"\"Модель для хранения данных о продукте.\"\"\"\n    product_id = models.CharField(max_length=255, verbose_name=\"ID товара\")\n    caption = models.TextField(verbose_name=\"Подпись к фото\")\n    name = models.CharField(\n        max_length=255,\n        blank=True,\n        null=True,\n        verbose_name=\"Название товара\",\n        help_text=\"Официальное название товара (опционально)\"",
         "detail": "app.tg_bot.models.parser",
         "documentation": {}
     },
@@ -2281,7 +2306,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class ParseProductAdmin(admin.ModelAdmin):\n    list_display = (\n        \"product_id\",\n        \"product_type\",\n        \"brand__name\",\n        \"category__name\",\n        \"created_at\",\n        \"updated_at\",\n    )\n    list_filter = (\"product_type\", \"brand\", \"category\", \"created_at\")",
+        "peekOfCode": "class ParseProductAdmin(admin.ModelAdmin):\n    list_display = (\n        \"product_id\",\n        \"product_type\",\n        \"name\",\n        \"brand__name\",\n        \"category__name\",\n        \"created_at\",\n        \"updated_at\",\n    )",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },

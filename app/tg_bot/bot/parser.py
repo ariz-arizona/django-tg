@@ -157,6 +157,7 @@ class ParserBot(AbstractBot):
                         "media": image_url,
                         "caption": "\n".join(txt),
                         "parse_mode": "HTML",
+                        "name": product.get("name"),
                         "brand": {
                             "id": product.get("brandId"),
                             "name": product.get("brand"),
@@ -250,6 +251,7 @@ class ParserBot(AbstractBot):
 
                 product, product_created = await ParseProduct.objects.aupdate_or_create(
                     product_id=i,
+                    name=p["name"],
                     defaults={
                         "brand": brand_obj,
                         "category": category_obj,
@@ -269,7 +271,7 @@ class ParserBot(AbstractBot):
 
                 if need_update:
                     await product.asave(update_fields=["brand", "category"])
-                    
+
                 image_qs = product.images.all()
                 if await image_qs.aexists():
                     # Берём первое (или можно выбрать по порядку, если будет сортировка)
@@ -301,9 +303,7 @@ class ParserBot(AbstractBot):
                     product_image.url = media_type["url"]
                     await product_image.asave()
 
-                await TgUserProduct.objects.acreate(
-                    tg_user=user, product=product
-                )
+                await TgUserProduct.objects.acreate(tg_user=user, product=product)
 
         for i in range(0, len(pictures), 10):
             group = pictures[i : i + 10]

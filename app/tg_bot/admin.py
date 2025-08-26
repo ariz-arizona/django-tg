@@ -14,7 +14,7 @@ from .models import (
     TarotUserReading,
     OraculumItem,
     OraculumDeck,
-    Rune
+    Rune,
 )
 
 
@@ -113,6 +113,7 @@ class OraculumItemAdmin(admin.ModelAdmin):
     search_fields = ("name", "description", "deck__name")
     list_filter = ("deck",)
 
+
 @admin.register(Rune)
 class RuneAdmin(admin.ModelAdmin):
     list_display = ("symbol", "type", "sticker")
@@ -120,36 +121,56 @@ class RuneAdmin(admin.ModelAdmin):
     list_filter = ("type",)
 
     fieldsets = (
-        ("Основная информация", {
-            "fields": ("type", "symbol", "sticker"),
-        }),
-        ("Прямое значение", {
-            "fields": (
-                "straight_keys",
-                "straight_meaning",
-                "straight_pos_1",
-                "straight_pos_2",
-                "straight_pos_3",
-            ),
-        }),
-        ("Перевернутое значение", {
-            "fields": (
-                "inverted_keys",
-                "inverted_meaning",
-                "inverted_pos_1",
-                "inverted_pos_2",
-                "inverted_pos_3",
-            ),
-        }),
+        (
+            "Основная информация",
+            {
+                "fields": ("type", "symbol", "sticker"),
+            },
+        ),
+        (
+            "Прямое значение",
+            {
+                "fields": (
+                    "straight_keys",
+                    "straight_meaning",
+                    "straight_pos_1",
+                    "straight_pos_2",
+                    "straight_pos_3",
+                ),
+            },
+        ),
+        (
+            "Перевернутое значение",
+            {
+                "fields": (
+                    "inverted_keys",
+                    "inverted_meaning",
+                    "inverted_pos_1",
+                    "inverted_pos_2",
+                    "inverted_pos_3",
+                ),
+            },
+        ),
     )
-    
+
+
 # === Inline: Изображения в ParseProduct ===
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
     extra = 0
-    readonly_fields = ( "image_type", "file_id", "url", "created_at")
-    fields = ( "image_type", "file_id", "url", "created_at")
+    readonly_fields = ("image_type", "file_id", "url", "created_at")
+    fields = ("image_type", "file_id", "url", "created_at")
     can_delete = False
+    show_change_link = True
+
+
+# === Админка: TgUserProduct (Inline) ===
+class TgUserProductInline(admin.TabularInline):
+    model = TgUserProduct
+    extra = 0
+    readonly_fields = ("sent_at", "tg_user")
+    fields = ("tg_user", "sent_at")
+    can_delete = False  # чтобы случайно не удалили историю
     show_change_link = True
 
 
@@ -159,7 +180,8 @@ class ParseProductAdmin(admin.ModelAdmin):
     list_display = (
         "product_id",
         "product_type",
-        "brand__name", "category__name",
+        "brand__name",
+        "category__name",
         "created_at",
         "updated_at",
     )
@@ -191,20 +213,28 @@ class ParseProductAdmin(admin.ModelAdmin):
         ),
     )
 
-    inlines = [ProductImageInline]
+    inlines = [ProductImageInline, TgUserProductInline]
 
 
 # === Админка: ProductImage (опционально отдельно) ===
 @admin.register(ProductImage)
 class ProductImageAdmin(admin.ModelAdmin):
-    list_display = ("product", "image_type", "file_id_preview", "url_preview", "created_at")
+    list_display = (
+        "product",
+        "image_type",
+        "file_id_preview",
+        "url_preview",
+        "created_at",
+    )
     list_filter = ("image_type", "created_at")
     search_fields = ("file_id", "url", "product__product_id")
     readonly_fields = ("created_at", "updated_at", "file_id_preview", "url_preview")
 
     def file_id_preview(self, obj):
         if obj.file_id:
-            return format_html('<span title="{}">{}</span>', obj.file_id, obj.file_id[:20] + "...")
+            return format_html(
+                '<span title="{}">{}</span>', obj.file_id, obj.file_id[:20] + "..."
+            )
         return "-"
 
     file_id_preview.short_description = "file_id"
@@ -215,7 +245,8 @@ class ProductImageAdmin(admin.ModelAdmin):
         return "-"
 
     url_preview.short_description = "URL"
-    
+
+
 # === Админка: Brand ===
 @admin.register(Brand)
 class BrandAdmin(admin.ModelAdmin):

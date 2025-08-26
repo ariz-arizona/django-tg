@@ -1107,6 +1107,14 @@
         "documentation": {}
     },
     {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "models",
         "importPath": "django.db",
         "description": "django.db",
@@ -1972,6 +1980,15 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0029_alter_tguserproduct_unique_together",
+        "description": "app.tg_bot.migrations.0029_alter_tguserproduct_unique_together",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0028_remove_parseproduct_photo_id_productimage'),\n    ]\n    operations = [\n        migrations.AlterUniqueTogether(\n            name='tguserproduct',\n            unique_together=set(),\n        ),\n    ]",
+        "detail": "app.tg_bot.migrations.0029_alter_tguserproduct_unique_together",
+        "documentation": {}
+    },
+    {
         "label": "Bot",
         "kind": 6,
         "importPath": "app.tg_bot.models.base",
@@ -2237,7 +2254,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class RuneAdmin(admin.ModelAdmin):\n    list_display = (\"symbol\", \"type\", \"sticker\")\n    search_fields = (\"type\", \"symbol\")\n    list_filter = (\"type\",)\n    fieldsets = (\n        (\"Основная информация\", {\n            \"fields\": (\"type\", \"symbol\", \"sticker\"),\n        }),\n        (\"Прямое значение\", {\n            \"fields\": (",
+        "peekOfCode": "class RuneAdmin(admin.ModelAdmin):\n    list_display = (\"symbol\", \"type\", \"sticker\")\n    search_fields = (\"type\", \"symbol\")\n    list_filter = (\"type\",)\n    fieldsets = (\n        (\n            \"Основная информация\",\n            {\n                \"fields\": (\"type\", \"symbol\", \"sticker\"),\n            },",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },
@@ -2246,7 +2263,16 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class ProductImageInline(admin.TabularInline):\n    model = ProductImage\n    extra = 0\n    readonly_fields = ( \"image_type\", \"file_id\", \"url\", \"created_at\")\n    fields = ( \"image_type\", \"file_id\", \"url\", \"created_at\")\n    can_delete = False\n    show_change_link = True\n# === Админка: ParseProduct ===\n@admin.register(ParseProduct)\nclass ParseProductAdmin(admin.ModelAdmin):",
+        "peekOfCode": "class ProductImageInline(admin.TabularInline):\n    model = ProductImage\n    extra = 0\n    readonly_fields = (\"image_type\", \"file_id\", \"url\", \"created_at\")\n    fields = (\"image_type\", \"file_id\", \"url\", \"created_at\")\n    can_delete = False\n    show_change_link = True\n# === Админка: TgUserProduct (Inline) ===\nclass TgUserProductInline(admin.TabularInline):\n    model = TgUserProduct",
+        "detail": "app.tg_bot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "TgUserProductInline",
+        "kind": 6,
+        "importPath": "app.tg_bot.admin",
+        "description": "app.tg_bot.admin",
+        "peekOfCode": "class TgUserProductInline(admin.TabularInline):\n    model = TgUserProduct\n    extra = 0\n    readonly_fields = (\"sent_at\", \"tg_user\")\n    fields = (\"tg_user\", \"sent_at\")\n    can_delete = False  # чтобы случайно не удалили историю\n    show_change_link = True\n# === Админка: ParseProduct ===\n@admin.register(ParseProduct)\nclass ParseProductAdmin(admin.ModelAdmin):",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },
@@ -2255,7 +2281,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class ParseProductAdmin(admin.ModelAdmin):\n    list_display = (\n        \"product_id\",\n        \"product_type\",\n        \"brand__name\", \"category__name\",\n        \"created_at\",\n        \"updated_at\",\n    )\n    list_filter = (\"product_type\", \"brand\", \"category\", \"created_at\")\n    search_fields = (\"product_id\", \"caption\", \"brand__name\", \"category__name\")",
+        "peekOfCode": "class ParseProductAdmin(admin.ModelAdmin):\n    list_display = (\n        \"product_id\",\n        \"product_type\",\n        \"brand__name\",\n        \"category__name\",\n        \"created_at\",\n        \"updated_at\",\n    )\n    list_filter = (\"product_type\", \"brand\", \"category\", \"created_at\")",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },
@@ -2264,7 +2290,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class ProductImageAdmin(admin.ModelAdmin):\n    list_display = (\"product\", \"image_type\", \"file_id_preview\", \"url_preview\", \"created_at\")\n    list_filter = (\"image_type\", \"created_at\")\n    search_fields = (\"file_id\", \"url\", \"product__product_id\")\n    readonly_fields = (\"created_at\", \"updated_at\", \"file_id_preview\", \"url_preview\")\n    def file_id_preview(self, obj):\n        if obj.file_id:\n            return format_html('<span title=\"{}\">{}</span>', obj.file_id, obj.file_id[:20] + \"...\")\n        return \"-\"\n    file_id_preview.short_description = \"file_id\"",
+        "peekOfCode": "class ProductImageAdmin(admin.ModelAdmin):\n    list_display = (\n        \"product\",\n        \"image_type\",\n        \"file_id_preview\",\n        \"url_preview\",\n        \"created_at\",\n    )\n    list_filter = (\"image_type\", \"created_at\")\n    search_fields = (\"file_id\", \"url\", \"product__product_id\")",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },

@@ -1035,6 +1035,22 @@
         "documentation": {}
     },
     {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "models",
         "importPath": "django.db",
         "description": "django.db",
@@ -1839,6 +1855,15 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0026_brand_parseproduct_brand_category_and_more",
+        "description": "app.tg_bot.migrations.0026_brand_parseproduct_brand_category_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0025_alter_rune_inverted_keys_alter_rune_inverted_meaning_and_more'),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='Brand',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),\n                ('name', models.CharField(max_length=255, verbose_name='Название бренда')),",
+        "detail": "app.tg_bot.migrations.0026_brand_parseproduct_brand_category_and_more",
+        "documentation": {}
+    },
+    {
         "label": "Bot",
         "kind": 6,
         "importPath": "app.tg_bot.models.base",
@@ -1857,11 +1882,29 @@
         "documentation": {}
     },
     {
+        "label": "Brand",
+        "kind": 6,
+        "importPath": "app.tg_bot.models.parser",
+        "description": "app.tg_bot.models.parser",
+        "peekOfCode": "class Brand(models.Model):\n    \"\"\"Модель бренда с учётом принадлежности к платформе\"\"\"\n    name = models.CharField(max_length=255, verbose_name=\"Название бренда\")\n    brand_id = models.CharField(max_length=50, verbose_name=\"Внешний ID бренда\")\n    product_type = models.CharField(\n        max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name=\"Тип площадки\"\n    )\n    created_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата создания\")\n    class Meta:\n        verbose_name = f\"{bot_prefix}: Бренд\"",
+        "detail": "app.tg_bot.models.parser",
+        "documentation": {}
+    },
+    {
+        "label": "Category",
+        "kind": 6,
+        "importPath": "app.tg_bot.models.parser",
+        "description": "app.tg_bot.models.parser",
+        "peekOfCode": "class Category(models.Model):\n    \"\"\"Модель категории с привязкой к платформе\"\"\"\n    name = models.CharField(max_length=255, verbose_name=\"Название категории\")\n    subject_id = models.IntegerField(verbose_name=\"subjectId / category_id\")\n    parent_id = models.IntegerField(\n        verbose_name=\"Родительская категория\", null=True, blank=True\n    )\n    product_type = models.CharField(\n        max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name=\"Тип площадки\"\n    )",
+        "detail": "app.tg_bot.models.parser",
+        "documentation": {}
+    },
+    {
         "label": "ParseProduct",
         "kind": 6,
         "importPath": "app.tg_bot.models.parser",
         "description": "app.tg_bot.models.parser",
-        "peekOfCode": "class ParseProduct(models.Model):\n    \"\"\"Модель для хранения данных о продукте.\"\"\"\n    PRODUCT_TYPE_CHOICES = [\n        (\"ozon\", \"Ozon\"),\n        (\"wb\", \"Wildberries\"),\n    ]\n    product_id = models.CharField(max_length=255, verbose_name=\"ID товара\")\n    photo_id = models.CharField(max_length=255, verbose_name=\"ID фото в Telegram\")\n    caption = models.TextField(verbose_name=\"Подпись к фото\")\n    product_type = models.CharField(",
+        "peekOfCode": "class ParseProduct(models.Model):\n    \"\"\"Модель для хранения данных о продукте.\"\"\"\n    product_id = models.CharField(max_length=255, verbose_name=\"ID товара\")\n    photo_id = models.CharField(max_length=255, verbose_name=\"ID фото в Telegram\")\n    caption = models.TextField(verbose_name=\"Подпись к фото\")\n    product_type = models.CharField(\n        max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name=\"Тип продукта\"\n    )\n    created_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата создания\")\n    updated_at = models.DateTimeField(auto_now=True, verbose_name=\"Дата обновления\")",
         "detail": "app.tg_bot.models.parser",
         "documentation": {}
     },
@@ -1879,7 +1922,16 @@
         "kind": 5,
         "importPath": "app.tg_bot.models.parser",
         "description": "app.tg_bot.models.parser",
-        "peekOfCode": "bot_prefix = \"Card Parser\"\nclass ParseProduct(models.Model):\n    \"\"\"Модель для хранения данных о продукте.\"\"\"\n    PRODUCT_TYPE_CHOICES = [\n        (\"ozon\", \"Ozon\"),\n        (\"wb\", \"Wildberries\"),\n    ]\n    product_id = models.CharField(max_length=255, verbose_name=\"ID товара\")\n    photo_id = models.CharField(max_length=255, verbose_name=\"ID фото в Telegram\")\n    caption = models.TextField(verbose_name=\"Подпись к фото\")",
+        "peekOfCode": "bot_prefix = \"Card Parser\"\nPRODUCT_TYPE_CHOICES = [\n    (\"ozon\", \"Ozon\"),\n    (\"wb\", \"Wildberries\"),\n]\nclass Brand(models.Model):\n    \"\"\"Модель бренда с учётом принадлежности к платформе\"\"\"\n    name = models.CharField(max_length=255, verbose_name=\"Название бренда\")\n    brand_id = models.CharField(max_length=50, verbose_name=\"Внешний ID бренда\")\n    product_type = models.CharField(",
+        "detail": "app.tg_bot.models.parser",
+        "documentation": {}
+    },
+    {
+        "label": "PRODUCT_TYPE_CHOICES",
+        "kind": 5,
+        "importPath": "app.tg_bot.models.parser",
+        "description": "app.tg_bot.models.parser",
+        "peekOfCode": "PRODUCT_TYPE_CHOICES = [\n    (\"ozon\", \"Ozon\"),\n    (\"wb\", \"Wildberries\"),\n]\nclass Brand(models.Model):\n    \"\"\"Модель бренда с учётом принадлежности к платформе\"\"\"\n    name = models.CharField(max_length=255, verbose_name=\"Название бренда\")\n    brand_id = models.CharField(max_length=50, verbose_name=\"Внешний ID бренда\")\n    product_type = models.CharField(\n        max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name=\"Тип площадки\"",
         "detail": "app.tg_bot.models.parser",
         "documentation": {}
     },

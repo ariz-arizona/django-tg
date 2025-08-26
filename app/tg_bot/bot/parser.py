@@ -47,9 +47,39 @@ class ParserBot(AbstractBot):
             CommandHandler("search", self.handle_search_command, has_args=True),
         ]
 
+    async def wb_image_url_get(self, context, card_id, session):
+        max_size = 51000  # Максимальный размер изображения
+        image_size = None
+        
+        for image in ["1.webp", "1.jpg"]:
+            try:
+                image_url = f"{Se.construct_host_v2(card_id, 'nm')}/images/big/{image}"
+                logger.info(f"Проверка URL: {image_url}")
+
+                async with session.head(image_url) as response:
+                    logger.info(f"Ответ сервера: {response.status}")
+
+                    if response.status == 200:
+                        image_size = int(response.headers.get("content-length", 0))
+                        logger.info(f"Размер изображения: {image_size} байт")
+                        break
+
+            except aiohttp.ClientError as e:
+                logger.error(f"Ошибка при запросе к {image_url}: {e}")
+            except Exception as e:
+                logger.error(f"Неожиданная ошибка: {e}")
+
+        if image_size and image_size > max_size:
+            async with session.get(image_url) as img_response:
+                image_data = await img_response.read()
+                sent_photo = await context.bot.send_photo(PICTURE_CHAT, image_data)
+                image_url = sent_photo.photo[-1].file_id
+
+        return image_url
+
     async def wb(self, card_id, context: CallbackContext):
         card_url = f"https://card.wb.ru/cards/v4/detail?curr=rub&dest=-1059500,-72639,-3826860,-5551776&nm={card_id}"
-        max_size = 51000  # Максимальный размер изображения
+
         txt = []
 
         async with aiohttp.ClientSession() as session:
@@ -58,36 +88,7 @@ class ParserBot(AbstractBot):
                 try:
                     card = await response.json()
                     product = card["products"][0]
-
-                    for image in ["1.webp", "1.jpg"]:
-                        try:
-                            image_url = f"{Se.construct_host_v2(card_id, 'nm')}/images/big/{image}"
-                            logger.info(f"Проверка URL: {image_url}")
-
-                            async with session.head(image_url) as response:
-                                logger.info(f"Ответ сервера: {response.status}")
-
-                                if response.status == 200:
-                                    image_size = int(
-                                        response.headers.get("content-length", 0)
-                                    )
-                                    logger.info(
-                                        f"Размер изображения: {image_size} байт"
-                                    )
-                                    break
-
-                        except aiohttp.ClientError as e:
-                            logger.error(f"Ошибка при запросе к {image_url}: {e}")
-                        except Exception as e:
-                            logger.error(f"Неожиданная ошибка: {e}")
-
-                    if image_size > max_size:
-                        async with session.get(image_url) as img_response:
-                            image_data = await img_response.read()
-                            sent_photo = await context.bot.send_photo(
-                                PICTURE_CHAT, image_data
-                            )
-                            image_url = sent_photo.photo[-1].file_id
+                    image_url = await self.wb_image_url_get(context, card_id, session)
 
                     # Парсинг данных
                     sku = card_id
@@ -118,7 +119,9 @@ class ParserBot(AbstractBot):
 
                         sizes.append(obj)
 
-                    active_prices = {s.get("price", None) for s in sizes if s["available"]}
+                    active_prices = {
+                        s.get("price", None) for s in sizes if s["available"]
+                    }
                     show_common_price = len(active_prices) == 1
 
                     # Формируем текст

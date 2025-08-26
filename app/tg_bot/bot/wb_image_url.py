@@ -42,8 +42,24 @@ class Se:
             r = "19"
         elif t <= 3485:
             r = "20"
-        else:
+        elif t <= 3701:
             r = "21"
+        elif t <= 3917:
+            r = "22"
+        elif t <= 4133:
+            r = "23"
+        elif t <= 4349:
+            r = "24"
+        elif t <= 4565:
+            r = "25"
+        elif t <= 4877:
+            r = "26"
+        elif t <= 5189:
+            r = "27"
+        elif t <= 5501:
+            r = "28"
+        else:
+            r = "29" 
         return f"basket-{r}.wbbasket.ru/vol{t}"
 
     @staticmethod

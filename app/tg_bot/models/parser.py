@@ -56,7 +56,6 @@ class ParseProduct(models.Model):
     """Модель для хранения данных о продукте."""
 
     product_id = models.CharField(max_length=255, verbose_name="ID товара")
-    photo_id = models.CharField(max_length=255, verbose_name="ID фото в Telegram")
     caption = models.TextField(verbose_name="Подпись к фото")
     product_type = models.CharField(
         max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name="Тип продукта"
@@ -86,6 +85,55 @@ class ParseProduct(models.Model):
     class Meta:
         verbose_name = f"{bot_prefix}: Продукт"
         verbose_name_plural = f"{bot_prefix}: Продукты"
+
+
+class ProductImage(models.Model):
+    """Модель для хранения изображений товара (Telegram file_id или прямая ссылка)"""
+
+    IMAGE_TYPE_CHOICES = [
+        ("telegram", "Telegram file_id"),
+        ("link", "Прямая ссылка"),
+    ]
+
+    image_type = models.CharField(
+        max_length=10, choices=IMAGE_TYPE_CHOICES, verbose_name="Тип изображения"
+    )
+
+    # Один из двух будет заполнен
+    file_id = models.CharField(
+        max_length=500,  # Telegram file_id может быть длинным
+        blank=True,
+        null=True,
+        verbose_name="ID изображения в Telegram",
+    )
+    url = models.URLField(
+        max_length=1000,
+        blank=True,
+        null=True,
+        verbose_name="Прямая ссылка на изображение",
+    )
+
+    # Связь с товаром
+    product = models.ForeignKey(
+        ParseProduct,
+        on_delete=models.CASCADE,
+        related_name="images",
+        verbose_name="Товар",
+    )
+
+    # Аудит
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+
+    class Meta:
+        verbose_name = f"{bot_prefix}: Изображение товара"
+        verbose_name_plural = f"{bot_prefix}: Изображения товаров"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        if self.image_type == "telegram":
+            return f"📷 {self.file_id[:20]}... (Telegram)"
+        return f"🔗 {self.url[:30]}... (Link)"
 
 
 class TgUserProduct(models.Model):

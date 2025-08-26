@@ -1,8 +1,10 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.urls import reverse
+from django.utils.safestring import mark_safe
 
 from .models import Bot, TgUser
-from .models import ParseProduct, TgUserProduct, Brand, Category
+from .models import ParseProduct, TgUserProduct, Brand, Category, ProductImage
 from .models import (
     TarotCard,
     ExtendedMeaning,
@@ -21,13 +23,6 @@ class BotAdmin(admin.ModelAdmin):
     list_display = ("name", "token", "chat_id", "bot_type", "created_at", "updated_at")
     search_fields = ("name", "token", "chat_id")
     list_filter = ("bot_type", "created_at")
-
-
-@admin.register(ParseProduct)
-class ParseProductAdmin(admin.ModelAdmin):
-    list_display = ("product_id", "caption", "product_type", "created_at")
-    list_filter = ("product_type",)
-    search_fields = ("caption", "product_id")
 
 
 @admin.register(TgUserProduct)
@@ -148,7 +143,97 @@ class RuneAdmin(admin.ModelAdmin):
         }),
     )
     
+# === Inline: Изображения в ParseProduct ===
+class ProductImageInline(admin.TabularInline):
+    model = ProductImage
+    extra = 0
+    readonly_fields = ("image_preview", "image_type", "file_id", "url", "created_at")
+    fields = ("image_preview", "image_type", "file_id", "url", "created_at")
+    can_delete = False
+    show_change_link = True
 
+    def image_preview(self, obj):
+        if not obj:
+            return "-"
+        if obj.image_type == "telegram":
+            return format_html(
+                '<img src="https://api.telegram.org/file/bot{token}/photo/{file_id}" '
+                'style="width: 80px; height: auto;" />',
+                token="YOUR_BOT_TOKEN",  # ⚠️ Замени или убери, если не нужен превью
+            )
+        elif obj.url:
+            return format_html(
+                '<img src="{url}" style="width: 80px; height: auto;" />',
+                url=obj.url,
+            )
+        return "-"
+
+    image_preview.short_description = "Превью"
+
+
+# === Админка: ParseProduct ===
+@admin.register(ParseProduct)
+class ParseProductAdmin(admin.ModelAdmin):
+    list_display = (
+        "product_id",
+        "product_type",
+        "brand__name", "category__name",
+        "created_at",
+        "updated_at",
+    )
+    list_filter = ("product_type", "brand", "category", "created_at")
+    search_fields = ("product_id", "caption", "brand__name", "category__name")
+    readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("brand", "category")  # удобно при большом количестве
+    date_hierarchy = "created_at"
+    ordering = ("-created_at",)
+
+    fieldsets = (
+        (
+            "Основное",
+            {
+                "fields": ("product_id", "product_type", "caption"),
+            },
+        ),
+        (
+            "Связи",
+            {
+                "fields": ("brand", "category"),
+            },
+        ),
+        (
+            "Аудит",
+            {
+                "fields": ("created_at", "updated_at"),
+            },
+        ),
+    )
+
+    inlines = [ProductImageInline]
+
+
+# === Админка: ProductImage (опционально отдельно) ===
+@admin.register(ProductImage)
+class ProductImageAdmin(admin.ModelAdmin):
+    list_display = ("product", "image_type", "file_id_preview", "url_preview", "created_at")
+    list_filter = ("image_type", "created_at")
+    search_fields = ("file_id", "url", "product__product_id")
+    readonly_fields = ("created_at", "updated_at", "file_id_preview", "url_preview")
+
+    def file_id_preview(self, obj):
+        if obj.file_id:
+            return format_html('<span title="{}">{}</span>', obj.file_id, obj.file_id[:20] + "...")
+        return "-"
+
+    file_id_preview.short_description = "file_id"
+
+    def url_preview(self, obj):
+        if obj.url:
+            return format_html('<a href="{0}" target="_blank">{0}</a>', obj.url)
+        return "-"
+
+    url_preview.short_description = "URL"
+    
 # === Админка: Brand ===
 @admin.register(Brand)
 class BrandAdmin(admin.ModelAdmin):

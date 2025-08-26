@@ -156,10 +156,6 @@ class TgUserProduct(models.Model):
     class Meta:
         verbose_name = f"{bot_prefix}: Продукт пользователя"
         verbose_name_plural = f"{bot_prefix}: Продукты пользователей"
-        unique_together = (
-            "tg_user",
-            "product",
-        )  # Один и тот же пользователь может отправить продукт только один раз.
 
     def __str__(self):
         return f"{self.tg_user} -> {self.product}"

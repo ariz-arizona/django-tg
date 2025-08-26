@@ -301,8 +301,8 @@ class ParserBot(AbstractBot):
                     product_image.url = media_type["url"]
                     await product_image.asave()
 
-                await TgUserProduct.objects.aupdate_or_create(
-                    tg_user=user, product=product, defaults={"sent_at": now()}
+                await TgUserProduct.objects.acreate(
+                    tg_user=user, product=product
                 )
 
         for i in range(0, len(pictures), 10):

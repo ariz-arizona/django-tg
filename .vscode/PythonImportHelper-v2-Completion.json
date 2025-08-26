@@ -528,6 +528,14 @@
         "documentation": {}
     },
     {
+        "label": "ProductImage",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
         "label": "TgUser",
         "importPath": "tg_bot.models",
         "description": "tg_bot.models",
@@ -1076,6 +1084,22 @@
     },
     {
         "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
         "importPath": "django.db",
         "description": "django.db",
         "isExtraImport": true,
@@ -1921,6 +1945,33 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0028_remove_parseproduct_photo_id_productimage",
+        "description": "app.tg_bot.migrations.0028_remove_parseproduct_photo_id_productimage",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        (\"tg_bot\", \"0027_remove_category_parent_id\"),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name=\"ProductImage\",\n            fields=[\n                (\n                    \"id\",",
+        "detail": "app.tg_bot.migrations.0028_remove_parseproduct_photo_id_productimage",
+        "documentation": {}
+    },
+    {
+        "label": "forwards_func",
+        "kind": 2,
+        "importPath": "app.tg_bot.migrations.0028_remove_parseproduct_photo_id_productimage",
+        "description": "app.tg_bot.migrations.0028_remove_parseproduct_photo_id_productimage",
+        "peekOfCode": "def forwards_func(apps, schema_editor):\n    ParseProduct = apps.get_model(\"tg_bot\", \"ParseProduct\")\n    ProductImage = apps.get_model(\"tg_bot\", \"ProductImage\")\n    images_to_create = []\n    for product in (\n        ParseProduct.objects.exclude(photo_id__isnull=True)\n        .exclude(photo_id=\"\")\n        .exclude(photo_id__regex=r\"^\\s*$\")\n    ):\n        media = product.photo_id.strip()",
+        "detail": "app.tg_bot.migrations.0028_remove_parseproduct_photo_id_productimage",
+        "documentation": {}
+    },
+    {
+        "label": "reverse_func",
+        "kind": 2,
+        "importPath": "app.tg_bot.migrations.0028_remove_parseproduct_photo_id_productimage",
+        "description": "app.tg_bot.migrations.0028_remove_parseproduct_photo_id_productimage",
+        "peekOfCode": "def reverse_func(apps, schema_editor):\n    # Обратная миграция: не удаляем данные, просто не делаем ничего\n    # Или можно добавить логику удаления, если нужно\n    pass\nclass Migration(migrations.Migration):\n    dependencies = [\n        (\"tg_bot\", \"0027_remove_category_parent_id\"),\n    ]\n    operations = [\n        migrations.CreateModel(",
+        "detail": "app.tg_bot.migrations.0028_remove_parseproduct_photo_id_productimage",
+        "documentation": {}
+    },
+    {
         "label": "Bot",
         "kind": 6,
         "importPath": "app.tg_bot.models.base",
@@ -2195,7 +2246,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class ProductImageInline(admin.TabularInline):\n    model = ProductImage\n    extra = 0\n    readonly_fields = (\"image_preview\", \"image_type\", \"file_id\", \"url\", \"created_at\")\n    fields = (\"image_preview\", \"image_type\", \"file_id\", \"url\", \"created_at\")\n    can_delete = False\n    show_change_link = True\n    def image_preview(self, obj):\n        if not obj:\n            return \"-\"",
+        "peekOfCode": "class ProductImageInline(admin.TabularInline):\n    model = ProductImage\n    extra = 0\n    readonly_fields = ( \"image_type\", \"file_id\", \"url\", \"created_at\")\n    fields = ( \"image_type\", \"file_id\", \"url\", \"created_at\")\n    can_delete = False\n    show_change_link = True\n# === Админка: ParseProduct ===\n@admin.register(ParseProduct)\nclass ParseProductAdmin(admin.ModelAdmin):",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },

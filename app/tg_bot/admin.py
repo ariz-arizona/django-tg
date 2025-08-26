@@ -147,28 +147,10 @@ class RuneAdmin(admin.ModelAdmin):
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
     extra = 0
-    readonly_fields = ("image_preview", "image_type", "file_id", "url", "created_at")
-    fields = ("image_preview", "image_type", "file_id", "url", "created_at")
+    readonly_fields = ( "image_type", "file_id", "url", "created_at")
+    fields = ( "image_type", "file_id", "url", "created_at")
     can_delete = False
     show_change_link = True
-
-    def image_preview(self, obj):
-        if not obj:
-            return "-"
-        if obj.image_type == "telegram":
-            return format_html(
-                '<img src="https://api.telegram.org/file/bot{token}/photo/{file_id}" '
-                'style="width: 80px; height: auto;" />',
-                token="YOUR_BOT_TOKEN",  # ⚠️ Замени или убери, если не нужен превью
-            )
-        elif obj.url:
-            return format_html(
-                '<img src="{url}" style="width: 80px; height: auto;" />',
-                url=obj.url,
-            )
-        return "-"
-
-    image_preview.short_description = "Превью"
 
 
 # === Админка: ParseProduct ===

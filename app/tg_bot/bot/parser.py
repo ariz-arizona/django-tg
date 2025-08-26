@@ -227,8 +227,8 @@ class ParserBot(AbstractBot):
                         try:
                             category_obj, created = (
                                 await Category.objects.aget_or_create(
-                                    subject_id=str(category_id),
-                                    product_type=product_type,  # "wb" или "ozon"
+                                    subject_id=int(category_id),
+                                    product_type=product_type,  
                                     defaults={
                                         "name": category_name
                                     },  # только при создании
@@ -236,7 +236,9 @@ class ParserBot(AbstractBot):
                             )
                         except Exception as e:
                             logger.error(
-                                f"Ошибка при создании бренда {category_name} ({category_id}): {e}"
+                                logger.error(
+                                    f"Ошибка при создании категории {category_name} ({category_id}): {e}"
+                                )
                             )
 
                 product, product_created = await ParseProduct.objects.aupdate_or_create(
@@ -260,7 +262,7 @@ class ParserBot(AbstractBot):
                     need_update = True
 
                 if need_update:
-                    await product.asave()
+                    await product.asave(update_fields=["brand", "category"])
 
                 await TgUserProduct.objects.aupdate_or_create(
                     tg_user=user, product=product, defaults={"sent_at": now()}

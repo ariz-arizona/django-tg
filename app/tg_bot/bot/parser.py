@@ -12,7 +12,14 @@ from django.conf import settings
 
 from tg_bot.bot.abstract import AbstractBot
 from tg_bot.bot.wb_image_url import Se
-from tg_bot.models import TgUser, ParseProduct, TgUserProduct, Brand, Category, ProductImage
+from tg_bot.models import (
+    TgUser,
+    ParseProduct,
+    TgUserProduct,
+    Brand,
+    Category,
+    ProductImage,
+)
 
 from server.logger import logger
 
@@ -228,7 +235,7 @@ class ParserBot(AbstractBot):
                             category_obj, created = (
                                 await Category.objects.aget_or_create(
                                     subject_id=int(category_id),
-                                    product_type=product_type,  
+                                    product_type=product_type,
                                     defaults={
                                         "name": category_name
                                     },  # только при создании
@@ -246,7 +253,6 @@ class ParserBot(AbstractBot):
                     defaults={
                         "brand": brand_obj,
                         "category": category_obj,
-                        "photo_id": p["media"],
                         "caption": p["caption"],
                         "product_type": product_type,
                     },
@@ -263,6 +269,37 @@ class ParserBot(AbstractBot):
 
                 if need_update:
                     await product.asave(update_fields=["brand", "category"])
+                    
+                image_qs = product.images.all()
+                if await image_qs.aexists():
+                    # Берём первое (или можно выбрать по порядку, если будет сортировка)
+                    product_image = await image_qs.afirst()
+                else:
+                    product_image = None
+
+                media = p["media"]
+                media_type = {"image_type": "", "file_id": None, "url": None}
+                if media.lower().startswith(("http://", "https://")):
+                    media_type["image_type"] = "link"
+                    media_type["url"] = media
+                else:
+                    media_type["image_type"] = "telegram"
+                    media_type["file_id"] = media
+
+                if product_image is None:
+                    # Создаём новое
+                    product_image = await ProductImage.objects.acreate(
+                        product=product, **media_type
+                    )
+                elif (
+                    product_image.image_type != media_type["image_type"]
+                    or (product_image.file_id or "") != (media_type["file_id"] or "")
+                    or (product_image.url or "") != (media_type["url"] or "")
+                ):
+                    product_image.image_type = media_type["image_type"]
+                    product_image.file_id = media_type["file_id"]
+                    product_image.url = media_type["url"]
+                    await product_image.asave()
 
                 await TgUserProduct.objects.aupdate_or_create(
                     tg_user=user, product=product, defaults={"sent_at": now()}

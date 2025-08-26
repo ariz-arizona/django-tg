@@ -1,6 +1,8 @@
 from django.contrib import admin
+from django.utils.html import format_html
+
 from .models import Bot, TgUser
-from .models import ParseProduct, TgUserProduct
+from .models import ParseProduct, TgUserProduct, Brand, Category
 from .models import (
     TarotCard,
     ExtendedMeaning,
@@ -145,3 +147,93 @@ class RuneAdmin(admin.ModelAdmin):
             ),
         }),
     )
+    
+
+# === Админка: Brand ===
+@admin.register(Brand)
+class BrandAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "brand_id",
+        "product_type",
+        "products_count",
+        "created_at",
+    )
+    list_filter = ("product_type", "created_at")
+    search_fields = ("name", "brand_id")
+    readonly_fields = ("created_at",)
+    fieldsets = (
+        (
+            "Основная информация",
+            {
+                "fields": ("name", "brand_id", "product_type"),
+            },
+        ),
+        (
+            "Аудит",
+            {
+                "fields": ("created_at",),
+            },
+        ),
+    )
+    ordering = ("name",)
+
+    def products_count(self, obj):
+        """Отображает количество товаров этого бренда"""
+        count = obj.parseproduct_set.count()
+        url = (
+            f"/admin/parser/parseproduct/?brand__id={obj.id}"
+            if hasattr(obj, "parseproduct_set")
+            else "#"
+        )
+        return format_html(
+            '<a href="{}" style="text-decoration: none;">🧩 <strong>{}</strong></a>',
+            url,
+            count,
+        )
+
+    products_count.short_description = "Товары"
+    products_count.allow_tags = True
+
+
+# === Админка: Category ===
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "subject_id",
+        "product_type",
+        "products_count",
+        "created_at",
+    )
+    list_filter = ("product_type", "created_at")
+    search_fields = ("name", "subject_id")
+    readonly_fields = ("created_at",)
+    fieldsets = (
+        (
+            "Категория",
+            {
+                "fields": ("name", "subject_id", "product_type"),
+            },
+        ),
+        (
+            "Аудит",
+            {
+                "fields": ("created_at",),
+            },
+        ),
+    )
+    ordering = ("name",)
+
+    def products_count(self, obj):
+        """Количество товаров в категории"""
+        count = obj.parseproduct_set.count()
+        url = f"/admin/parser/parseproduct/?category__id={obj.id}"
+        return format_html(
+            '<a href="{}" style="text-decoration: none;">📦 <strong>{}</strong></a>',
+            url,
+            count,
+        )
+
+    products_count.short_description = "Товары"
+    products_count.allow_tags = True

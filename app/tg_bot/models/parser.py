@@ -36,9 +36,6 @@ class Category(models.Model):
 
     name = models.CharField(max_length=255, verbose_name="Название категории")
     subject_id = models.IntegerField(verbose_name="subjectId / category_id")
-    parent_id = models.IntegerField(
-        verbose_name="Родительская категория", null=True, blank=True
-    )
     product_type = models.CharField(
         max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name="Тип площадки"
     )

@@ -504,6 +504,22 @@
         "documentation": {}
     },
     {
+        "label": "Brand",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Category",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
         "label": "TgUser",
         "importPath": "tg_bot.models",
         "description": "tg_bot.models",
@@ -1051,6 +1067,14 @@
         "documentation": {}
     },
     {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "models",
         "importPath": "django.db",
         "description": "django.db",
@@ -1097,6 +1121,14 @@
         "description": "django.utils",
         "isExtraImport": true,
         "detail": "django.utils",
+        "documentation": {}
+    },
+    {
+        "label": "format_html",
+        "importPath": "django.utils.html",
+        "description": "django.utils.html",
+        "isExtraImport": true,
+        "detail": "django.utils.html",
         "documentation": {}
     },
     {
@@ -1864,6 +1896,15 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0027_remove_category_parent_id",
+        "description": "app.tg_bot.migrations.0027_remove_category_parent_id",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0026_brand_parseproduct_brand_category_and_more'),\n    ]\n    operations = [\n        migrations.RemoveField(\n            model_name='category',\n            name='parent_id',\n        ),\n    ]",
+        "detail": "app.tg_bot.migrations.0027_remove_category_parent_id",
+        "documentation": {}
+    },
+    {
         "label": "Bot",
         "kind": 6,
         "importPath": "app.tg_bot.models.base",
@@ -1895,7 +1936,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.models.parser",
         "description": "app.tg_bot.models.parser",
-        "peekOfCode": "class Category(models.Model):\n    \"\"\"Модель категории с привязкой к платформе\"\"\"\n    name = models.CharField(max_length=255, verbose_name=\"Название категории\")\n    subject_id = models.IntegerField(verbose_name=\"subjectId / category_id\")\n    parent_id = models.IntegerField(\n        verbose_name=\"Родительская категория\", null=True, blank=True\n    )\n    product_type = models.CharField(\n        max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name=\"Тип площадки\"\n    )",
+        "peekOfCode": "class Category(models.Model):\n    \"\"\"Модель категории с привязкой к платформе\"\"\"\n    name = models.CharField(max_length=255, verbose_name=\"Название категории\")\n    subject_id = models.IntegerField(verbose_name=\"subjectId / category_id\")\n    product_type = models.CharField(\n        max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name=\"Тип площадки\"\n    )\n    created_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата создания\")\n    class Meta:\n        verbose_name = f\"{bot_prefix}: Категория\"",
         "detail": "app.tg_bot.models.parser",
         "documentation": {}
     },
@@ -2130,6 +2171,24 @@
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
         "peekOfCode": "class RuneAdmin(admin.ModelAdmin):\n    list_display = (\"symbol\", \"type\", \"sticker\")\n    search_fields = (\"type\", \"symbol\")\n    list_filter = (\"type\",)\n    fieldsets = (\n        (\"Основная информация\", {\n            \"fields\": (\"type\", \"symbol\", \"sticker\"),\n        }),\n        (\"Прямое значение\", {\n            \"fields\": (",
+        "detail": "app.tg_bot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "BrandAdmin",
+        "kind": 6,
+        "importPath": "app.tg_bot.admin",
+        "description": "app.tg_bot.admin",
+        "peekOfCode": "class BrandAdmin(admin.ModelAdmin):\n    list_display = (\n        \"name\",\n        \"brand_id\",\n        \"product_type\",\n        \"products_count\",\n        \"created_at\",\n    )\n    list_filter = (\"product_type\", \"created_at\")\n    search_fields = (\"name\", \"brand_id\")",
+        "detail": "app.tg_bot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "CategoryAdmin",
+        "kind": 6,
+        "importPath": "app.tg_bot.admin",
+        "description": "app.tg_bot.admin",
+        "peekOfCode": "class CategoryAdmin(admin.ModelAdmin):\n    list_display = (\n        \"name\",\n        \"subject_id\",\n        \"product_type\",\n        \"products_count\",\n        \"created_at\",\n    )\n    list_filter = (\"product_type\", \"created_at\")\n    search_fields = (\"name\", \"subject_id\")",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },

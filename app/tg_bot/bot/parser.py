@@ -12,7 +12,7 @@ from django.conf import settings
 
 from tg_bot.bot.abstract import AbstractBot
 from tg_bot.bot.wb_image_url import Se
-from tg_bot.models import TgUser, ParseProduct, TgUserProduct
+from tg_bot.models import TgUser, ParseProduct, TgUserProduct, Brand, Category
 
 from server.logger import logger
 
@@ -50,7 +50,8 @@ class ParserBot(AbstractBot):
     async def wb_image_url_get(self, context, card_id, session):
         max_size = 51000  # Максимальный размер изображения
         image_size = None
-        
+        image_url = None
+
         for image in ["1.webp", "1.jpg"]:
             try:
                 image_url = f"{Se.construct_host_v2(card_id, 'nm')}/images/big/{image}"
@@ -89,6 +90,8 @@ class ParserBot(AbstractBot):
                     card = await response.json()
                     product = card["products"][0]
                     image_url = await self.wb_image_url_get(context, card_id, session)
+                    if not image_url:
+                        return None
 
                     # Парсинг данных
                     sku = card_id
@@ -147,6 +150,14 @@ class ParserBot(AbstractBot):
                         "media": image_url,
                         "caption": "\n".join(txt),
                         "parse_mode": "HTML",
+                        "brand": {
+                            "id": product.get("brandId"),
+                            "name": product.get("brand"),
+                        },
+                        "category": {
+                            "id": product.get("subjectId"),
+                            "name": product.get("entity"),
+                        },
                     }
                 except Exception as e:
                     logger.error(e)
@@ -171,7 +182,13 @@ class ParserBot(AbstractBot):
         for i in items:
             p = await parse_func(i, context)
             if p and p["media"]:
-                pictures.append(p)
+                pictures.append(
+                    {
+                        "media": p["media"],
+                        "caption": p["caption"],
+                        "parse_mode": p["parse_mode"],
+                    }
+                )
                 # Проверяем, есть ли уже записи с таким product_id
                 existing_products = ParseProduct.objects.filter(product_id=i).order_by(
                     "-created_at"
@@ -182,14 +199,69 @@ class ParserBot(AbstractBot):
                     async for product in existing_products[1:]:
                         await ParseProduct.objects.filter(id=product.id).adelete()
 
+                brand_obj = None
+                brand_data = p.get("brand")
+                if brand_data:
+                    brand_id = brand_data.get("id")
+                    brand_name = brand_data.get("name")
+
+                    if brand_id and brand_name:
+                        try:
+                            brand_obj, created = await Brand.objects.aget_or_create(
+                                brand_id=str(brand_id),
+                                product_type=product_type,
+                                defaults={"name": brand_name},
+                            )
+                        except Exception as e:
+                            logger.error(
+                                f"Ошибка при создании бренда {brand_name} ({brand_id}): {e}"
+                            )
+
+                category_obj = None
+                category_data = p.get("category")
+                if category_data:
+                    category_id = category_data.get("id")
+                    category_name = category_data.get("name")
+
+                    if category_id and category_name:
+                        try:
+                            category_obj, created = (
+                                await Category.objects.aget_or_create(
+                                    subject_id=str(category_id),
+                                    product_type=product_type,  # "wb" или "ozon"
+                                    defaults={
+                                        "name": category_name
+                                    },  # только при создании
+                                )
+                            )
+                        except Exception as e:
+                            logger.error(
+                                f"Ошибка при создании бренда {category_name} ({category_id}): {e}"
+                            )
+
                 product, product_created = await ParseProduct.objects.aupdate_or_create(
                     product_id=i,
                     defaults={
+                        "brand": brand_obj,
+                        "category": category_obj,
                         "photo_id": p["media"],
                         "caption": p["caption"],
                         "product_type": product_type,
                     },
                 )
+
+                need_update = False
+                if brand_obj and product.brand_id != brand_obj.id:
+                    product.brand = brand_obj
+                    need_update = True
+
+                if category_obj and product.category_id != category_obj.id:
+                    product.category = category_obj
+                    need_update = True
+
+                if need_update:
+                    await product.asave()
+
                 await TgUserProduct.objects.aupdate_or_create(
                     tg_user=user, product=product, defaults={"sent_at": now()}
                 )

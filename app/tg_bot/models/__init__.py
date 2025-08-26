@@ -1,5 +1,5 @@
 from .base import Bot, TgUser
-from .parser import TgUserProduct, ParseProduct
+from .parser import TgUserProduct, ParseProduct, Brand, Category
 from .tarot import (
     TarotCard,
     ExtendedMeaning,
@@ -9,5 +9,5 @@ from .tarot import (
     TarotUserReading,
     OraculumDeck,
     OraculumItem,
-    Rune
+    Rune,
 )

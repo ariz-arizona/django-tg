@@ -57,6 +57,13 @@ class ParseProduct(models.Model):
 
     product_id = models.CharField(max_length=255, verbose_name="ID товара")
     caption = models.TextField(verbose_name="Подпись к фото")
+    name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Название товара",
+        help_text="Официальное название товара (опционально)"
+    )
     product_type = models.CharField(
         max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name="Тип продукта"
     )

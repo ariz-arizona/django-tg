@@ -180,13 +180,14 @@ class ParseProductAdmin(admin.ModelAdmin):
     list_display = (
         "product_id",
         "product_type",
+        "name",
         "brand__name",
         "category__name",
         "created_at",
         "updated_at",
     )
     list_filter = ("product_type", "brand", "category", "created_at")
-    search_fields = ("product_id", "caption", "brand__name", "category__name")
+    search_fields = ("product_id", "caption", "brand__name", "category__name", "name")
     readonly_fields = ("created_at", "updated_at")
     raw_id_fields = ("brand", "category")  # удобно при большом количестве
     date_hierarchy = "created_at"
@@ -196,7 +197,7 @@ class ParseProductAdmin(admin.ModelAdmin):
         (
             "Основное",
             {
-                "fields": ("product_id", "product_type", "caption"),
+                "fields": ("product_id", "product_type", "name", "caption"),
             },
         ),
         (

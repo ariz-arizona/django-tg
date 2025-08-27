@@ -27,7 +27,7 @@ COPY . /app/
 ENV PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=server.settings
 
-RUN poetry run python manage.py collectstatic --noinput
+RUN poetry run python manage.py collectstatic --noinput --clear
 # RUN poetry run python manage.py migrate
 
 # Команда запуска приложения

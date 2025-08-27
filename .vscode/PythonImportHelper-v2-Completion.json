@@ -1,5 +1,646 @@
 [
     {
+        "label": "django.db.models.deletion",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "django.db.models.deletion",
+        "description": "django.db.models.deletion",
+        "detail": "django.db.models.deletion",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "connection",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "RunSQL",
+        "importPath": "django.db.migrations.operations.special",
+        "description": "django.db.migrations.operations.special",
+        "isExtraImport": true,
+        "detail": "django.db.migrations.operations.special",
+        "documentation": {}
+    },
+    {
+        "label": "admin",
+        "importPath": "django.contrib",
+        "description": "django.contrib",
+        "isExtraImport": true,
+        "detail": "django.contrib",
+        "documentation": {}
+    },
+    {
+        "label": "admin",
+        "importPath": "django.contrib",
+        "description": "django.contrib",
+        "isExtraImport": true,
+        "detail": "django.contrib",
+        "documentation": {}
+    },
+    {
+        "label": "admin",
+        "importPath": "django.contrib",
+        "description": "django.contrib",
+        "isExtraImport": true,
+        "detail": "django.contrib",
+        "documentation": {}
+    },
+    {
+        "label": "format_html",
+        "importPath": "django.utils.html",
+        "description": "django.utils.html",
+        "isExtraImport": true,
+        "detail": "django.utils.html",
+        "documentation": {}
+    },
+    {
+        "label": "reverse",
+        "importPath": "django.urls",
+        "description": "django.urls",
+        "isExtraImport": true,
+        "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "path",
+        "importPath": "django.urls",
+        "description": "django.urls",
+        "isExtraImport": true,
+        "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "include",
+        "importPath": "django.urls",
+        "description": "django.urls",
+        "isExtraImport": true,
+        "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "reverse",
+        "importPath": "django.urls",
+        "description": "django.urls",
+        "isExtraImport": true,
+        "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "path",
+        "importPath": "django.urls",
+        "description": "django.urls",
+        "isExtraImport": true,
+        "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "include",
+        "importPath": "django.urls",
+        "description": "django.urls",
+        "isExtraImport": true,
+        "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "mark_safe",
+        "importPath": "django.utils.safestring",
+        "description": "django.utils.safestring",
+        "isExtraImport": true,
+        "detail": "django.utils.safestring",
+        "documentation": {}
+    },
+    {
+        "label": "Bot",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotDeck",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCardItem",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCard",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "ExtendedMeaning",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotUserReading",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumDeck",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumItem",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Rune",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumItem",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumDeck",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Rune",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCard",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "ExtendedMeaning",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotMeaningCategory",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCard",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotDeck",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCardItem",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "AppConfig",
+        "importPath": "django.apps",
+        "description": "django.apps",
+        "isExtraImport": true,
+        "detail": "django.apps",
+        "documentation": {}
+    },
+    {
+        "label": "AppConfig",
+        "importPath": "django.apps",
+        "description": "django.apps",
+        "isExtraImport": true,
+        "detail": "django.apps",
+        "documentation": {}
+    },
+    {
+        "label": "TestCase",
+        "importPath": "django.test",
+        "description": "django.test",
+        "isExtraImport": true,
+        "detail": "django.test",
+        "documentation": {}
+    },
+    {
+        "label": "TestCase",
+        "importPath": "django.test",
+        "description": "django.test",
+        "isExtraImport": true,
+        "detail": "django.test",
+        "documentation": {}
+    },
+    {
+        "label": "render",
+        "importPath": "django.shortcuts",
+        "description": "django.shortcuts",
+        "isExtraImport": true,
+        "detail": "django.shortcuts",
+        "documentation": {}
+    },
+    {
         "label": "os",
         "kind": 6,
         "isExtraImport": true,
@@ -83,67 +724,11 @@
         "documentation": {}
     },
     {
-        "label": "admin",
-        "importPath": "django.contrib",
-        "description": "django.contrib",
+        "label": "urlparse",
+        "importPath": "urllib.parse",
+        "description": "urllib.parse",
         "isExtraImport": true,
-        "detail": "django.contrib",
-        "documentation": {}
-    },
-    {
-        "label": "admin",
-        "importPath": "django.contrib",
-        "description": "django.contrib",
-        "isExtraImport": true,
-        "detail": "django.contrib",
-        "documentation": {}
-    },
-    {
-        "label": "path",
-        "importPath": "django.urls",
-        "description": "django.urls",
-        "isExtraImport": true,
-        "detail": "django.urls",
-        "documentation": {}
-    },
-    {
-        "label": "include",
-        "importPath": "django.urls",
-        "description": "django.urls",
-        "isExtraImport": true,
-        "detail": "django.urls",
-        "documentation": {}
-    },
-    {
-        "label": "reverse",
-        "importPath": "django.urls",
-        "description": "django.urls",
-        "isExtraImport": true,
-        "detail": "django.urls",
-        "documentation": {}
-    },
-    {
-        "label": "reverse",
-        "importPath": "django.urls",
-        "description": "django.urls",
-        "isExtraImport": true,
-        "detail": "django.urls",
-        "documentation": {}
-    },
-    {
-        "label": "path",
-        "importPath": "django.urls",
-        "description": "django.urls",
-        "isExtraImport": true,
-        "detail": "django.urls",
-        "documentation": {}
-    },
-    {
-        "label": "include",
-        "importPath": "django.urls",
-        "description": "django.urls",
-        "isExtraImport": true,
-        "detail": "django.urls",
+        "detail": "urllib.parse",
         "documentation": {}
     },
     {
@@ -488,211 +1073,43 @@
         "documentation": {}
     },
     {
-        "label": "TgUser",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
         "label": "ParseProduct",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
+        "importPath": "cardparser.models",
+        "description": "cardparser.models",
         "isExtraImport": true,
-        "detail": "tg_bot.models",
+        "detail": "cardparser.models",
         "documentation": {}
     },
     {
         "label": "TgUserProduct",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
+        "importPath": "cardparser.models",
+        "description": "cardparser.models",
         "isExtraImport": true,
-        "detail": "tg_bot.models",
+        "detail": "cardparser.models",
         "documentation": {}
     },
     {
         "label": "Brand",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
+        "importPath": "cardparser.models",
+        "description": "cardparser.models",
         "isExtraImport": true,
-        "detail": "tg_bot.models",
+        "detail": "cardparser.models",
         "documentation": {}
     },
     {
         "label": "Category",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
+        "importPath": "cardparser.models",
+        "description": "cardparser.models",
         "isExtraImport": true,
-        "detail": "tg_bot.models",
+        "detail": "cardparser.models",
         "documentation": {}
     },
     {
         "label": "ProductImage",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
+        "importPath": "cardparser.models",
+        "description": "cardparser.models",
         "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TgUser",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotDeck",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotCardItem",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotCard",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "ExtendedMeaning",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotUserReading",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumDeck",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumItem",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "Rune",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumItem",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumDeck",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "Rune",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotCard",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "ExtendedMeaning",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotMeaningCategory",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotCard",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotDeck",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotCardItem",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TgUser",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TgUser",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
+        "detail": "cardparser.models",
         "documentation": {}
     },
     {
@@ -875,324 +1292,11 @@
         "documentation": {}
     },
     {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "migrations",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "models",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "connection",
-        "importPath": "django.db",
-        "description": "django.db",
-        "isExtraImport": true,
-        "detail": "django.db",
-        "documentation": {}
-    },
-    {
-        "label": "django.db.models.deletion",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "django.db.models.deletion",
-        "description": "django.db.models.deletion",
-        "detail": "django.db.models.deletion",
-        "documentation": {}
-    },
-    {
         "label": "timezone",
         "importPath": "django.utils",
         "description": "django.utils",
         "isExtraImport": true,
         "detail": "django.utils",
-        "documentation": {}
-    },
-    {
-        "label": "format_html",
-        "importPath": "django.utils.html",
-        "description": "django.utils.html",
-        "isExtraImport": true,
-        "detail": "django.utils.html",
-        "documentation": {}
-    },
-    {
-        "label": "mark_safe",
-        "importPath": "django.utils.safestring",
-        "description": "django.utils.safestring",
-        "isExtraImport": true,
-        "detail": "django.utils.safestring",
         "documentation": {}
     },
     {
@@ -1202,14 +1306,6 @@
         "importPath": "sys",
         "description": "sys",
         "detail": "sys",
-        "documentation": {}
-    },
-    {
-        "label": "AppConfig",
-        "importPath": "django.apps",
-        "description": "django.apps",
-        "isExtraImport": true,
-        "detail": "django.apps",
         "documentation": {}
     },
     {
@@ -1280,14 +1376,6 @@
         "documentation": {}
     },
     {
-        "label": "TestCase",
-        "importPath": "django.test",
-        "description": "django.test",
-        "isExtraImport": true,
-        "detail": "django.test",
-        "documentation": {}
-    },
-    {
         "label": "DefaultRouter",
         "importPath": "rest_framework.routers",
         "description": "rest_framework.routers",
@@ -1309,6 +1397,150 @@
         "description": "django.views.decorators.csrf",
         "isExtraImport": true,
         "detail": "django.views.decorators.csrf",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.cardparser.migrations.0001_initial",
+        "description": "app.cardparser.migrations.0001_initial",
+        "peekOfCode": "class Migration(migrations.Migration):\n    initial = True\n    dependencies = [\n        ('tg_bot', '0030_parseproduct_name'),  # Убедись, что выполнена\n    ]\n    operations = [\n        # Шаг 1: Физически переименовываем таблицы в БД\n        RunSQL(\"ALTER TABLE tg_bot_brand RENAME TO cardparser_brand;\"),\n        RunSQL(\"ALTER TABLE tg_bot_category RENAME TO cardparser_category;\"),\n        RunSQL(\"ALTER TABLE tg_bot_parseproduct RENAME TO cardparser_parseproduct;\"),",
+        "detail": "app.cardparser.migrations.0001_initial",
+        "documentation": {}
+    },
+    {
+        "label": "TgUserProductAdmin",
+        "kind": 6,
+        "importPath": "app.cardparser.admin",
+        "description": "app.cardparser.admin",
+        "peekOfCode": "class TgUserProductAdmin(admin.ModelAdmin):\n    list_display = (\"tg_user\", \"product\", \"sent_at\")\n    list_filter = (\"sent_at\",)\n    search_fields = (\"tg_user__username\", \"product__caption\")\n# === Inline: Изображения в ParseProduct ===\nclass ProductImageInline(admin.TabularInline):\n    model = ProductImage\n    extra = 0\n    readonly_fields = (\"image_type\", \"file_id\", \"url\", \"created_at\")\n    fields = (\"image_type\", \"file_id\", \"url\", \"created_at\")",
+        "detail": "app.cardparser.admin",
+        "documentation": {}
+    },
+    {
+        "label": "ProductImageInline",
+        "kind": 6,
+        "importPath": "app.cardparser.admin",
+        "description": "app.cardparser.admin",
+        "peekOfCode": "class ProductImageInline(admin.TabularInline):\n    model = ProductImage\n    extra = 0\n    readonly_fields = (\"image_type\", \"file_id\", \"url\", \"created_at\")\n    fields = (\"image_type\", \"file_id\", \"url\", \"created_at\")\n    can_delete = False\n    show_change_link = True\n# === Админка: TgUserProduct (Inline) ===\nclass TgUserProductInline(admin.TabularInline):\n    model = TgUserProduct",
+        "detail": "app.cardparser.admin",
+        "documentation": {}
+    },
+    {
+        "label": "TgUserProductInline",
+        "kind": 6,
+        "importPath": "app.cardparser.admin",
+        "description": "app.cardparser.admin",
+        "peekOfCode": "class TgUserProductInline(admin.TabularInline):\n    model = TgUserProduct\n    extra = 0\n    readonly_fields = (\"sent_at\", \"tg_user\")\n    fields = (\"tg_user\", \"sent_at\")\n    can_delete = False  # чтобы случайно не удалили историю\n    show_change_link = True\n# === Админка: ParseProduct ===\n@admin.register(ParseProduct)\nclass ParseProductAdmin(admin.ModelAdmin):",
+        "detail": "app.cardparser.admin",
+        "documentation": {}
+    },
+    {
+        "label": "ParseProductAdmin",
+        "kind": 6,
+        "importPath": "app.cardparser.admin",
+        "description": "app.cardparser.admin",
+        "peekOfCode": "class ParseProductAdmin(admin.ModelAdmin):\n    list_display = (\n        \"product_id\",\n        \"product_type\",\n        \"name\",\n        \"brand__name\",\n        \"category__name\",\n        \"created_at\",\n        \"updated_at\",\n    )",
+        "detail": "app.cardparser.admin",
+        "documentation": {}
+    },
+    {
+        "label": "ProductImageAdmin",
+        "kind": 6,
+        "importPath": "app.cardparser.admin",
+        "description": "app.cardparser.admin",
+        "peekOfCode": "class ProductImageAdmin(admin.ModelAdmin):\n    list_display = (\n        \"product\",\n        \"image_type\",\n        \"file_id_preview\",\n        \"url_preview\",\n        \"created_at\",\n    )\n    list_filter = (\"image_type\", \"created_at\")\n    search_fields = (\"file_id\", \"url\", \"product__product_id\")",
+        "detail": "app.cardparser.admin",
+        "documentation": {}
+    },
+    {
+        "label": "BrandAdmin",
+        "kind": 6,
+        "importPath": "app.cardparser.admin",
+        "description": "app.cardparser.admin",
+        "peekOfCode": "class BrandAdmin(admin.ModelAdmin):\n    list_display = (\n        \"name\",\n        \"brand_id\",\n        \"product_type\",\n        \"products_count\",\n        \"created_at\",\n    )\n    list_filter = (\"product_type\", \"created_at\")\n    search_fields = (\"name\", \"brand_id\")",
+        "detail": "app.cardparser.admin",
+        "documentation": {}
+    },
+    {
+        "label": "CategoryAdmin",
+        "kind": 6,
+        "importPath": "app.cardparser.admin",
+        "description": "app.cardparser.admin",
+        "peekOfCode": "class CategoryAdmin(admin.ModelAdmin):\n    list_display = (\n        \"name\",\n        \"subject_id\",\n        \"product_type\",\n        \"products_count\",\n        \"created_at\",\n    )\n    list_filter = (\"product_type\", \"created_at\")\n    search_fields = (\"name\", \"subject_id\")",
+        "detail": "app.cardparser.admin",
+        "documentation": {}
+    },
+    {
+        "label": "CardparserConfig",
+        "kind": 6,
+        "importPath": "app.cardparser.apps",
+        "description": "app.cardparser.apps",
+        "peekOfCode": "class CardparserConfig(AppConfig):\n    default_auto_field = 'django.db.models.BigAutoField'\n    name = 'cardparser'",
+        "detail": "app.cardparser.apps",
+        "documentation": {}
+    },
+    {
+        "label": "Brand",
+        "kind": 6,
+        "importPath": "app.cardparser.models",
+        "description": "app.cardparser.models",
+        "peekOfCode": "class Brand(models.Model):\n    \"\"\"Модель бренда с учётом принадлежности к платформе\"\"\"\n    name = models.CharField(max_length=255, verbose_name=\"Название бренда\")\n    brand_id = models.CharField(max_length=50, verbose_name=\"Внешний ID бренда\")\n    product_type = models.CharField(\n        max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name=\"Тип площадки\"\n    )\n    created_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата создания\")\n    class Meta:\n        verbose_name = f\"{bot_prefix}: Бренд\"",
+        "detail": "app.cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "Category",
+        "kind": 6,
+        "importPath": "app.cardparser.models",
+        "description": "app.cardparser.models",
+        "peekOfCode": "class Category(models.Model):\n    \"\"\"Модель категории с привязкой к платформе\"\"\"\n    name = models.CharField(max_length=255, verbose_name=\"Название категории\")\n    subject_id = models.IntegerField(verbose_name=\"subjectId / category_id\")\n    product_type = models.CharField(\n        max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name=\"Тип площадки\"\n    )\n    created_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата создания\")\n    class Meta:\n        verbose_name = f\"{bot_prefix}: Категория\"",
+        "detail": "app.cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "ParseProduct",
+        "kind": 6,
+        "importPath": "app.cardparser.models",
+        "description": "app.cardparser.models",
+        "peekOfCode": "class ParseProduct(models.Model):\n    \"\"\"Модель для хранения данных о продукте.\"\"\"\n    product_id = models.CharField(max_length=255, verbose_name=\"ID товара\")\n    caption = models.TextField(verbose_name=\"Подпись к фото\")\n    name = models.CharField(\n        max_length=255,\n        blank=True,\n        null=True,\n        verbose_name=\"Название товара\",\n        help_text=\"Официальное название товара (опционально)\"",
+        "detail": "app.cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "ProductImage",
+        "kind": 6,
+        "importPath": "app.cardparser.models",
+        "description": "app.cardparser.models",
+        "peekOfCode": "class ProductImage(models.Model):\n    \"\"\"Модель для хранения изображений товара (Telegram file_id или прямая ссылка)\"\"\"\n    IMAGE_TYPE_CHOICES = [\n        (\"telegram\", \"Telegram file_id\"),\n        (\"link\", \"Прямая ссылка\"),\n    ]\n    image_type = models.CharField(\n        max_length=10, choices=IMAGE_TYPE_CHOICES, verbose_name=\"Тип изображения\"\n    )\n    # Один из двух будет заполнен",
+        "detail": "app.cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUserProduct",
+        "kind": 6,
+        "importPath": "app.cardparser.models",
+        "description": "app.cardparser.models",
+        "peekOfCode": "class TgUserProduct(models.Model):\n    \"\"\"Модель для связи пользователя с продуктом.\"\"\"\n    tg_user = models.ForeignKey(\n        TgUser,\n        on_delete=models.CASCADE,\n        related_name=\"user_products\",\n        verbose_name=\"Пользователь\",\n    )\n    product = models.ForeignKey(\n        ParseProduct,",
+        "detail": "app.cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "bot_prefix",
+        "kind": 5,
+        "importPath": "app.cardparser.models",
+        "description": "app.cardparser.models",
+        "peekOfCode": "bot_prefix = \"Card Parser\"\nPRODUCT_TYPE_CHOICES = [\n    (\"ozon\", \"Ozon\"),\n    (\"wb\", \"Wildberries\"),\n]\nclass Brand(models.Model):\n    \"\"\"Модель бренда с учётом принадлежности к платформе\"\"\"\n    name = models.CharField(max_length=255, verbose_name=\"Название бренда\")\n    brand_id = models.CharField(max_length=50, verbose_name=\"Внешний ID бренда\")\n    product_type = models.CharField(",
+        "detail": "app.cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "PRODUCT_TYPE_CHOICES",
+        "kind": 5,
+        "importPath": "app.cardparser.models",
+        "description": "app.cardparser.models",
+        "peekOfCode": "PRODUCT_TYPE_CHOICES = [\n    (\"ozon\", \"Ozon\"),\n    (\"wb\", \"Wildberries\"),\n]\nclass Brand(models.Model):\n    \"\"\"Модель бренда с учётом принадлежности к платформе\"\"\"\n    name = models.CharField(max_length=255, verbose_name=\"Название бренда\")\n    brand_id = models.CharField(max_length=50, verbose_name=\"Внешний ID бренда\")\n    product_type = models.CharField(\n        max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name=\"Тип площадки\"",
+        "detail": "app.cardparser.models",
         "documentation": {}
     },
     {
@@ -1370,7 +1602,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "BASE_DIR = Path(__file__).resolve().parent.parent\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\nSECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nALLOWED_HOSTS = [\n    \"localhost\",\n    os.environ.get(\"TG_WEBHOOK_HOST\"),",
+        "peekOfCode": "BASE_DIR = Path(__file__).resolve().parent.parent\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\nSECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nTG_WEBHOOK_HOST_RAW = urlparse(os.environ.get(\"TG_WEBHOOK_HOST\"))\nALLOWED_HOSTS = [\n    \"localhost\",",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1379,7 +1611,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "SECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nALLOWED_HOSTS = [\n    \"localhost\",\n    os.environ.get(\"TG_WEBHOOK_HOST\"),\n]\nTG_WEBHOOK_HOST = f\"https://{os.environ.get('TG_WEBHOOK_HOST')}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")",
+        "peekOfCode": "SECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nTG_WEBHOOK_HOST_RAW = urlparse(os.environ.get(\"TG_WEBHOOK_HOST\"))\nALLOWED_HOSTS = [\n    \"localhost\",\n    TG_WEBHOOK_HOST_RAW,\n]\nTG_WEBHOOK_HOST = f\"https://{TG_WEBHOOK_HOST_RAW}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1388,7 +1620,16 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "DEBUG = True\nALLOWED_HOSTS = [\n    \"localhost\",\n    os.environ.get(\"TG_WEBHOOK_HOST\"),\n]\nTG_WEBHOOK_HOST = f\"https://{os.environ.get('TG_WEBHOOK_HOST')}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or 'false').lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)",
+        "peekOfCode": "DEBUG = True\nTG_WEBHOOK_HOST_RAW = urlparse(os.environ.get(\"TG_WEBHOOK_HOST\"))\nALLOWED_HOSTS = [\n    \"localhost\",\n    TG_WEBHOOK_HOST_RAW,\n]\nTG_WEBHOOK_HOST = f\"https://{TG_WEBHOOK_HOST_RAW}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or \"false\").lower() == \"true\"",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "TG_WEBHOOK_HOST_RAW",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "TG_WEBHOOK_HOST_RAW = urlparse(os.environ.get(\"TG_WEBHOOK_HOST\"))\nALLOWED_HOSTS = [\n    \"localhost\",\n    TG_WEBHOOK_HOST_RAW,\n]\nTG_WEBHOOK_HOST = f\"https://{TG_WEBHOOK_HOST_RAW}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or \"false\").lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1397,7 +1638,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "ALLOWED_HOSTS = [\n    \"localhost\",\n    os.environ.get(\"TG_WEBHOOK_HOST\"),\n]\nTG_WEBHOOK_HOST = f\"https://{os.environ.get('TG_WEBHOOK_HOST')}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or 'false').lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False",
+        "peekOfCode": "ALLOWED_HOSTS = [\n    \"localhost\",\n    TG_WEBHOOK_HOST_RAW,\n]\nTG_WEBHOOK_HOST = f\"https://{TG_WEBHOOK_HOST_RAW}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or \"false\").lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1406,7 +1647,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "TG_WEBHOOK_HOST = f\"https://{os.environ.get('TG_WEBHOOK_HOST')}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or 'false').lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition",
+        "peekOfCode": "TG_WEBHOOK_HOST = f\"https://{TG_WEBHOOK_HOST_RAW}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or \"false\").lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1415,7 +1656,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "PICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or 'false').lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [",
+        "peekOfCode": "PICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or \"false\").lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1424,7 +1665,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "PARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or 'false').lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",",
+        "peekOfCode": "PARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or \"false\").lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [\n    \"admin_interface\",",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1433,7 +1674,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "TG_DEBUG = (os.environ.get(\"TG_DEBUG\") or 'false').lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",",
+        "peekOfCode": "TG_DEBUG = (os.environ.get(\"TG_DEBUG\") or \"false\").lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [\n    \"admin_interface\",\n    \"colorfield\", ",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1442,7 +1683,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "CSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",",
+        "peekOfCode": "CSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)\nCORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [\n    \"admin_interface\",\n    \"colorfield\", \n    \"django.contrib.admin\",",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1451,7 +1692,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "CORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",\n    \"django.contrib.sessions\",",
+        "peekOfCode": "CORS_ORIGIN_ALLOW_ALL = False\nCORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [\n    \"admin_interface\",\n    \"colorfield\", \n    \"django.contrib.admin\",\n    \"django.contrib.auth\",",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1460,7 +1701,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "CORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",\n    \"django.contrib.sessions\",\n    \"django.contrib.messages\",",
+        "peekOfCode": "CORS_ORIGIN_WHITELIST = [\n    TG_WEBHOOK_HOST,\n]\n# Application definition\nINSTALLED_APPS = [\n    \"admin_interface\",\n    \"colorfield\", \n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1469,7 +1710,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "INSTALLED_APPS = [\n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",\n    \"django.contrib.sessions\",\n    \"django.contrib.messages\",\n    \"django.contrib.staticfiles\",\n    \"rest_framework\",\n    \"tg_bot\",\n]",
+        "peekOfCode": "INSTALLED_APPS = [\n    \"admin_interface\",\n    \"colorfield\", \n    \"django.contrib.admin\",\n    \"django.contrib.auth\",\n    \"django.contrib.contenttypes\",\n    \"django.contrib.sessions\",\n    \"django.contrib.messages\",\n    \"django.contrib.staticfiles\",\n    \"django_celery_beat\",",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1541,7 +1782,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "CELERY_TASK_ALWAYS_EAGER = False  # чтобы задачи не выполнялись синхронно\nCELERY_TASK_EAGER_PROPAGATES = True\nCELERY_BROKER_URL = f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/0'\nCELERY_ACCEPT_CONTENT = [\"json\"]\nCELERY_TASK_SERIALIZER = \"json\"\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }",
+        "peekOfCode": "CELERY_TASK_ALWAYS_EAGER = False  # чтобы задачи не выполнялись синхронно\nCELERY_TASK_EAGER_PROPAGATES = True\nCELERY_BROKER_URL = f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/0'\nCELERY_ACCEPT_CONTENT = [\"json\"]\nCELERY_TASK_SERIALIZER = \"json\"\nCELERY_TIMEZONE = \"UTC\"\nCELERY_ENABLE_UTC = True\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1550,7 +1791,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "CELERY_TASK_EAGER_PROPAGATES = True\nCELERY_BROKER_URL = f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/0'\nCELERY_ACCEPT_CONTENT = [\"json\"]\nCELERY_TASK_SERIALIZER = \"json\"\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }\n}",
+        "peekOfCode": "CELERY_TASK_EAGER_PROPAGATES = True\nCELERY_BROKER_URL = f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/0'\nCELERY_ACCEPT_CONTENT = [\"json\"]\nCELERY_TASK_SERIALIZER = \"json\"\nCELERY_TIMEZONE = \"UTC\"\nCELERY_ENABLE_UTC = True\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1559,7 +1800,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "CELERY_BROKER_URL = f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/0'\nCELERY_ACCEPT_CONTENT = [\"json\"]\nCELERY_TASK_SERIALIZER = \"json\"\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }\n}\n# Password validation",
+        "peekOfCode": "CELERY_BROKER_URL = f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/0'\nCELERY_ACCEPT_CONTENT = [\"json\"]\nCELERY_TASK_SERIALIZER = \"json\"\nCELERY_TIMEZONE = \"UTC\"\nCELERY_ENABLE_UTC = True\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1568,7 +1809,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "CELERY_ACCEPT_CONTENT = [\"json\"]\nCELERY_TASK_SERIALIZER = \"json\"\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }\n}\n# Password validation\n# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators",
+        "peekOfCode": "CELERY_ACCEPT_CONTENT = [\"json\"]\nCELERY_TASK_SERIALIZER = \"json\"\nCELERY_TIMEZONE = \"UTC\"\nCELERY_ENABLE_UTC = True\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }\n}",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1577,7 +1818,25 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "CELERY_TASK_SERIALIZER = \"json\"\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }\n}\n# Password validation\n# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators\nAUTH_PASSWORD_VALIDATORS = [",
+        "peekOfCode": "CELERY_TASK_SERIALIZER = \"json\"\nCELERY_TIMEZONE = \"UTC\"\nCELERY_ENABLE_UTC = True\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }\n}\n# Password validation",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "CELERY_TIMEZONE",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "CELERY_TIMEZONE = \"UTC\"\nCELERY_ENABLE_UTC = True\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }\n}\n# Password validation\n# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators",
+        "detail": "app.server.settings",
+        "documentation": {}
+    },
+    {
+        "label": "CELERY_ENABLE_UTC",
+        "kind": 5,
+        "importPath": "app.server.settings",
+        "description": "app.server.settings",
+        "peekOfCode": "CELERY_ENABLE_UTC = True\nCACHES = {\n    \"default\": {\n        \"BACKEND\": \"django.core.cache.backends.redis.RedisCache\",\n        \"LOCATION\": f'redis://{os.getenv(\"REDIS_HOST\")}:{os.getenv(\"REDIS_PORT\")}/1',\n    }\n}\n# Password validation\n# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators\nAUTH_PASSWORD_VALIDATORS = [",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1604,7 +1863,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "LANGUAGE_CODE = \"en-us\"\nTIME_ZONE = \"UTC\"\nUSE_I18N = True\nUSE_L10N = True\nUSE_TZ = True\n# Static files (CSS, JavaScript, Images)\n# https://docs.djangoproject.com/en/3.2/howto/static-files/\nSTATIC_URL = \"/static/\"\n# Default primary key field type\n# https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field",
+        "peekOfCode": "LANGUAGE_CODE = \"ru-ru\"\nTIME_ZONE = \"UTC\"\nUSE_I18N = True\nUSE_L10N = True\nUSE_TZ = True\n# Static files (CSS, JavaScript, Images)\n# https://docs.djangoproject.com/en/3.2/howto/static-files/\nSTATIC_URL = \"/static/\"\n# Default primary key field type\n# https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -2014,6 +2273,15 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0031_remove_parseproduct_brand_and_more",
+        "description": "app.tg_bot.migrations.0031_remove_parseproduct_brand_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0030_parseproduct_name'),\n    ]\n    operations = [\n                migrations.SeparateDatabaseAndState(\n            database_operations=[],  # Ничего не делаем с БД\n            state_operations=[\n        migrations.RemoveField(\n            model_name='parseproduct',",
+        "detail": "app.tg_bot.migrations.0031_remove_parseproduct_brand_and_more",
+        "documentation": {}
+    },
+    {
         "label": "Bot",
         "kind": 6,
         "importPath": "app.tg_bot.models.base",
@@ -2029,69 +2297,6 @@
         "description": "app.tg_bot.models.base",
         "peekOfCode": "class TgUser(models.Model):\n    \"\"\"Модель для хранения данных о пользователе Telegram.\"\"\"\n    tg_id = models.BigIntegerField(unique=True, verbose_name=\"Telegram ID\")\n    username = models.CharField(\n        max_length=255, blank=True, null=True, verbose_name=\"Username\"\n    )\n    first_name = models.CharField(\n        max_length=255, blank=True, null=True, verbose_name=\"Имя\"\n    )\n    last_name = models.CharField(",
         "detail": "app.tg_bot.models.base",
-        "documentation": {}
-    },
-    {
-        "label": "Brand",
-        "kind": 6,
-        "importPath": "app.tg_bot.models.parser",
-        "description": "app.tg_bot.models.parser",
-        "peekOfCode": "class Brand(models.Model):\n    \"\"\"Модель бренда с учётом принадлежности к платформе\"\"\"\n    name = models.CharField(max_length=255, verbose_name=\"Название бренда\")\n    brand_id = models.CharField(max_length=50, verbose_name=\"Внешний ID бренда\")\n    product_type = models.CharField(\n        max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name=\"Тип площадки\"\n    )\n    created_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата создания\")\n    class Meta:\n        verbose_name = f\"{bot_prefix}: Бренд\"",
-        "detail": "app.tg_bot.models.parser",
-        "documentation": {}
-    },
-    {
-        "label": "Category",
-        "kind": 6,
-        "importPath": "app.tg_bot.models.parser",
-        "description": "app.tg_bot.models.parser",
-        "peekOfCode": "class Category(models.Model):\n    \"\"\"Модель категории с привязкой к платформе\"\"\"\n    name = models.CharField(max_length=255, verbose_name=\"Название категории\")\n    subject_id = models.IntegerField(verbose_name=\"subjectId / category_id\")\n    product_type = models.CharField(\n        max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name=\"Тип площадки\"\n    )\n    created_at = models.DateTimeField(auto_now_add=True, verbose_name=\"Дата создания\")\n    class Meta:\n        verbose_name = f\"{bot_prefix}: Категория\"",
-        "detail": "app.tg_bot.models.parser",
-        "documentation": {}
-    },
-    {
-        "label": "ParseProduct",
-        "kind": 6,
-        "importPath": "app.tg_bot.models.parser",
-        "description": "app.tg_bot.models.parser",
-        "peekOfCode": "class ParseProduct(models.Model):\n    \"\"\"Модель для хранения данных о продукте.\"\"\"\n    product_id = models.CharField(max_length=255, verbose_name=\"ID товара\")\n    caption = models.TextField(verbose_name=\"Подпись к фото\")\n    name = models.CharField(\n        max_length=255,\n        blank=True,\n        null=True,\n        verbose_name=\"Название товара\",\n        help_text=\"Официальное название товара (опционально)\"",
-        "detail": "app.tg_bot.models.parser",
-        "documentation": {}
-    },
-    {
-        "label": "ProductImage",
-        "kind": 6,
-        "importPath": "app.tg_bot.models.parser",
-        "description": "app.tg_bot.models.parser",
-        "peekOfCode": "class ProductImage(models.Model):\n    \"\"\"Модель для хранения изображений товара (Telegram file_id или прямая ссылка)\"\"\"\n    IMAGE_TYPE_CHOICES = [\n        (\"telegram\", \"Telegram file_id\"),\n        (\"link\", \"Прямая ссылка\"),\n    ]\n    image_type = models.CharField(\n        max_length=10, choices=IMAGE_TYPE_CHOICES, verbose_name=\"Тип изображения\"\n    )\n    # Один из двух будет заполнен",
-        "detail": "app.tg_bot.models.parser",
-        "documentation": {}
-    },
-    {
-        "label": "TgUserProduct",
-        "kind": 6,
-        "importPath": "app.tg_bot.models.parser",
-        "description": "app.tg_bot.models.parser",
-        "peekOfCode": "class TgUserProduct(models.Model):\n    \"\"\"Модель для связи пользователя с продуктом.\"\"\"\n    tg_user = models.ForeignKey(\n        TgUser,\n        on_delete=models.CASCADE,\n        related_name=\"user_products\",\n        verbose_name=\"Пользователь\",\n    )\n    product = models.ForeignKey(\n        ParseProduct,",
-        "detail": "app.tg_bot.models.parser",
-        "documentation": {}
-    },
-    {
-        "label": "bot_prefix",
-        "kind": 5,
-        "importPath": "app.tg_bot.models.parser",
-        "description": "app.tg_bot.models.parser",
-        "peekOfCode": "bot_prefix = \"Card Parser\"\nPRODUCT_TYPE_CHOICES = [\n    (\"ozon\", \"Ozon\"),\n    (\"wb\", \"Wildberries\"),\n]\nclass Brand(models.Model):\n    \"\"\"Модель бренда с учётом принадлежности к платформе\"\"\"\n    name = models.CharField(max_length=255, verbose_name=\"Название бренда\")\n    brand_id = models.CharField(max_length=50, verbose_name=\"Внешний ID бренда\")\n    product_type = models.CharField(",
-        "detail": "app.tg_bot.models.parser",
-        "documentation": {}
-    },
-    {
-        "label": "PRODUCT_TYPE_CHOICES",
-        "kind": 5,
-        "importPath": "app.tg_bot.models.parser",
-        "description": "app.tg_bot.models.parser",
-        "peekOfCode": "PRODUCT_TYPE_CHOICES = [\n    (\"ozon\", \"Ozon\"),\n    (\"wb\", \"Wildberries\"),\n]\nclass Brand(models.Model):\n    \"\"\"Модель бренда с учётом принадлежности к платформе\"\"\"\n    name = models.CharField(max_length=255, verbose_name=\"Название бренда\")\n    brand_id = models.CharField(max_length=50, verbose_name=\"Внешний ID бренда\")\n    product_type = models.CharField(\n        max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name=\"Тип площадки\"",
-        "detail": "app.tg_bot.models.parser",
         "documentation": {}
     },
     {
@@ -2189,16 +2394,7 @@
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class BotAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"token\", \"chat_id\", \"bot_type\", \"created_at\", \"updated_at\")\n    search_fields = (\"name\", \"token\", \"chat_id\")\n    list_filter = (\"bot_type\", \"created_at\")\n@admin.register(TgUserProduct)\nclass TgUserProductAdmin(admin.ModelAdmin):\n    list_display = (\"tg_user\", \"product\", \"sent_at\")\n    list_filter = (\"sent_at\",)\n    search_fields = (\"tg_user__username\", \"product__caption\")\n@admin.register(TarotCard)",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "TgUserProductAdmin",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class TgUserProductAdmin(admin.ModelAdmin):\n    list_display = (\"tg_user\", \"product\", \"sent_at\")\n    list_filter = (\"sent_at\",)\n    search_fields = (\"tg_user__username\", \"product__caption\")\n@admin.register(TarotCard)\nclass TarotCardAdmin(admin.ModelAdmin):\n    list_display = (\"card_id\", \"name\", \"is_major\")  # Добавлено card_id для наглядности\n    list_editable = (\"is_major\",)  # Разрешаем редактирование прямо в списке\n    list_filter = (\"is_major\",)  # Добавляем фильтр по этому полю\n    search_fields = (\"name\", \"card_id\")  # Поиск по названию и ID карты",
+        "peekOfCode": "class BotAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"token\", \"chat_id\", \"bot_type\", \"created_at\", \"updated_at\")\n    search_fields = (\"name\", \"token\", \"chat_id\")\n    list_filter = (\"bot_type\", \"created_at\")\n@admin.register(TarotCard)\nclass TarotCardAdmin(admin.ModelAdmin):\n    list_display = (\"card_id\", \"name\", \"is_major\")  # Добавлено card_id для наглядности\n    list_editable = (\"is_major\",)  # Разрешаем редактирование прямо в списке\n    list_filter = (\"is_major\",)  # Добавляем фильтр по этому полю\n    search_fields = (\"name\", \"card_id\")  # Поиск по названию и ID карты",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },
@@ -2280,60 +2476,6 @@
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
         "peekOfCode": "class RuneAdmin(admin.ModelAdmin):\n    list_display = (\"symbol\", \"type\", \"sticker\")\n    search_fields = (\"type\", \"symbol\")\n    list_filter = (\"type\",)\n    fieldsets = (\n        (\n            \"Основная информация\",\n            {\n                \"fields\": (\"type\", \"symbol\", \"sticker\"),\n            },",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "ProductImageInline",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class ProductImageInline(admin.TabularInline):\n    model = ProductImage\n    extra = 0\n    readonly_fields = (\"image_type\", \"file_id\", \"url\", \"created_at\")\n    fields = (\"image_type\", \"file_id\", \"url\", \"created_at\")\n    can_delete = False\n    show_change_link = True\n# === Админка: TgUserProduct (Inline) ===\nclass TgUserProductInline(admin.TabularInline):\n    model = TgUserProduct",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "TgUserProductInline",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class TgUserProductInline(admin.TabularInline):\n    model = TgUserProduct\n    extra = 0\n    readonly_fields = (\"sent_at\", \"tg_user\")\n    fields = (\"tg_user\", \"sent_at\")\n    can_delete = False  # чтобы случайно не удалили историю\n    show_change_link = True\n# === Админка: ParseProduct ===\n@admin.register(ParseProduct)\nclass ParseProductAdmin(admin.ModelAdmin):",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "ParseProductAdmin",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class ParseProductAdmin(admin.ModelAdmin):\n    list_display = (\n        \"product_id\",\n        \"product_type\",\n        \"name\",\n        \"brand__name\",\n        \"category__name\",\n        \"created_at\",\n        \"updated_at\",\n    )",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "ProductImageAdmin",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class ProductImageAdmin(admin.ModelAdmin):\n    list_display = (\n        \"product\",\n        \"image_type\",\n        \"file_id_preview\",\n        \"url_preview\",\n        \"created_at\",\n    )\n    list_filter = (\"image_type\", \"created_at\")\n    search_fields = (\"file_id\", \"url\", \"product__product_id\")",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "BrandAdmin",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class BrandAdmin(admin.ModelAdmin):\n    list_display = (\n        \"name\",\n        \"brand_id\",\n        \"product_type\",\n        \"products_count\",\n        \"created_at\",\n    )\n    list_filter = (\"product_type\", \"created_at\")\n    search_fields = (\"name\", \"brand_id\")",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "CategoryAdmin",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class CategoryAdmin(admin.ModelAdmin):\n    list_display = (\n        \"name\",\n        \"subject_id\",\n        \"product_type\",\n        \"products_count\",\n        \"created_at\",\n    )\n    list_filter = (\"product_type\", \"created_at\")\n    search_fields = (\"name\", \"subject_id\")",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },

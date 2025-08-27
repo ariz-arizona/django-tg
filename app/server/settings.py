@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 
 load_dotenv()
 
@@ -29,14 +30,17 @@ SECRET_KEY = "django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+TG_WEBHOOK_HOST_RAW = urlparse(os.environ.get("TG_WEBHOOK_HOST"))
+
 ALLOWED_HOSTS = [
     "localhost",
-    os.environ.get("TG_WEBHOOK_HOST"),
+    TG_WEBHOOK_HOST_RAW,
 ]
-TG_WEBHOOK_HOST = f"https://{os.environ.get('TG_WEBHOOK_HOST')}"
+
+TG_WEBHOOK_HOST = f"https://{TG_WEBHOOK_HOST_RAW}"
 PICTURE_CHAT = os.environ.get("PICTURE_CHAT")
 PARSER_URL = os.environ.get("PARSER")
-TG_DEBUG = (os.environ.get("TG_DEBUG") or 'false').lower() == "true"
+TG_DEBUG = (os.environ.get("TG_DEBUG") or "false").lower() == "true"
 
 CSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)
 CORS_ORIGIN_ALLOW_ALL = False
@@ -46,14 +50,19 @@ CORS_ORIGIN_WHITELIST = [
 # Application definition
 
 INSTALLED_APPS = [
+    "admin_interface",
+    "colorfield", 
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_celery_beat",
+    "django_celery_results",
     "rest_framework",
     "tg_bot",
+    "cardparser"
 ]
 
 MIDDLEWARE = [
@@ -111,6 +120,8 @@ CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_BROKER_URL = f'redis://{os.getenv("REDIS_HOST")}:{os.getenv("REDIS_PORT")}/0'
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
+CELERY_TIMEZONE = "UTC"
+CELERY_ENABLE_UTC = True
 
 CACHES = {
     "default": {
@@ -141,7 +152,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "ru-ru"
 
 TIME_ZONE = "UTC"
 

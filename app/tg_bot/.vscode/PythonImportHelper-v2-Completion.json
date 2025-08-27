@@ -1,0 +1,1788 @@
+[
+    {
+        "label": "ABC",
+        "importPath": "abc",
+        "description": "abc",
+        "isExtraImport": true,
+        "detail": "abc",
+        "documentation": {}
+    },
+    {
+        "label": "abstractmethod",
+        "importPath": "abc",
+        "description": "abc",
+        "isExtraImport": true,
+        "detail": "abc",
+        "documentation": {}
+    },
+    {
+        "label": "Update",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "Update",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "InputMediaPhoto",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "Update",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "InputMediaPhoto",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "InlineKeyboardButton",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "InlineKeyboardMarkup",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "Update",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "CommandHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CallbackContext",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CommandHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "MessageHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CallbackContext",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "filters",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CommandHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "MessageHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CallbackQueryHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CallbackContext",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "filters",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "ApplicationBuilder",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CommandHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "__future__",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "__future__",
+        "description": "__future__",
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "re",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "re",
+        "description": "re",
+        "detail": "re",
+        "documentation": {}
+    },
+    {
+        "label": "aiohttp",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "aiohttp",
+        "description": "aiohttp",
+        "detail": "aiohttp",
+        "documentation": {}
+    },
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "requests",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "requests",
+        "description": "requests",
+        "detail": "requests",
+        "documentation": {}
+    },
+    {
+        "label": "django.utils.timezone",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "django.utils.timezone",
+        "description": "django.utils.timezone",
+        "detail": "django.utils.timezone",
+        "documentation": {}
+    },
+    {
+        "label": "now",
+        "importPath": "django.utils.timezone",
+        "description": "django.utils.timezone",
+        "isExtraImport": true,
+        "detail": "django.utils.timezone",
+        "documentation": {}
+    },
+    {
+        "label": "now",
+        "importPath": "django.utils.timezone",
+        "description": "django.utils.timezone",
+        "isExtraImport": true,
+        "detail": "django.utils.timezone",
+        "documentation": {}
+    },
+    {
+        "label": "Q",
+        "importPath": "django.db.models",
+        "description": "django.db.models",
+        "isExtraImport": true,
+        "detail": "django.db.models",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "AbstractBot",
+        "importPath": "tg_bot.bot.abstract",
+        "description": "tg_bot.bot.abstract",
+        "isExtraImport": true,
+        "detail": "tg_bot.bot.abstract",
+        "documentation": {}
+    },
+    {
+        "label": "AbstractBot",
+        "importPath": "tg_bot.bot.abstract",
+        "description": "tg_bot.bot.abstract",
+        "isExtraImport": true,
+        "detail": "tg_bot.bot.abstract",
+        "documentation": {}
+    },
+    {
+        "label": "Se",
+        "importPath": "tg_bot.bot.wb_image_url",
+        "description": "tg_bot.bot.wb_image_url",
+        "isExtraImport": true,
+        "detail": "tg_bot.bot.wb_image_url",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "ParseProduct",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUserProduct",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Brand",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Category",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "ProductImage",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotDeck",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCardItem",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCard",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "ExtendedMeaning",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotUserReading",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumDeck",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumItem",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Rune",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumItem",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumDeck",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Rune",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCard",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "ExtendedMeaning",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotMeaningCategory",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCard",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotDeck",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCardItem",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "traceback",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "traceback",
+        "description": "traceback",
+        "detail": "traceback",
+        "documentation": {}
+    },
+    {
+        "label": "time",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "time",
+        "description": "time",
+        "detail": "time",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "random",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "random",
+        "description": "random",
+        "detail": "random",
+        "documentation": {}
+    },
+    {
+        "label": "BeautifulSoup",
+        "importPath": "bs4",
+        "description": "bs4",
+        "isExtraImport": true,
+        "detail": "bs4",
+        "documentation": {}
+    },
+    {
+        "label": "ObjectDoesNotExist",
+        "importPath": "django.core.exceptions",
+        "description": "django.core.exceptions",
+        "isExtraImport": true,
+        "detail": "django.core.exceptions",
+        "documentation": {}
+    },
+    {
+        "label": "BaseCommand",
+        "importPath": "django.core.management.base",
+        "description": "django.core.management.base",
+        "isExtraImport": true,
+        "detail": "django.core.management.base",
+        "documentation": {}
+    },
+    {
+        "label": "BaseCommand",
+        "importPath": "django.core.management.base",
+        "description": "django.core.management.base",
+        "isExtraImport": true,
+        "detail": "django.core.management.base",
+        "documentation": {}
+    },
+    {
+        "label": "BaseCommand",
+        "importPath": "django.core.management.base",
+        "description": "django.core.management.base",
+        "isExtraImport": true,
+        "detail": "django.core.management.base",
+        "documentation": {}
+    },
+    {
+        "label": "BaseCommand",
+        "importPath": "django.core.management.base",
+        "description": "django.core.management.base",
+        "isExtraImport": true,
+        "detail": "django.core.management.base",
+        "documentation": {}
+    },
+    {
+        "label": "BaseCommand",
+        "importPath": "django.core.management.base",
+        "description": "django.core.management.base",
+        "isExtraImport": true,
+        "detail": "django.core.management.base",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "connection",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "django.db.models.deletion",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "django.db.models.deletion",
+        "description": "django.db.models.deletion",
+        "detail": "django.db.models.deletion",
+        "documentation": {}
+    },
+    {
+        "label": "timezone",
+        "importPath": "django.utils",
+        "description": "django.utils",
+        "isExtraImport": true,
+        "detail": "django.utils",
+        "documentation": {}
+    },
+    {
+        "label": "admin",
+        "importPath": "django.contrib",
+        "description": "django.contrib",
+        "isExtraImport": true,
+        "detail": "django.contrib",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "sys",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "sys",
+        "description": "sys",
+        "detail": "sys",
+        "documentation": {}
+    },
+    {
+        "label": "AppConfig",
+        "importPath": "django.apps",
+        "description": "django.apps",
+        "isExtraImport": true,
+        "detail": "django.apps",
+        "documentation": {}
+    },
+    {
+        "label": "call_command",
+        "importPath": "django.core.management",
+        "description": "django.core.management",
+        "isExtraImport": true,
+        "detail": "django.core.management",
+        "documentation": {}
+    },
+    {
+        "label": "serializers",
+        "importPath": "rest_framework",
+        "description": "rest_framework",
+        "isExtraImport": true,
+        "detail": "rest_framework",
+        "documentation": {}
+    },
+    {
+        "label": "viewsets",
+        "importPath": "rest_framework",
+        "description": "rest_framework",
+        "isExtraImport": true,
+        "detail": "rest_framework",
+        "documentation": {}
+    },
+    {
+        "label": "redis",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "redis",
+        "description": "redis",
+        "detail": "redis",
+        "documentation": {}
+    },
+    {
+        "label": "asyncio",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "asyncio",
+        "description": "asyncio",
+        "detail": "asyncio",
+        "documentation": {}
+    },
+    {
+        "label": "reverse",
+        "importPath": "django.urls",
+        "description": "django.urls",
+        "isExtraImport": true,
+        "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "path",
+        "importPath": "django.urls",
+        "description": "django.urls",
+        "isExtraImport": true,
+        "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "include",
+        "importPath": "django.urls",
+        "description": "django.urls",
+        "isExtraImport": true,
+        "detail": "django.urls",
+        "documentation": {}
+    },
+    {
+        "label": "signal",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "signal",
+        "description": "signal",
+        "detail": "signal",
+        "documentation": {}
+    },
+    {
+        "label": "shared_task",
+        "importPath": "celery",
+        "description": "celery",
+        "isExtraImport": true,
+        "detail": "celery",
+        "documentation": {}
+    },
+    {
+        "label": "ParserBot",
+        "importPath": "tg_bot.bot.parser",
+        "description": "tg_bot.bot.parser",
+        "isExtraImport": true,
+        "detail": "tg_bot.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "TarotBot",
+        "importPath": "tg_bot.bot.tarot",
+        "description": "tg_bot.bot.tarot",
+        "isExtraImport": true,
+        "detail": "tg_bot.bot.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "TestCase",
+        "importPath": "django.test",
+        "description": "django.test",
+        "isExtraImport": true,
+        "detail": "django.test",
+        "documentation": {}
+    },
+    {
+        "label": "DefaultRouter",
+        "importPath": "rest_framework.routers",
+        "description": "rest_framework.routers",
+        "isExtraImport": true,
+        "detail": "rest_framework.routers",
+        "documentation": {}
+    },
+    {
+        "label": "JsonResponse",
+        "importPath": "django.http",
+        "description": "django.http",
+        "isExtraImport": true,
+        "detail": "django.http",
+        "documentation": {}
+    },
+    {
+        "label": "csrf_exempt",
+        "importPath": "django.views.decorators.csrf",
+        "description": "django.views.decorators.csrf",
+        "isExtraImport": true,
+        "detail": "django.views.decorators.csrf",
+        "documentation": {}
+    },
+    {
+        "label": "AbstractBot",
+        "kind": 6,
+        "importPath": "bot.abstract",
+        "description": "bot.abstract",
+        "peekOfCode": "class AbstractBot(ABC):\n    handlers = []\n    @abstractmethod\n    def get_handlers(self):\n        pass",
+        "detail": "bot.abstract",
+        "documentation": {}
+    },
+    {
+        "label": "ParserBot",
+        "kind": 6,
+        "importPath": "bot.parser",
+        "description": "bot.parser",
+        "peekOfCode": "class ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (\n                    (filters.TEXT & filters.Regex(combined_regexp))\n                    | (filters.CAPTION & filters.CaptionRegex(combined_regexp))\n                )",
+        "detail": "bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "PICTURE_CHAT",
+        "kind": 5,
+        "importPath": "bot.parser",
+        "description": "bot.parser",
+        "peekOfCode": "PICTURE_CHAT = settings.PICTURE_CHAT\nPARSER_URL = settings.PARSER_URL\n# Класс для парсера бота, который наследует AbstractBot\nwb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):",
+        "detail": "bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "PARSER_URL",
+        "kind": 5,
+        "importPath": "bot.parser",
+        "description": "bot.parser",
+        "peekOfCode": "PARSER_URL = settings.PARSER_URL\n# Класс для парсера бота, который наследует AbstractBot\nwb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [",
+        "detail": "bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "wb_regexp",
+        "kind": 5,
+        "importPath": "bot.parser",
+        "description": "bot.parser",
+        "peekOfCode": "wb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (",
+        "detail": "bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "ozon_regexp",
+        "kind": 5,
+        "importPath": "bot.parser",
+        "description": "bot.parser",
+        "peekOfCode": "ozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (\n                    (filters.TEXT & filters.Regex(combined_regexp))",
+        "detail": "bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "combined_regexp",
+        "kind": 5,
+        "importPath": "bot.parser",
+        "description": "bot.parser",
+        "peekOfCode": "combined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (\n                    (filters.TEXT & filters.Regex(combined_regexp))\n                    | (filters.CAPTION & filters.CaptionRegex(combined_regexp))",
+        "detail": "bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "TarotBot",
+        "kind": 6,
+        "importPath": "bot.tarot",
+        "description": "bot.tarot",
+        "peekOfCode": "class TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(filters.PHOTO, self.handle_photo_msg),\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),\n            MessageHandler(\n                filters.COMMAND",
+        "detail": "bot.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "reading_ids",
+        "kind": 5,
+        "importPath": "bot.tarot",
+        "description": "bot.tarot",
+        "peekOfCode": "reading_ids = {}\nuser_exclude_cards = {}\nclass TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(filters.PHOTO, self.handle_photo_msg),\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),",
+        "detail": "bot.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "user_exclude_cards",
+        "kind": 5,
+        "importPath": "bot.tarot",
+        "description": "bot.tarot",
+        "peekOfCode": "user_exclude_cards = {}\nclass TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(filters.PHOTO, self.handle_photo_msg),\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),\n            MessageHandler(",
+        "detail": "bot.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "Se",
+        "kind": 6,
+        "importPath": "bot.wb_image_url",
+        "description": "bot.wb_image_url",
+        "peekOfCode": "class Se:\n    @staticmethod\n    def vol_host_v2(e):\n        t = e // 100000\n        if 0 <= t <= 143:\n            r = \"01\"\n        elif t <= 287:\n            r = \"02\"\n        elif t <= 431:\n            r = \"03\"",
+        "detail": "bot.wb_image_url",
+        "documentation": {}
+    },
+    {
+        "label": "Command",
+        "kind": 6,
+        "importPath": "management.commands.load_oraculum_decks",
+        "description": "management.commands.load_oraculum_decks",
+        "peekOfCode": "class Command(BaseCommand):\n    help = \"Загружает колоды и карты из JSON-файлов в папке decks.\"\n    def handle(self, *args, **kwargs):\n        # Путь к файлу decks.json\n        decks_file_path = settings.BASE_DIR / \"tg_bot\" / \"tarot_data\" / \"oraculum.json\"\n        # Проверяем, существует ли файл\n        if not decks_file_path.exists():\n            self.stdout.write(self.style.ERROR(f\"Файл {decks_file_path} не найден.\"))\n            return\n        # Чтение файла decks.json",
+        "detail": "management.commands.load_oraculum_decks",
+        "documentation": {}
+    },
+    {
+        "label": "Command",
+        "kind": 6,
+        "importPath": "management.commands.load_runes",
+        "description": "management.commands.load_runes",
+        "peekOfCode": "class Command(BaseCommand):\n    help = \"Загружает данные о рунах из JSON-файла\"\n    def handle(self, *args, **kwargs):\n        json_file_path = settings.BASE_DIR / \"tg_bot\" / \"tarot_data\" / \"futark.json\"\n        with open(json_file_path, \"r\", encoding=\"utf-8\") as file:\n            runes_data = json.load(file)\n        for rune_data in runes_data:\n            # Извлечение данных о рунах\n            rune_meaning = rune_data.get(\"meaning\", {})\n            # Проверка наличия \"straight\" и \"inverted\"",
+        "detail": "management.commands.load_runes",
+        "documentation": {}
+    },
+    {
+        "label": "Command",
+        "kind": 6,
+        "importPath": "management.commands.load_tarot_cards",
+        "description": "management.commands.load_tarot_cards",
+        "peekOfCode": "class Command(BaseCommand):\n    help = \"Загружает данные о картах Таро из JSON-файла в базу данных.\"\n    def handle(self, *args, **kwargs):\n        # Путь к JSON-файлу\n        json_file_path = settings.BASE_DIR / \"tg_bot\" / \"tarot_data\" / \"cards.json\"\n        # Чтение JSON-файла\n        with open(json_file_path, \"r\", encoding=\"utf-8\") as file:\n            tarot_data = json.load(file)\n        for card_id, card_data in tarot_data.items():\n            # Создание или обновление карты",
+        "detail": "management.commands.load_tarot_cards",
+        "documentation": {}
+    },
+    {
+        "label": "Command",
+        "kind": 6,
+        "importPath": "management.commands.load_tarot_decks",
+        "description": "management.commands.load_tarot_decks",
+        "peekOfCode": "class Command(BaseCommand):\n    help = \"Загружает колоды и карты из JSON-файлов в папке decks.\"\n    def handle(self, *args, **kwargs):\n        # Путь к файлу decks.json\n        decks_file_path = settings.BASE_DIR / \"tg_bot\" / \"tarot_data\" / \"decks.json\"\n        # Проверяем, существует ли файл\n        if not decks_file_path.exists():\n            self.stdout.write(self.style.ERROR(f\"Файл {decks_file_path} не найден.\"))\n            return\n        # Чтение файла decks.json",
+        "detail": "management.commands.load_tarot_decks",
+        "documentation": {}
+    },
+    {
+        "label": "Command",
+        "kind": 6,
+        "importPath": "management.commands.start_bot_processing",
+        "description": "management.commands.start_bot_processing",
+        "peekOfCode": "class Command(BaseCommand):\n    help = \"Запуск процесса для всех ботов\"\n    def handle(self, *args, **kwargs):\n        from tg_bot.models import Bot\n        from tg_bot.tasks import process_bot\n        logger.info(\"Запуск команды start_bot_processing.\")\n        try:\n            logger.info(\"Запуск обработки ботов...\")\n            from tg_bot.models import Bot\n            # Получаем всех ботов",
+        "detail": "management.commands.start_bot_processing",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0001_initial",
+        "description": "migrations.0001_initial",
+        "peekOfCode": "class Migration(migrations.Migration):\n    initial = True\n    dependencies = [\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='Bot',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),\n                ('name', models.CharField(max_length=100, verbose_name='Название бота')),",
+        "detail": "migrations.0001_initial",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0002_parseproduct_tguser_tguserproduct",
+        "description": "migrations.0002_parseproduct_tguser_tguserproduct",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0001_initial'),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='ParseProduct',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),\n                ('product_id', models.CharField(max_length=255, verbose_name='ID товара')),",
+        "detail": "migrations.0002_parseproduct_tguser_tguserproduct",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0003_tarotcard_tarotdeck_alter_parseproduct_options_and_more_squashed_0004_alter_tarotcarditem_unique_together_and_more",
+        "description": "migrations.0003_tarotcard_tarotdeck_alter_parseproduct_options_and_more_squashed_0004_alter_tarotcarditem_unique_together_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    replaces = [('tg_bot', '0003_tarotcard_tarotdeck_alter_parseproduct_options_and_more'), ('tg_bot', '0004_alter_tarotcarditem_unique_together_and_more')]\n    dependencies = [\n        ('tg_bot', '0002_parseproduct_tguser_tguserproduct'),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='TarotCard',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),",
+        "detail": "migrations.0003_tarotcard_tarotdeck_alter_parseproduct_options_and_more_squashed_0004_alter_tarotcarditem_unique_together_and_more",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0005_alter_bot_options_bot_bot_type",
+        "description": "migrations.0005_alter_bot_options_bot_bot_type",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0003_tarotcard_tarotdeck_alter_parseproduct_options_and_more_squashed_0004_alter_tarotcarditem_unique_together_and_more'),\n    ]\n    operations = [\n        migrations.AlterModelOptions(\n            name='bot',\n            options={'verbose_name': 'Бот', 'verbose_name_plural': 'Боты'},\n        ),\n        migrations.AddField(",
+        "detail": "migrations.0005_alter_bot_options_bot_bot_type",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0006_tarotcard_is_major",
+        "description": "migrations.0006_tarotcard_is_major",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0005_alter_bot_options_bot_bot_type'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='tarotcard',\n            name='is_major',\n            field=models.BooleanField(default=False),\n        ),",
+        "detail": "migrations.0006_tarotcard_is_major",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0007_category_extendedmeaning_category_new_squashed_0016_extendedmeaning_category_base",
+        "description": "migrations.0007_category_extendedmeaning_category_new_squashed_0016_extendedmeaning_category_base",
+        "peekOfCode": "class Migration(migrations.Migration):\n    replaces = [('tg_bot', '0007_category_extendedmeaning_category_new'), ('tg_bot', '0008_remove_extendedmeaning_category'), ('tg_bot', '0009_rename_category_new_extendedmeaning_category'), ('tg_bot', '0010_remove_extendedmeaning_category_and_more'), ('tg_bot', '0011_remove_extendedmeaning_category_new_and_more'), ('tg_bot', '0012_remove_extendedmeaning_category'), ('tg_bot', '0013_extendedmeaning_category'), ('tg_bot', '0014_extendedmeaning_category_base'), ('tg_bot', '0015_remove_extendedmeaning_category_base'), ('tg_bot', '0016_extendedmeaning_category_base')]\n    dependencies = [\n        ('tg_bot', '0006_tarotcard_is_major'),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='Category',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),",
+        "detail": "migrations.0007_category_extendedmeaning_category_new_squashed_0016_extendedmeaning_category_base",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0017_rename_category_tarotmeaningcategory_and_more",
+        "description": "migrations.0017_rename_category_tarotmeaningcategory_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0007_category_extendedmeaning_category_new_squashed_0016_extendedmeaning_category_base'),\n    ]\n    operations = [\n        migrations.RenameModel(\n            old_name='Category',\n            new_name='TarotMeaningCategory',\n        ),\n        migrations.CreateModel(",
+        "detail": "migrations.0017_rename_category_tarotmeaningcategory_and_more",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0018_tarotuserreading_message_id",
+        "description": "migrations.0018_tarotuserreading_message_id",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0017_rename_category_tarotmeaningcategory_and_more'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='tarotuserreading',\n            name='message_id',\n            field=models.IntegerField(blank=True, null=True, verbose_name='ID сообщения'),\n        ),",
+        "detail": "migrations.0018_tarotuserreading_message_id",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0019_oraculumdeck_oraculum_squashed_0021_alter_oraculum_description_alter_oraculum_direct",
+        "description": "migrations.0019_oraculumdeck_oraculum_squashed_0021_alter_oraculum_description_alter_oraculum_direct",
+        "peekOfCode": "class Migration(migrations.Migration):\n    replaces = [('tg_bot', '0019_oraculumdeck_oraculum'), ('tg_bot', '0020_alter_oraculum_inverted'), ('tg_bot', '0021_alter_oraculum_description_alter_oraculum_direct')]\n    dependencies = [\n        ('tg_bot', '0018_tarotuserreading_message_id'),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='OraculumDeck',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),",
+        "detail": "migrations.0019_oraculumdeck_oraculum_squashed_0021_alter_oraculum_description_alter_oraculum_direct",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0022_rename_oraculum_oraculumitem",
+        "description": "migrations.0022_rename_oraculum_oraculumitem",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0019_oraculumdeck_oraculum_squashed_0021_alter_oraculum_description_alter_oraculum_direct'),\n    ]\n    operations = [\n        migrations.RenameModel(\n            old_name='Oraculum',\n            new_name='OraculumItem',\n        ),\n    ]",
+        "detail": "migrations.0022_rename_oraculum_oraculumitem",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0023_rename_file_id_oraculumitem_img_id",
+        "description": "migrations.0023_rename_file_id_oraculumitem_img_id",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0022_rename_oraculum_oraculumitem'),\n    ]\n    operations = [\n        migrations.RenameField(\n            model_name='oraculumitem',\n            old_name='file_id',\n            new_name='img_id',\n        ),",
+        "detail": "migrations.0023_rename_file_id_oraculumitem_img_id",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0024_rune_alter_oraculumdeck_options_and_more",
+        "description": "migrations.0024_rune_alter_oraculumdeck_options_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0023_rename_file_id_oraculumitem_img_id'),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='Rune',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),\n                ('type', models.CharField(max_length=50, verbose_name='Тип руны')),",
+        "detail": "migrations.0024_rune_alter_oraculumdeck_options_and_more",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0025_alter_rune_inverted_keys_alter_rune_inverted_meaning_and_more",
+        "description": "migrations.0025_alter_rune_inverted_keys_alter_rune_inverted_meaning_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0024_rune_alter_oraculumdeck_options_and_more'),\n    ]\n    operations = [\n        migrations.AlterField(\n            model_name='rune',\n            name='inverted_keys',\n            field=models.TextField(blank=True, null=True, verbose_name='Ключи (перевернутое)'),\n        ),",
+        "detail": "migrations.0025_alter_rune_inverted_keys_alter_rune_inverted_meaning_and_more",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0026_brand_parseproduct_brand_category_and_more",
+        "description": "migrations.0026_brand_parseproduct_brand_category_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0025_alter_rune_inverted_keys_alter_rune_inverted_meaning_and_more'),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='Brand',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),\n                ('name', models.CharField(max_length=255, verbose_name='Название бренда')),",
+        "detail": "migrations.0026_brand_parseproduct_brand_category_and_more",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0027_remove_category_parent_id",
+        "description": "migrations.0027_remove_category_parent_id",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0026_brand_parseproduct_brand_category_and_more'),\n    ]\n    operations = [\n        migrations.RemoveField(\n            model_name='category',\n            name='parent_id',\n        ),\n    ]",
+        "detail": "migrations.0027_remove_category_parent_id",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0028_remove_parseproduct_photo_id_productimage",
+        "description": "migrations.0028_remove_parseproduct_photo_id_productimage",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        (\"tg_bot\", \"0027_remove_category_parent_id\"),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name=\"ProductImage\",\n            fields=[\n                (\n                    \"id\",",
+        "detail": "migrations.0028_remove_parseproduct_photo_id_productimage",
+        "documentation": {}
+    },
+    {
+        "label": "forwards_func",
+        "kind": 2,
+        "importPath": "migrations.0028_remove_parseproduct_photo_id_productimage",
+        "description": "migrations.0028_remove_parseproduct_photo_id_productimage",
+        "peekOfCode": "def forwards_func(apps, schema_editor):\n    ParseProduct = apps.get_model(\"tg_bot\", \"ParseProduct\")\n    ProductImage = apps.get_model(\"tg_bot\", \"ProductImage\")\n    images_to_create = []\n    for product in (\n        ParseProduct.objects.exclude(photo_id__isnull=True)\n        .exclude(photo_id=\"\")\n        .exclude(photo_id__regex=r\"^\\s*$\")\n    ):\n        media = product.photo_id.strip()",
+        "detail": "migrations.0028_remove_parseproduct_photo_id_productimage",
+        "documentation": {}
+    },
+    {
+        "label": "reverse_func",
+        "kind": 2,
+        "importPath": "migrations.0028_remove_parseproduct_photo_id_productimage",
+        "description": "migrations.0028_remove_parseproduct_photo_id_productimage",
+        "peekOfCode": "def reverse_func(apps, schema_editor):\n    # Обратная миграция: не удаляем данные, просто не делаем ничего\n    # Или можно добавить логику удаления, если нужно\n    pass\nclass Migration(migrations.Migration):\n    dependencies = [\n        (\"tg_bot\", \"0027_remove_category_parent_id\"),\n    ]\n    operations = [\n        migrations.CreateModel(",
+        "detail": "migrations.0028_remove_parseproduct_photo_id_productimage",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0029_alter_tguserproduct_unique_together",
+        "description": "migrations.0029_alter_tguserproduct_unique_together",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0028_remove_parseproduct_photo_id_productimage'),\n    ]\n    operations = [\n        migrations.AlterUniqueTogether(\n            name='tguserproduct',\n            unique_together=set(),\n        ),\n    ]",
+        "detail": "migrations.0029_alter_tguserproduct_unique_together",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "migrations.0030_parseproduct_name",
+        "description": "migrations.0030_parseproduct_name",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0029_alter_tguserproduct_unique_together'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='parseproduct',\n            name='name',\n            field=models.CharField(blank=True, help_text='Официальное название товара (опционально)', max_length=255, null=True, verbose_name='Название товара'),\n        ),",
+        "detail": "migrations.0030_parseproduct_name",
+        "documentation": {}
+    },
+    {
+        "label": "Bot",
+        "kind": 6,
+        "importPath": "models.base",
+        "description": "models.base",
+        "peekOfCode": "class Bot(models.Model):\n    # Типы ботов\n    BOT_TYPE_CHOICES = [\n        (\"ParserBot\", \"ParserBot\"),\n        (\"TarotBot\", \"TarotBot\"),\n    ]\n    name = models.CharField(max_length=100, verbose_name=\"Название бота\")\n    token = models.CharField(max_length=255, verbose_name=\"Токен\")\n    chat_id = models.CharField(max_length=50, verbose_name=\"Chat ID\")\n    bot_type = models.CharField(",
+        "detail": "models.base",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "kind": 6,
+        "importPath": "models.base",
+        "description": "models.base",
+        "peekOfCode": "class TgUser(models.Model):\n    \"\"\"Модель для хранения данных о пользователе Telegram.\"\"\"\n    tg_id = models.BigIntegerField(unique=True, verbose_name=\"Telegram ID\")\n    username = models.CharField(\n        max_length=255, blank=True, null=True, verbose_name=\"Username\"\n    )\n    first_name = models.CharField(\n        max_length=255, blank=True, null=True, verbose_name=\"Имя\"\n    )\n    last_name = models.CharField(",
+        "detail": "models.base",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCard",
+        "kind": 6,
+        "importPath": "models.tarot",
+        "description": "models.tarot",
+        "peekOfCode": "class TarotCard(models.Model):\n    card_id = models.CharField(max_length=10, unique=True, verbose_name=\"ID карты\")\n    name = models.CharField(max_length=255, verbose_name=\"Название карты\")\n    meaning = models.TextField(verbose_name=\"Основное значение\")\n    meaning_url = models.URLField(\n        verbose_name=\"Ссылка на значение\", blank=True, null=True\n    )\n    is_major = models.BooleanField(default=False)\n    def __str__(self):\n        return self.name",
+        "detail": "models.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "TarotMeaningCategory",
+        "kind": 6,
+        "importPath": "models.tarot",
+        "description": "models.tarot",
+        "peekOfCode": "class TarotMeaningCategory(models.Model):\n    name = models.CharField(max_length=50, verbose_name=\"Категория\", unique=True)\n    def __str__(self):\n        return self.name\n    class Meta:\n        verbose_name = f\"{bot_prefix}: Категория\"\n        verbose_name_plural = f\"{bot_prefix}: Категории\"\nclass ExtendedMeaning(models.Model):\n    tarot_card = models.ForeignKey(\n        TarotCard, on_delete=models.CASCADE, related_name=\"extended_meanings\"",
+        "detail": "models.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "ExtendedMeaning",
+        "kind": 6,
+        "importPath": "models.tarot",
+        "description": "models.tarot",
+        "peekOfCode": "class ExtendedMeaning(models.Model):\n    tarot_card = models.ForeignKey(\n        TarotCard, on_delete=models.CASCADE, related_name=\"extended_meanings\"\n    )\n    category = models.CharField(max_length=50, verbose_name=\"Категория\")\n    category_base = models.ForeignKey(\n        TarotMeaningCategory, on_delete=models.SET_NULL, null=True, related_name=\"cat\"\n    )\n    text = models.TextField(verbose_name=\"Текст значения\")\n    def __str__(self):",
+        "detail": "models.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "TarotDeck",
+        "kind": 6,
+        "importPath": "models.tarot",
+        "description": "models.tarot",
+        "peekOfCode": "class TarotDeck(models.Model):\n    \"\"\"\n    Модель для хранения информации о колоде Таро.\n    \"\"\"\n    name = models.CharField(max_length=255, unique=True, verbose_name=\"Название колоды\")\n    link = models.CharField(\n        max_length=255,\n        null=True,\n        blank=True,\n        default=None,",
+        "detail": "models.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCardItem",
+        "kind": 6,
+        "importPath": "models.tarot",
+        "description": "models.tarot",
+        "peekOfCode": "class TarotCardItem(models.Model):\n    \"\"\"\n    Модель для хранения информации о карте в колоде.\n    \"\"\"\n    deck = models.ForeignKey(\n        TarotDeck, on_delete=models.CASCADE, related_name=\"cards\", verbose_name=\"Колода\"\n    )\n    tarot_card = models.ForeignKey(\n        \"TarotCard\",\n        on_delete=models.CASCADE,",
+        "detail": "models.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "TarotUserReading",
+        "kind": 6,
+        "importPath": "models.tarot",
+        "description": "models.tarot",
+        "peekOfCode": "class TarotUserReading(models.Model):\n    user = models.ForeignKey(\n        \"TgUser\",  # Укажите имя модели, если TgUser определена в другом месте\n        on_delete=models.SET_NULL,\n        related_name=\"readings\",\n        null=True,\n        verbose_name=\"Пользователь\",  # Человекочитаемое имя для поля\n    )\n    date = models.DateTimeField(\n        default=timezone.now, verbose_name=\"Дата гадания\"",
+        "detail": "models.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumDeck",
+        "kind": 6,
+        "importPath": "models.tarot",
+        "description": "models.tarot",
+        "peekOfCode": "class OraculumDeck(models.Model):\n    name = models.CharField(\n        max_length=255,\n        verbose_name=\"Название колоды\",\n        help_text=\"Название колоды (например, 'Колода МЛАДЕНЦА').\",\n    )\n    description = models.TextField(\n        verbose_name=\"Описание колоды\",\n        help_text=\"Краткое описание колоды.\",\n        blank=True,",
+        "detail": "models.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumItem",
+        "kind": 6,
+        "importPath": "models.tarot",
+        "description": "models.tarot",
+        "peekOfCode": "class OraculumItem(models.Model):\n    deck = models.ForeignKey(\n        OraculumDeck,\n        on_delete=models.CASCADE,\n        related_name=\"cards\",\n        verbose_name=\"Колода\",\n        help_text=\"Колода, к которой относится карта.\",\n    )\n    img_id = models.CharField(\n        max_length=255,",
+        "detail": "models.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "Rune",
+        "kind": 6,
+        "importPath": "models.tarot",
+        "description": "models.tarot",
+        "peekOfCode": "class Rune(models.Model):\n    type = models.CharField(max_length=50, verbose_name=\"Тип руны\")\n    symbol = models.CharField(max_length=10, verbose_name=\"Символ руны\")\n    sticker = models.CharField(max_length=100, verbose_name=\"ID стикера\")\n    # Прямое значение\n    straight_keys = models.TextField(verbose_name=\"Ключи (прямое)\")\n    straight_meaning = models.TextField(verbose_name=\"Значение (прямое)\")\n    straight_pos_1 = models.TextField(verbose_name=\"Позиция 1 (прямое)\")\n    straight_pos_2 = models.TextField(verbose_name=\"Позиция 2 (прямое)\")\n    straight_pos_3 = models.TextField(verbose_name=\"Позиция 3 (прямое)\")",
+        "detail": "models.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "bot_prefix",
+        "kind": 5,
+        "importPath": "models.tarot",
+        "description": "models.tarot",
+        "peekOfCode": "bot_prefix = \"Tarot\"\nclass TarotCard(models.Model):\n    card_id = models.CharField(max_length=10, unique=True, verbose_name=\"ID карты\")\n    name = models.CharField(max_length=255, verbose_name=\"Название карты\")\n    meaning = models.TextField(verbose_name=\"Основное значение\")\n    meaning_url = models.URLField(\n        verbose_name=\"Ссылка на значение\", blank=True, null=True\n    )\n    is_major = models.BooleanField(default=False)\n    def __str__(self):",
+        "detail": "models.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "BotAdmin",
+        "kind": 6,
+        "importPath": "admin",
+        "description": "admin",
+        "peekOfCode": "class BotAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"token\", \"chat_id\", \"bot_type\", \"created_at\", \"updated_at\")\n    search_fields = (\"name\", \"token\", \"chat_id\")\n    list_filter = (\"bot_type\", \"created_at\")\n@admin.register(TarotCard)\nclass TarotCardAdmin(admin.ModelAdmin):\n    list_display = (\"card_id\", \"name\", \"is_major\")  # Добавлено card_id для наглядности\n    list_editable = (\"is_major\",)  # Разрешаем редактирование прямо в списке\n    list_filter = (\"is_major\",)  # Добавляем фильтр по этому полю\n    search_fields = (\"name\", \"card_id\")  # Поиск по названию и ID карты",
+        "detail": "admin",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCardAdmin",
+        "kind": 6,
+        "importPath": "admin",
+        "description": "admin",
+        "peekOfCode": "class TarotCardAdmin(admin.ModelAdmin):\n    list_display = (\"card_id\", \"name\", \"is_major\")  # Добавлено card_id для наглядности\n    list_editable = (\"is_major\",)  # Разрешаем редактирование прямо в списке\n    list_filter = (\"is_major\",)  # Добавляем фильтр по этому полю\n    search_fields = (\"name\", \"card_id\")  # Поиск по названию и ID карты\n@admin.register(ExtendedMeaning)\nclass ExtendedMeaningAdmin(admin.ModelAdmin):\n    list_display = (\"tarot_card\", \"category\", \"category_base\", \"text\")\n@admin.register(TarotMeaningCategory)\nclass CategoryAdmin(admin.ModelAdmin):",
+        "detail": "admin",
+        "documentation": {}
+    },
+    {
+        "label": "ExtendedMeaningAdmin",
+        "kind": 6,
+        "importPath": "admin",
+        "description": "admin",
+        "peekOfCode": "class ExtendedMeaningAdmin(admin.ModelAdmin):\n    list_display = (\"tarot_card\", \"category\", \"category_base\", \"text\")\n@admin.register(TarotMeaningCategory)\nclass CategoryAdmin(admin.ModelAdmin):\n    pass\n@admin.register(TarotDeck)\nclass TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"",
+        "detail": "admin",
+        "documentation": {}
+    },
+    {
+        "label": "CategoryAdmin",
+        "kind": 6,
+        "importPath": "admin",
+        "description": "admin",
+        "peekOfCode": "class CategoryAdmin(admin.ModelAdmin):\n    pass\n@admin.register(TarotDeck)\nclass TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"\n    list_display = (\"name\", \"link\")  # Поля, отображаемые в списке\n    search_fields = (\"name\",)  # Поля для поиска\n    list_filter = (\"name\",)  # Фильтры в правой панели",
+        "detail": "admin",
+        "documentation": {}
+    },
+    {
+        "label": "TarotDeckAdmin",
+        "kind": 6,
+        "importPath": "admin",
+        "description": "admin",
+        "peekOfCode": "class TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"\n    list_display = (\"name\", \"link\")  # Поля, отображаемые в списке\n    search_fields = (\"name\",)  # Поля для поиска\n    list_filter = (\"name\",)  # Фильтры в правой панели\n@admin.register(TarotCardItem)\nclass CardAdmin(admin.ModelAdmin):\n    \"\"\"",
+        "detail": "admin",
+        "documentation": {}
+    },
+    {
+        "label": "CardAdmin",
+        "kind": 6,
+        "importPath": "admin",
+        "description": "admin",
+        "peekOfCode": "class CardAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели Card.\n    \"\"\"\n    list_display = (\"deck\", \"tarot_card\", \"img_id\")  # Поля, отображаемые в списке\n    search_fields = (\"deck__name\", \"tarot_card__name\")  # Поля для поиска\n    list_filter = (\"deck\", \"tarot_card\")  # Фильтры в правой панели\n@admin.register(TarotUserReading)\nclass TarotUserReadingAdmin(admin.ModelAdmin):\n    # Поля, которые будут отображаться в списке записей",
+        "detail": "admin",
+        "documentation": {}
+    },
+    {
+        "label": "TarotUserReadingAdmin",
+        "kind": 6,
+        "importPath": "admin",
+        "description": "admin",
+        "peekOfCode": "class TarotUserReadingAdmin(admin.ModelAdmin):\n    # Поля, которые будут отображаться в списке записей\n    list_display = (\"user\", \"date\", \"text\", \"message_id\")\n    # Поля, по которым можно фильтровать записи\n    list_filter = (\"user\", \"date\")\n    # Поля, по которым можно искать записи\n    search_fields = (\"text\", \"user__username\", \"message_id\")\n    # Поля, которые будут использоваться для детального просмотра записи\n    fieldsets = (\n        (",
+        "detail": "admin",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumDeckAdmin",
+        "kind": 6,
+        "importPath": "admin",
+        "description": "admin",
+        "peekOfCode": "class OraculumDeckAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"description\", \"created_at\")\n    search_fields = (\"name\", \"description\")\n    list_filter = (\"created_at\",)\n@admin.register(OraculumItem)\nclass OraculumItemAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"deck\", \"description\")\n    search_fields = (\"name\", \"description\", \"deck__name\")\n    list_filter = (\"deck\",)\n@admin.register(Rune)",
+        "detail": "admin",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumItemAdmin",
+        "kind": 6,
+        "importPath": "admin",
+        "description": "admin",
+        "peekOfCode": "class OraculumItemAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"deck\", \"description\")\n    search_fields = (\"name\", \"description\", \"deck__name\")\n    list_filter = (\"deck\",)\n@admin.register(Rune)\nclass RuneAdmin(admin.ModelAdmin):\n    list_display = (\"symbol\", \"type\", \"sticker\")\n    search_fields = (\"type\", \"symbol\")\n    list_filter = (\"type\",)\n    fieldsets = (",
+        "detail": "admin",
+        "documentation": {}
+    },
+    {
+        "label": "RuneAdmin",
+        "kind": 6,
+        "importPath": "admin",
+        "description": "admin",
+        "peekOfCode": "class RuneAdmin(admin.ModelAdmin):\n    list_display = (\"symbol\", \"type\", \"sticker\")\n    search_fields = (\"type\", \"symbol\")\n    list_filter = (\"type\",)\n    fieldsets = (\n        (\n            \"Основная информация\",\n            {\n                \"fields\": (\"type\", \"symbol\", \"sticker\"),\n            },",
+        "detail": "admin",
+        "documentation": {}
+    },
+    {
+        "label": "TgBotConfig",
+        "kind": 6,
+        "importPath": "apps",
+        "description": "apps",
+        "peekOfCode": "class TgBotConfig(AppConfig):\n    name = 'tg_bot'\n    _task_started = False\n    def ready(self):\n        if self._task_started:\n            logger.info(\"Задача уже была запущена. Пропускаем.\")\n            return\n        # Если запущен runserver, проверяем, что это основной процесс\n        if 'runserver' in sys.argv:\n            # Проверяем RUN_MAIN для основного процесса",
+        "detail": "apps",
+        "documentation": {}
+    },
+    {
+        "label": "BotSerializer",
+        "kind": 6,
+        "importPath": "serializers",
+        "description": "serializers",
+        "peekOfCode": "class BotSerializer(serializers.ModelSerializer):\n    class Meta:\n        model = Bot\n        fields = \"__all__\"",
+        "detail": "serializers",
+        "documentation": {}
+    },
+    {
+        "label": "process_bot",
+        "kind": 2,
+        "importPath": "tasks",
+        "description": "tasks",
+        "peekOfCode": "def process_bot(self, token, handlersClass):\n    lock_key = f\"bot_processing_lock_{token}\"\n    def cleanup_on_exit(signum, frame):\n        logger.info(\"Завершаем работу контейнера и очищаем ресурсы...\")\n        # Выполним нужные очистки, например, удалим блокировку Redis\n        redis_client.delete(lock_key)\n    # Попробуем установить блокировку, если она уже установлена — выходим\n    if not redis_client.setnx(lock_key, \"locked\"):\n        logger.info(f\"Задача для бота с токеном {token} уже выполняется. Пропускаем.\")\n        return",
+        "detail": "tasks",
+        "documentation": {}
+    },
+    {
+        "label": "redis_client",
+        "kind": 5,
+        "importPath": "tasks",
+        "description": "tasks",
+        "peekOfCode": "redis_client = redis.StrictRedis(\n    host=os.getenv(\"REDIS_HOST\"), port=os.getenv(\"REDIS_PORT\"), db=2\n)\n# Асинхронная обработка бота\nasync def run_bot(token, handlersClass):\n    # Динамически создаем класс по имени\n    bot_class = globals().get(handlersClass)\n    if not bot_class:\n        logger.error(f\"Класс {handlersClass} не найден\")\n        return",
+        "detail": "tasks",
+        "documentation": {}
+    },
+    {
+        "label": "router",
+        "kind": 5,
+        "importPath": "urls",
+        "description": "urls",
+        "peekOfCode": "router = DefaultRouter()\nrouter.register(r\"bots\", BotViewSet)\nurlpatterns = [\n    path(\"\", include(router.urls)),  \n    path(\"webhook/<str:token>/\", webhook, name=\"webhook\"),  # Маршрут для вебхука с токеном\n]",
+        "detail": "urls",
+        "documentation": {}
+    },
+    {
+        "label": "urlpatterns",
+        "kind": 5,
+        "importPath": "urls",
+        "description": "urls",
+        "peekOfCode": "urlpatterns = [\n    path(\"\", include(router.urls)),  \n    path(\"webhook/<str:token>/\", webhook, name=\"webhook\"),  # Маршрут для вебхука с токеном\n]",
+        "detail": "urls",
+        "documentation": {}
+    },
+    {
+        "label": "BotViewSet",
+        "kind": 6,
+        "importPath": "views",
+        "description": "views",
+        "peekOfCode": "class BotViewSet(viewsets.ModelViewSet):\n    queryset = Bot.objects.all()\n    serializer_class = BotSerializer\n# Декоратор для обработки webhook без CSRF-проверки\n@csrf_exempt\ndef webhook(request, token):\n    if request.method == \"POST\":\n        # Получаем JSON строку из тела запроса\n        json_str = request.body.decode(\"UTF-8\")\n        # Проверка, что это сообщение (опционально)",
+        "detail": "views",
+        "documentation": {}
+    },
+    {
+        "label": "webhook",
+        "kind": 2,
+        "importPath": "views",
+        "description": "views",
+        "peekOfCode": "def webhook(request, token):\n    if request.method == \"POST\":\n        # Получаем JSON строку из тела запроса\n        json_str = request.body.decode(\"UTF-8\")\n        # Проверка, что это сообщение (опционально)\n        try:\n            # Вы можете просто поместить строку JSON в очередь\n            redis_client.rpush(f\"bot_messages_queue_{token}\", json_str)\n            logger.info(f\"Сообщение добавлено в очередь: {json_str[0:50]}\")\n            return JsonResponse({\"status\": \"ok\"})",
+        "detail": "views",
+        "documentation": {}
+    },
+    {
+        "label": "redis_client",
+        "kind": 5,
+        "importPath": "views",
+        "description": "views",
+        "peekOfCode": "redis_client = redis.StrictRedis(\n    host=os.getenv(\"REDIS_HOST\"), port=os.getenv(\"REDIS_PORT\"), db=2\n)\nclass BotViewSet(viewsets.ModelViewSet):\n    queryset = Bot.objects.all()\n    serializer_class = BotSerializer\n# Декоратор для обработки webhook без CSRF-проверки\n@csrf_exempt\ndef webhook(request, token):\n    if request.method == \"POST\":",
+        "detail": "views",
+        "documentation": {}
+    }
+]

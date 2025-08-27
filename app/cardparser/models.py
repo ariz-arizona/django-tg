@@ -8,7 +8,6 @@ PRODUCT_TYPE_CHOICES = [
     ("wb", "Wildberries"),
 ]
 
-
 class Brand(models.Model):
     """Модель бренда с учётом принадлежности к платформе"""
 

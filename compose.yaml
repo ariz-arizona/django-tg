@@ -30,7 +30,7 @@ services:
   celery_beat:
     <<: *common_settings
     container_name: ${PROJECT_NAME}_celery_beat
-    command: poetry run celery -A server beat --loglevel=info
+    command: poetry run celery -A server beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 
   redis:
     image: redis:7

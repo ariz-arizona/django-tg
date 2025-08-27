@@ -226,8 +226,23 @@ class BotSettings(models.Model):
 
     @classmethod
     def get_active_sync(cls):
-        """Синхронная версия — на всякий случай"""
-        return cls.objects.filter(active=True).first()
+        """
+        Возвращает активный объект BotSettings ИЛИ словарь с дефолтными значениями.
+        """
+        obj = cls.objects.filter(active=True).first()
+        if obj:
+            return obj
+
+        # Если нет активных настроек — возвращаем словарь-заглушку
+        return {
+            "active": False,
+            "picture_chat_id": "-1001890980411",
+            "parser_url_ozon": "",
+            "parser_url_wb": "",
+            "marketing_group_id": "",
+            "created_at": None,
+            "updated_at": None,
+        }
 
     @classmethod
     async def get_active(cls):

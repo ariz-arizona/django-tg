@@ -3,6 +3,7 @@ import re
 import aiohttp
 import json
 import requests
+from asgiref.sync import sync_to_async
 from telegram import Update, InputMediaPhoto
 from telegram.ext import CommandHandler, MessageHandler, CallbackContext, filters
 
@@ -10,11 +11,14 @@ from django.utils.timezone import now
 from django.db.models import Q
 from django.conf import settings
 
+from server.logger import logger
+
 from tg_bot.bot.abstract import AbstractBot
 from tg_bot.models import (
     TgUser,
 )
 from cardparser.services.wb_link_builder import Se
+from cardparser.services.popular import get_popular_products
 from cardparser.models import (
     ParseProduct,
     TgUserProduct,
@@ -23,7 +27,6 @@ from cardparser.models import (
     ProductImage,
     BotSettings,
 )
-from server.logger import logger
 
 # Класс для парсера бота, который наследует AbstractBot
 
@@ -51,6 +54,7 @@ class ParserBot(AbstractBot):
             ),  # Обработчик для команды /last
             CommandHandler("start", self.start),
             CommandHandler("search", self.handle_search_command, has_args=True),
+            CommandHandler("popular", self.handle_popular_command),
         ]
 
     async def wb_image_url_get(self, context, card_id, session):
@@ -574,3 +578,50 @@ class ParserBot(AbstractBot):
             await update.message.reply_text(
                 "Произошла ошибка при выполнении поиска. Пожалуйста, попробуйте снова."
             )
+
+    async def handle_popular_command(self, update: Update, context: CallbackContext):
+        try:
+            # Получаем активные настройки (асинхронно)
+            settings = await BotSettings.get_active()
+            if not settings:
+                await update.message.reply_text("❌ Нет активных настроек бота.")
+                return
+
+            # Проверяем, что marketing_group_id задан
+            target_chat_id = settings.marketing_group_id
+            if not target_chat_id:
+                await update.message.reply_text("❌ Не задан chat_id для маркетинговой группы.")
+                return
+
+            # Получаем топ-5 популярных товаров за 24 часа
+            popular = await sync_to_async(get_popular_products)(hours=24, limit=5)
+            if not popular:
+                await update.message.reply_text("📉 За последние 24 часа нет данных о популярных товарах.")
+                return
+
+            # Формируем сообщение
+            message = "🔥 <b>Топ-5 популярных товаров за 24 часа</b>:\n\n"
+            for i, item in enumerate(popular, start=1):
+                name = item["name"]
+                brand = item["brand"]
+                platform = item["product_type"]
+                count = item["request_count"]
+                message += f"{i}. <b>{name}</b> ({brand}, {platform}) — {count} запросов\n"
+
+            # Отправляем в маркетинговую группу
+            await context.bot.send_message(
+                chat_id=target_chat_id,
+                text=message,
+                parse_mode="HTML"
+            )
+
+            # Подтверждение пользователю
+            if not update.message.from_user.first_name == 'django_task':
+                await update.message.reply_text("✅ Топ-5 отправлен в маркетинговую группу.")
+
+        except Exception as e:
+            logger.error(f"Ошибка в команде /popular: {e}", exc_info=True)
+            if not update.django_task:
+                await update.message.reply_text(
+                    "❌ Произошла ошибка при обработке команды."
+                )

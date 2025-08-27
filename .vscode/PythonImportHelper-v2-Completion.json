@@ -1,5 +1,531 @@
 [
     {
+        "label": "__future__",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "__future__",
+        "description": "__future__",
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "absolute_import",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "unicode_literals",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "re",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "re",
+        "description": "re",
+        "detail": "re",
+        "documentation": {}
+    },
+    {
+        "label": "aiohttp",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "aiohttp",
+        "description": "aiohttp",
+        "detail": "aiohttp",
+        "documentation": {}
+    },
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "requests",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "requests",
+        "description": "requests",
+        "detail": "requests",
+        "documentation": {}
+    },
+    {
+        "label": "Update",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "InputMediaPhoto",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "Update",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "InputMediaPhoto",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "InlineKeyboardButton",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "InlineKeyboardMarkup",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "Update",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "Update",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "CommandHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "MessageHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CallbackContext",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "filters",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CommandHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "MessageHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CallbackQueryHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CallbackContext",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "filters",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CommandHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CallbackContext",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "ApplicationBuilder",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "CommandHandler",
+        "importPath": "telegram.ext",
+        "description": "telegram.ext",
+        "isExtraImport": true,
+        "detail": "telegram.ext",
+        "documentation": {}
+    },
+    {
+        "label": "django.utils.timezone",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "django.utils.timezone",
+        "description": "django.utils.timezone",
+        "detail": "django.utils.timezone",
+        "documentation": {}
+    },
+    {
+        "label": "now",
+        "importPath": "django.utils.timezone",
+        "description": "django.utils.timezone",
+        "isExtraImport": true,
+        "detail": "django.utils.timezone",
+        "documentation": {}
+    },
+    {
+        "label": "now",
+        "importPath": "django.utils.timezone",
+        "description": "django.utils.timezone",
+        "isExtraImport": true,
+        "detail": "django.utils.timezone",
+        "documentation": {}
+    },
+    {
+        "label": "Q",
+        "importPath": "django.db.models",
+        "description": "django.db.models",
+        "isExtraImport": true,
+        "detail": "django.db.models",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "settings",
+        "importPath": "django.conf",
+        "description": "django.conf",
+        "isExtraImport": true,
+        "detail": "django.conf",
+        "documentation": {}
+    },
+    {
+        "label": "AbstractBot",
+        "importPath": "tg_bot.bot.abstract",
+        "description": "tg_bot.bot.abstract",
+        "isExtraImport": true,
+        "detail": "tg_bot.bot.abstract",
+        "documentation": {}
+    },
+    {
+        "label": "AbstractBot",
+        "importPath": "tg_bot.bot.abstract",
+        "description": "tg_bot.bot.abstract",
+        "isExtraImport": true,
+        "detail": "tg_bot.bot.abstract",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Bot",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUser",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumItem",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumDeck",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Rune",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Se",
+        "importPath": "cardparser.bot.wb_image_url",
+        "description": "cardparser.bot.wb_image_url",
+        "isExtraImport": true,
+        "detail": "cardparser.bot.wb_image_url",
+        "documentation": {}
+    },
+    {
+        "label": "ParseProduct",
+        "importPath": "cardparser.models",
+        "description": "cardparser.models",
+        "isExtraImport": true,
+        "detail": "cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "TgUserProduct",
+        "importPath": "cardparser.models",
+        "description": "cardparser.models",
+        "isExtraImport": true,
+        "detail": "cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "Brand",
+        "importPath": "cardparser.models",
+        "description": "cardparser.models",
+        "isExtraImport": true,
+        "detail": "cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "Category",
+        "importPath": "cardparser.models",
+        "description": "cardparser.models",
+        "isExtraImport": true,
+        "detail": "cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "ProductImage",
+        "importPath": "cardparser.models",
+        "description": "cardparser.models",
+        "isExtraImport": true,
+        "detail": "cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "importPath": "server.logger",
+        "description": "server.logger",
+        "isExtraImport": true,
+        "detail": "server.logger",
+        "documentation": {}
+    },
+    {
         "label": "django.db.models.deletion",
         "kind": 6,
         "isExtraImport": true,
@@ -457,78 +983,6 @@
         "documentation": {}
     },
     {
-        "label": "Bot",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TgUser",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TgUser",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TgUser",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TgUser",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TgUser",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumItem",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumDeck",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "Rune",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
         "label": "AppConfig",
         "importPath": "django.apps",
         "description": "django.apps",
@@ -610,31 +1064,6 @@
         "documentation": {}
     },
     {
-        "label": "__future__",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "__future__",
-        "description": "__future__",
-        "detail": "__future__",
-        "documentation": {}
-    },
-    {
-        "label": "absolute_import",
-        "importPath": "__future__",
-        "description": "__future__",
-        "isExtraImport": true,
-        "detail": "__future__",
-        "documentation": {}
-    },
-    {
-        "label": "unicode_literals",
-        "importPath": "__future__",
-        "description": "__future__",
-        "isExtraImport": true,
-        "detail": "__future__",
-        "documentation": {}
-    },
-    {
         "label": "Celery",
         "importPath": "celery",
         "description": "celery",
@@ -689,459 +1118,6 @@
         "description": "django.core.wsgi",
         "isExtraImport": true,
         "detail": "django.core.wsgi",
-        "documentation": {}
-    },
-    {
-        "label": "django.utils.timezone",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "django.utils.timezone",
-        "description": "django.utils.timezone",
-        "detail": "django.utils.timezone",
-        "documentation": {}
-    },
-    {
-        "label": "now",
-        "importPath": "django.utils.timezone",
-        "description": "django.utils.timezone",
-        "isExtraImport": true,
-        "detail": "django.utils.timezone",
-        "documentation": {}
-    },
-    {
-        "label": "now",
-        "importPath": "django.utils.timezone",
-        "description": "django.utils.timezone",
-        "isExtraImport": true,
-        "detail": "django.utils.timezone",
-        "documentation": {}
-    },
-    {
-        "label": "timezone",
-        "importPath": "django.utils",
-        "description": "django.utils",
-        "isExtraImport": true,
-        "detail": "django.utils",
-        "documentation": {}
-    },
-    {
-        "label": "ABC",
-        "importPath": "abc",
-        "description": "abc",
-        "isExtraImport": true,
-        "detail": "abc",
-        "documentation": {}
-    },
-    {
-        "label": "abstractmethod",
-        "importPath": "abc",
-        "description": "abc",
-        "isExtraImport": true,
-        "detail": "abc",
-        "documentation": {}
-    },
-    {
-        "label": "Update",
-        "importPath": "telegram",
-        "description": "telegram",
-        "isExtraImport": true,
-        "detail": "telegram",
-        "documentation": {}
-    },
-    {
-        "label": "Update",
-        "importPath": "telegram",
-        "description": "telegram",
-        "isExtraImport": true,
-        "detail": "telegram",
-        "documentation": {}
-    },
-    {
-        "label": "InputMediaPhoto",
-        "importPath": "telegram",
-        "description": "telegram",
-        "isExtraImport": true,
-        "detail": "telegram",
-        "documentation": {}
-    },
-    {
-        "label": "Update",
-        "importPath": "telegram",
-        "description": "telegram",
-        "isExtraImport": true,
-        "detail": "telegram",
-        "documentation": {}
-    },
-    {
-        "label": "InputMediaPhoto",
-        "importPath": "telegram",
-        "description": "telegram",
-        "isExtraImport": true,
-        "detail": "telegram",
-        "documentation": {}
-    },
-    {
-        "label": "InlineKeyboardButton",
-        "importPath": "telegram",
-        "description": "telegram",
-        "isExtraImport": true,
-        "detail": "telegram",
-        "documentation": {}
-    },
-    {
-        "label": "InlineKeyboardMarkup",
-        "importPath": "telegram",
-        "description": "telegram",
-        "isExtraImport": true,
-        "detail": "telegram",
-        "documentation": {}
-    },
-    {
-        "label": "Update",
-        "importPath": "telegram",
-        "description": "telegram",
-        "isExtraImport": true,
-        "detail": "telegram",
-        "documentation": {}
-    },
-    {
-        "label": "CommandHandler",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
-        "isExtraImport": true,
-        "detail": "telegram.ext",
-        "documentation": {}
-    },
-    {
-        "label": "CallbackContext",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
-        "isExtraImport": true,
-        "detail": "telegram.ext",
-        "documentation": {}
-    },
-    {
-        "label": "CommandHandler",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
-        "isExtraImport": true,
-        "detail": "telegram.ext",
-        "documentation": {}
-    },
-    {
-        "label": "MessageHandler",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
-        "isExtraImport": true,
-        "detail": "telegram.ext",
-        "documentation": {}
-    },
-    {
-        "label": "CallbackContext",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
-        "isExtraImport": true,
-        "detail": "telegram.ext",
-        "documentation": {}
-    },
-    {
-        "label": "filters",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
-        "isExtraImport": true,
-        "detail": "telegram.ext",
-        "documentation": {}
-    },
-    {
-        "label": "CommandHandler",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
-        "isExtraImport": true,
-        "detail": "telegram.ext",
-        "documentation": {}
-    },
-    {
-        "label": "MessageHandler",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
-        "isExtraImport": true,
-        "detail": "telegram.ext",
-        "documentation": {}
-    },
-    {
-        "label": "CallbackQueryHandler",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
-        "isExtraImport": true,
-        "detail": "telegram.ext",
-        "documentation": {}
-    },
-    {
-        "label": "CallbackContext",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
-        "isExtraImport": true,
-        "detail": "telegram.ext",
-        "documentation": {}
-    },
-    {
-        "label": "filters",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
-        "isExtraImport": true,
-        "detail": "telegram.ext",
-        "documentation": {}
-    },
-    {
-        "label": "ApplicationBuilder",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
-        "isExtraImport": true,
-        "detail": "telegram.ext",
-        "documentation": {}
-    },
-    {
-        "label": "CommandHandler",
-        "importPath": "telegram.ext",
-        "description": "telegram.ext",
-        "isExtraImport": true,
-        "detail": "telegram.ext",
-        "documentation": {}
-    },
-    {
-        "label": "re",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "re",
-        "description": "re",
-        "detail": "re",
-        "documentation": {}
-    },
-    {
-        "label": "aiohttp",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "aiohttp",
-        "description": "aiohttp",
-        "detail": "aiohttp",
-        "documentation": {}
-    },
-    {
-        "label": "json",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "json",
-        "description": "json",
-        "detail": "json",
-        "documentation": {}
-    },
-    {
-        "label": "requests",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "requests",
-        "description": "requests",
-        "detail": "requests",
-        "documentation": {}
-    },
-    {
-        "label": "Q",
-        "importPath": "django.db.models",
-        "description": "django.db.models",
-        "isExtraImport": true,
-        "detail": "django.db.models",
-        "documentation": {}
-    },
-    {
-        "label": "settings",
-        "importPath": "django.conf",
-        "description": "django.conf",
-        "isExtraImport": true,
-        "detail": "django.conf",
-        "documentation": {}
-    },
-    {
-        "label": "settings",
-        "importPath": "django.conf",
-        "description": "django.conf",
-        "isExtraImport": true,
-        "detail": "django.conf",
-        "documentation": {}
-    },
-    {
-        "label": "settings",
-        "importPath": "django.conf",
-        "description": "django.conf",
-        "isExtraImport": true,
-        "detail": "django.conf",
-        "documentation": {}
-    },
-    {
-        "label": "settings",
-        "importPath": "django.conf",
-        "description": "django.conf",
-        "isExtraImport": true,
-        "detail": "django.conf",
-        "documentation": {}
-    },
-    {
-        "label": "settings",
-        "importPath": "django.conf",
-        "description": "django.conf",
-        "isExtraImport": true,
-        "detail": "django.conf",
-        "documentation": {}
-    },
-    {
-        "label": "settings",
-        "importPath": "django.conf",
-        "description": "django.conf",
-        "isExtraImport": true,
-        "detail": "django.conf",
-        "documentation": {}
-    },
-    {
-        "label": "settings",
-        "importPath": "django.conf",
-        "description": "django.conf",
-        "isExtraImport": true,
-        "detail": "django.conf",
-        "documentation": {}
-    },
-    {
-        "label": "AbstractBot",
-        "importPath": "tg_bot.bot.abstract",
-        "description": "tg_bot.bot.abstract",
-        "isExtraImport": true,
-        "detail": "tg_bot.bot.abstract",
-        "documentation": {}
-    },
-    {
-        "label": "AbstractBot",
-        "importPath": "tg_bot.bot.abstract",
-        "description": "tg_bot.bot.abstract",
-        "isExtraImport": true,
-        "detail": "tg_bot.bot.abstract",
-        "documentation": {}
-    },
-    {
-        "label": "Se",
-        "importPath": "tg_bot.bot.wb_image_url",
-        "description": "tg_bot.bot.wb_image_url",
-        "isExtraImport": true,
-        "detail": "tg_bot.bot.wb_image_url",
-        "documentation": {}
-    },
-    {
-        "label": "ParseProduct",
-        "importPath": "cardparser.models",
-        "description": "cardparser.models",
-        "isExtraImport": true,
-        "detail": "cardparser.models",
-        "documentation": {}
-    },
-    {
-        "label": "TgUserProduct",
-        "importPath": "cardparser.models",
-        "description": "cardparser.models",
-        "isExtraImport": true,
-        "detail": "cardparser.models",
-        "documentation": {}
-    },
-    {
-        "label": "Brand",
-        "importPath": "cardparser.models",
-        "description": "cardparser.models",
-        "isExtraImport": true,
-        "detail": "cardparser.models",
-        "documentation": {}
-    },
-    {
-        "label": "Category",
-        "importPath": "cardparser.models",
-        "description": "cardparser.models",
-        "isExtraImport": true,
-        "detail": "cardparser.models",
-        "documentation": {}
-    },
-    {
-        "label": "ProductImage",
-        "importPath": "cardparser.models",
-        "description": "cardparser.models",
-        "isExtraImport": true,
-        "detail": "cardparser.models",
-        "documentation": {}
-    },
-    {
-        "label": "logger",
-        "importPath": "server.logger",
-        "description": "server.logger",
-        "isExtraImport": true,
-        "detail": "server.logger",
-        "documentation": {}
-    },
-    {
-        "label": "logger",
-        "importPath": "server.logger",
-        "description": "server.logger",
-        "isExtraImport": true,
-        "detail": "server.logger",
-        "documentation": {}
-    },
-    {
-        "label": "logger",
-        "importPath": "server.logger",
-        "description": "server.logger",
-        "isExtraImport": true,
-        "detail": "server.logger",
-        "documentation": {}
-    },
-    {
-        "label": "logger",
-        "importPath": "server.logger",
-        "description": "server.logger",
-        "isExtraImport": true,
-        "detail": "server.logger",
-        "documentation": {}
-    },
-    {
-        "label": "logger",
-        "importPath": "server.logger",
-        "description": "server.logger",
-        "isExtraImport": true,
-        "detail": "server.logger",
-        "documentation": {}
-    },
-    {
-        "label": "logger",
-        "importPath": "server.logger",
-        "description": "server.logger",
-        "isExtraImport": true,
-        "detail": "server.logger",
-        "documentation": {}
-    },
-    {
-        "label": "logger",
-        "importPath": "server.logger",
-        "description": "server.logger",
-        "isExtraImport": true,
-        "detail": "server.logger",
-        "documentation": {}
-    },
-    {
-        "label": "logger",
-        "importPath": "server.logger",
-        "description": "server.logger",
-        "isExtraImport": true,
-        "detail": "server.logger",
-        "documentation": {}
-    },
-    {
-        "label": "logger",
-        "importPath": "server.logger",
-        "description": "server.logger",
-        "isExtraImport": true,
-        "detail": "server.logger",
         "documentation": {}
     },
     {
@@ -1324,6 +1300,30 @@
         "documentation": {}
     },
     {
+        "label": "timezone",
+        "importPath": "django.utils",
+        "description": "django.utils",
+        "isExtraImport": true,
+        "detail": "django.utils",
+        "documentation": {}
+    },
+    {
+        "label": "ABC",
+        "importPath": "abc",
+        "description": "abc",
+        "isExtraImport": true,
+        "detail": "abc",
+        "documentation": {}
+    },
+    {
+        "label": "abstractmethod",
+        "importPath": "abc",
+        "description": "abc",
+        "isExtraImport": true,
+        "detail": "abc",
+        "documentation": {}
+    },
+    {
         "label": "BaseCommand",
         "importPath": "django.core.management.base",
         "description": "django.core.management.base",
@@ -1425,18 +1425,18 @@
     },
     {
         "label": "ParserBot",
-        "importPath": "tg_bot.bot.parser",
-        "description": "tg_bot.bot.parser",
+        "importPath": "cardparser.bot.parser",
+        "description": "cardparser.bot.parser",
         "isExtraImport": true,
-        "detail": "tg_bot.bot.parser",
+        "detail": "cardparser.bot.parser",
         "documentation": {}
     },
     {
         "label": "TarotBot",
-        "importPath": "tg_bot.bot.tarot",
-        "description": "tg_bot.bot.tarot",
+        "importPath": "tarot.bot.tarot",
+        "description": "tarot.bot.tarot",
         "isExtraImport": true,
-        "detail": "tg_bot.bot.tarot",
+        "detail": "tarot.bot.tarot",
         "documentation": {}
     },
     {
@@ -1461,6 +1461,69 @@
         "description": "django.views.decorators.csrf",
         "isExtraImport": true,
         "detail": "django.views.decorators.csrf",
+        "documentation": {}
+    },
+    {
+        "label": "ParserBot",
+        "kind": 6,
+        "importPath": "app.cardparser.bot.parser",
+        "description": "app.cardparser.bot.parser",
+        "peekOfCode": "class ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (\n                    (filters.TEXT & filters.Regex(combined_regexp))\n                    | (filters.CAPTION & filters.CaptionRegex(combined_regexp))\n                )",
+        "detail": "app.cardparser.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "PICTURE_CHAT",
+        "kind": 5,
+        "importPath": "app.cardparser.bot.parser",
+        "description": "app.cardparser.bot.parser",
+        "peekOfCode": "PICTURE_CHAT = settings.PICTURE_CHAT\nPARSER_URL = settings.PARSER_URL\n# Класс для парсера бота, который наследует AbstractBot\nwb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):",
+        "detail": "app.cardparser.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "PARSER_URL",
+        "kind": 5,
+        "importPath": "app.cardparser.bot.parser",
+        "description": "app.cardparser.bot.parser",
+        "peekOfCode": "PARSER_URL = settings.PARSER_URL\n# Класс для парсера бота, который наследует AbstractBot\nwb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [",
+        "detail": "app.cardparser.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "wb_regexp",
+        "kind": 5,
+        "importPath": "app.cardparser.bot.parser",
+        "description": "app.cardparser.bot.parser",
+        "peekOfCode": "wb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (",
+        "detail": "app.cardparser.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "ozon_regexp",
+        "kind": 5,
+        "importPath": "app.cardparser.bot.parser",
+        "description": "app.cardparser.bot.parser",
+        "peekOfCode": "ozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (\n                    (filters.TEXT & filters.Regex(combined_regexp))",
+        "detail": "app.cardparser.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "combined_regexp",
+        "kind": 5,
+        "importPath": "app.cardparser.bot.parser",
+        "description": "app.cardparser.bot.parser",
+        "peekOfCode": "combined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (\n                    (filters.TEXT & filters.Regex(combined_regexp))\n                    | (filters.CAPTION & filters.CaptionRegex(combined_regexp))",
+        "detail": "app.cardparser.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "Se",
+        "kind": 6,
+        "importPath": "app.cardparser.bot.wb_image_url",
+        "description": "app.cardparser.bot.wb_image_url",
+        "peekOfCode": "class Se:\n    @staticmethod\n    def vol_host_v2(e):\n        t = e // 100000\n        if 0 <= t <= 143:\n            r = \"01\"\n        elif t <= 287:\n            r = \"02\"\n        elif t <= 431:\n            r = \"03\"",
+        "detail": "app.cardparser.bot.wb_image_url",
         "documentation": {}
     },
     {
@@ -2013,6 +2076,33 @@
         "documentation": {}
     },
     {
+        "label": "TarotBot",
+        "kind": 6,
+        "importPath": "app.tarot.bot.tarot",
+        "description": "app.tarot.bot.tarot",
+        "peekOfCode": "class TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(filters.PHOTO, self.handle_photo_msg),\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),\n            MessageHandler(\n                filters.COMMAND",
+        "detail": "app.tarot.bot.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "reading_ids",
+        "kind": 5,
+        "importPath": "app.tarot.bot.tarot",
+        "description": "app.tarot.bot.tarot",
+        "peekOfCode": "reading_ids = {}\nuser_exclude_cards = {}\nclass TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(filters.PHOTO, self.handle_photo_msg),\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),",
+        "detail": "app.tarot.bot.tarot",
+        "documentation": {}
+    },
+    {
+        "label": "user_exclude_cards",
+        "kind": 5,
+        "importPath": "app.tarot.bot.tarot",
+        "description": "app.tarot.bot.tarot",
+        "peekOfCode": "user_exclude_cards = {}\nclass TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(filters.PHOTO, self.handle_photo_msg),\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),\n            MessageHandler(",
+        "detail": "app.tarot.bot.tarot",
+        "documentation": {}
+    },
+    {
         "label": "Migration",
         "kind": 6,
         "importPath": "app.tarot.migrations.0001_initial",
@@ -2208,96 +2298,6 @@
         "description": "app.tg_bot.bot.abstract",
         "peekOfCode": "class AbstractBot(ABC):\n    handlers = []\n    @abstractmethod\n    def get_handlers(self):\n        pass",
         "detail": "app.tg_bot.bot.abstract",
-        "documentation": {}
-    },
-    {
-        "label": "ParserBot",
-        "kind": 6,
-        "importPath": "app.tg_bot.bot.parser",
-        "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "class ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (\n                    (filters.TEXT & filters.Regex(combined_regexp))\n                    | (filters.CAPTION & filters.CaptionRegex(combined_regexp))\n                )",
-        "detail": "app.tg_bot.bot.parser",
-        "documentation": {}
-    },
-    {
-        "label": "PICTURE_CHAT",
-        "kind": 5,
-        "importPath": "app.tg_bot.bot.parser",
-        "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "PICTURE_CHAT = settings.PICTURE_CHAT\nPARSER_URL = settings.PARSER_URL\n# Класс для парсера бота, который наследует AbstractBot\nwb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):",
-        "detail": "app.tg_bot.bot.parser",
-        "documentation": {}
-    },
-    {
-        "label": "PARSER_URL",
-        "kind": 5,
-        "importPath": "app.tg_bot.bot.parser",
-        "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "PARSER_URL = settings.PARSER_URL\n# Класс для парсера бота, который наследует AbstractBot\nwb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [",
-        "detail": "app.tg_bot.bot.parser",
-        "documentation": {}
-    },
-    {
-        "label": "wb_regexp",
-        "kind": 5,
-        "importPath": "app.tg_bot.bot.parser",
-        "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "wb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (",
-        "detail": "app.tg_bot.bot.parser",
-        "documentation": {}
-    },
-    {
-        "label": "ozon_regexp",
-        "kind": 5,
-        "importPath": "app.tg_bot.bot.parser",
-        "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "ozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (\n                    (filters.TEXT & filters.Regex(combined_regexp))",
-        "detail": "app.tg_bot.bot.parser",
-        "documentation": {}
-    },
-    {
-        "label": "combined_regexp",
-        "kind": 5,
-        "importPath": "app.tg_bot.bot.parser",
-        "description": "app.tg_bot.bot.parser",
-        "peekOfCode": "combined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (\n                    (filters.TEXT & filters.Regex(combined_regexp))\n                    | (filters.CAPTION & filters.CaptionRegex(combined_regexp))",
-        "detail": "app.tg_bot.bot.parser",
-        "documentation": {}
-    },
-    {
-        "label": "TarotBot",
-        "kind": 6,
-        "importPath": "app.tg_bot.bot.tarot",
-        "description": "app.tg_bot.bot.tarot",
-        "peekOfCode": "class TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(filters.PHOTO, self.handle_photo_msg),\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),\n            MessageHandler(\n                filters.COMMAND",
-        "detail": "app.tg_bot.bot.tarot",
-        "documentation": {}
-    },
-    {
-        "label": "reading_ids",
-        "kind": 5,
-        "importPath": "app.tg_bot.bot.tarot",
-        "description": "app.tg_bot.bot.tarot",
-        "peekOfCode": "reading_ids = {}\nuser_exclude_cards = {}\nclass TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(filters.PHOTO, self.handle_photo_msg),\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),",
-        "detail": "app.tg_bot.bot.tarot",
-        "documentation": {}
-    },
-    {
-        "label": "user_exclude_cards",
-        "kind": 5,
-        "importPath": "app.tg_bot.bot.tarot",
-        "description": "app.tg_bot.bot.tarot",
-        "peekOfCode": "user_exclude_cards = {}\nclass TarotBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(filters.PHOTO, self.handle_photo_msg),\n            CommandHandler(\"start\", self.handle_help),\n            CommandHandler(\"help\", self.handle_help),\n            MessageHandler(",
-        "detail": "app.tg_bot.bot.tarot",
-        "documentation": {}
-    },
-    {
-        "label": "Se",
-        "kind": 6,
-        "importPath": "app.tg_bot.bot.wb_image_url",
-        "description": "app.tg_bot.bot.wb_image_url",
-        "peekOfCode": "class Se:\n    @staticmethod\n    def vol_host_v2(e):\n        t = e // 100000\n        if 0 <= t <= 143:\n            r = \"01\"\n        elif t <= 287:\n            r = \"02\"\n        elif t <= 431:\n            r = \"03\"",
-        "detail": "app.tg_bot.bot.wb_image_url",
         "documentation": {}
     },
     {

@@ -11,8 +11,8 @@ from celery import shared_task
 from telegram.ext import ApplicationBuilder, CommandHandler
 from telegram import Update
 
-from tg_bot.bot.parser import ParserBot
-from tg_bot.bot.tarot import TarotBot
+from cardparser.bot.parser import ParserBot
+from tarot.bot.tarot import TarotBot
 
 from server.logger import logger
 

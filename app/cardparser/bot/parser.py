@@ -581,6 +581,9 @@ class ParserBot(AbstractBot):
 
     async def handle_popular_command(self, update: Update, context: CallbackContext):
         try:
+            if not update.message.from_user.first_name == 'django_task':
+                return
+            
             # Получаем активные настройки (асинхронно)
             settings = await BotSettings.get_active()
             if not settings:
@@ -657,7 +660,7 @@ class ParserBot(AbstractBot):
                         chat_id=target_chat_id,
                         media=media_group
                     )
-                    await update.message.reply_text("✅ Топ-5 с фото отправлен в группу.")
+                    logger.info("✅ Топ-5 с фото отправлен в группу.")
                 except Exception as e:
                     logger.error(f"Не удалось отправить медиагруппу: {e}")
                     # fallback — текст
@@ -673,12 +676,7 @@ class ParserBot(AbstractBot):
                     parse_mode="HTML"
                 )
             # Подтверждение пользователю
-            if not update.message.from_user.first_name == 'django_task':
-                await update.message.reply_text("✅ Топ-5 отправлен в маркетинговую группу.")
+            logger.info("✅ Топ-5 отправлен в маркетинговую группу.")
 
         except Exception as e:
             logger.error(f"Ошибка в команде /popular: {e}", exc_info=True)
-            if not update.message.from_user.first_name == 'django_task':
-                await update.message.reply_text(
-                    "❌ Произошла ошибка при обработке команды."
-                )

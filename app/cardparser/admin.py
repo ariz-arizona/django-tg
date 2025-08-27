@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from tg_bot.models import Bot, TgUser
-from .models import ParseProduct, TgUserProduct, Brand, Category, ProductImage
+from .models import ParseProduct, TgUserProduct, Brand, Category, ProductImage, BotSettings
 
 
 @admin.register(TgUserProduct)
@@ -195,3 +195,61 @@ class CategoryAdmin(admin.ModelAdmin):
 
     products_count.short_description = "Товары"
     products_count.allow_tags = True
+
+@admin.register(BotSettings)
+class BotSettingsAdmin(admin.ModelAdmin):
+    # Поля, отображаемые в списке
+    list_display = [
+        "active_status",
+        "marketing_group_id",
+        "picture_chat_id",
+        "parser_urls",
+        "updated_at",
+    ]
+
+    # Только для чтения в форме
+    readonly_fields = ["created_at", "updated_at"]
+    
+    # Группировка полей в форме
+    fieldsets = [
+        ("Активация", {
+            "fields": ["active"],
+            "description": "⚠️ Только одна запись может быть активной."
+        }),
+        ("Основные настройки", {
+            "fields": ["marketing_group_id", "picture_chat_id"]
+        }),
+        ("URL парсеров", {
+            "fields": ["parser_url_ozon", "parser_url_wb"]
+        }),
+        ("Аудит", {
+            "fields": ["created_at", "updated_at"],
+            "classes": ["collapse"]
+        }),
+    ]
+
+    # Сортировка
+    ordering = ["-active", "-updated_at"]
+
+    # Поиск
+    search_fields = ["marketing_group_id", "picture_chat_id"]
+
+    # Фильтры
+    list_filter = ["active"]
+
+    @admin.display(description="Статус")
+    def active_status(self, obj):
+        return format_html(
+            '<span style="color: {};">●</span> {}',
+            "green" if obj.active else "gray",
+            "Активно" if obj.active else "Неактивно"
+        )
+
+    @admin.display(description="Парсеры")
+    def parser_urls(self, obj):
+        lines = []
+        if obj.parser_url_ozon:
+            lines.append(f"Ozon: <code style='font-size:0.9em'>{obj.parser_url_ozon}</code>")
+        if obj.parser_url_wb:
+            lines.append(f"WB: <code style='font-size:0.9em'>{obj.parser_url_wb}</code>")
+        return format_html("<br>".join(lines)) if lines else "-"

@@ -1,3 +1,4 @@
+from asgiref.sync import sync_to_async
 from django.db import models
 from tg_bot.models import TgUser
 
@@ -165,3 +166,73 @@ class TgUserProduct(models.Model):
 
     def __str__(self):
         return f"{self.tg_user} -> {self.product}"
+
+class BotSettings(models.Model):
+    """
+    Глобальные настройки бота. Только одна запись может быть активной.
+    Ограничение enforced на уровне базы данных.
+    """
+    active = models.BooleanField(
+        default=False,
+        verbose_name="Активные настройки",
+        help_text="Только одна запись в системе может быть активной."
+    )
+
+    picture_chat_id = models.CharField(
+        max_length=50,
+        verbose_name="Chat ID для загрузки картинок",
+        help_text="Telegram chat ID, куда бот будет отправлять изображения для получения file_id"
+    )
+
+    parser_url_ozon = models.URLField(
+        blank=True, null=True,
+        verbose_name="URL парсера Ozon",
+        help_text="API или веб-адрес для парсинга товаров Ozon"
+    )
+
+    parser_url_wb = models.URLField(
+        blank=True, null=True,
+        verbose_name="URL парсера Wildberries",
+        help_text="API или веб-адрес для парсинга товаров Wildberries"
+    )
+
+    marketing_group_id = models.CharField(
+        max_length=50,
+        verbose_name="Группа для вывода маркетинга",
+        help_text="Telegram chat ID группы, куда отправляются популярные товары"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Последнее обновление")
+
+    class Meta:
+        verbose_name = f"{bot_prefix}: Настройки бота"
+        verbose_name_plural = f"{bot_prefix}: Настройки бота"
+        ordering = ["-created_at"]
+
+        # 🔒 Ограничения на уровне БД
+        constraints = [
+            # 1. Гарантируем, что active=True может быть только у одной записи
+            models.UniqueConstraint(
+                fields=['active'],
+                condition=models.Q(active=True),
+                name='unique_active_settings'
+            ),
+        ]
+
+    def __str__(self):
+        return f"Активно ✅" if self.active else "Неактивно ❌"
+
+
+    @classmethod
+    def get_active_sync(cls):
+        """Синхронная версия — на всякий случай"""
+        return cls.objects.filter(active=True).first()
+
+    @classmethod
+    async def get_active(cls):
+        """
+        Асинхронный метод: возвращает активную запись.
+        Использует sync_to_async внутри.
+        """
+        return await sync_to_async(cls.get_active_sync)()

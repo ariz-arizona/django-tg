@@ -21,11 +21,9 @@ from cardparser.models import (
     Brand,
     Category,
     ProductImage,
+    BotSettings,
 )
 from server.logger import logger
-
-PICTURE_CHAT = settings.PICTURE_CHAT
-PARSER_URL = settings.PARSER_URL
 
 # Класс для парсера бота, который наследует AbstractBot
 
@@ -80,8 +78,9 @@ class ParserBot(AbstractBot):
 
         if image_size and image_size > max_size:
             async with session.get(image_url) as img_response:
+                picture_chat_id = (await BotSettings.get_active()).picture_chat_id
                 image_data = await img_response.read()
-                sent_photo = await context.bot.send_photo(PICTURE_CHAT, image_data)
+                sent_photo = await context.bot.send_photo(picture_chat_id, image_data)
                 image_url = sent_photo.photo[-1].file_id
 
         return image_url
@@ -351,7 +350,8 @@ class ParserBot(AbstractBot):
 
     async def parse_ozon(self, ozon_id, context):
         url = f"https://api.ozon.ru/composer-api.bx/page/json/v2?url=/{ozon_id}"
-        parser_url = f"{PARSER_URL}/v1"
+        parser_url_ozon = (await BotSettings.get_active()).parser_url_ozon
+        parser_url = f"{parser_url_ozon}/v1"
 
         # Отправляем запрос на парсер
         payload = {"cmd": "request.get", "maxTimeout": 60000, "url": url}

@@ -614,14 +614,71 @@ class ParserBot(AbstractBot):
                 text=message,
                 parse_mode="HTML"
             )
+            # Формируем медиагруппу
+            media_group = []
+            for item in popular:
+                name = item["name"]
+                brand = item["brand"]
+                platform = item["product_type"]
+                count = item["request_count"]
+                caption_text = item["caption"].strip()
 
+                # Полная подпись к фото
+                full_caption = (
+                    f"<b>{name}</b>\n"
+                    f"📌 {caption_text}\n"
+                    f"🏷️ <i>{brand}</i> | {platform}\n"
+                    f"📥 Запросов: {count}"
+                )
+
+                # Получаем товар и его фото
+                try:
+                    product = await ParseProduct.objects.aget(id=item["id"])
+                    image = await ProductImage.objects.filter(
+                        product=product,
+                        image_type="telegram"
+                    ).afirst()
+
+                    if image and image.file_id:
+                        media_group.append(
+                            InputMediaPhoto(
+                                media=image.file_id,
+                                caption=full_caption,
+                                parse_mode="HTML"
+                            )
+                        )
+                except ParseProduct.DoesNotExist:
+                    continue
+
+            # Отправляем в маркетинговую группу
+            if media_group:
+                try:
+                    await context.bot.send_media_group(
+                        chat_id=target_chat_id,
+                        media=media_group
+                    )
+                    await update.message.reply_text("✅ Топ-5 с фото отправлен в группу.")
+                except Exception as e:
+                    logger.error(f"Не удалось отправить медиагруппу: {e}")
+                    # fallback — текст
+                    await context.bot.send_message(
+                        chat_id=target_chat_id,
+                        text="🔥 Топ-5 популярных товаров (ошибка отправки фото)",
+                        parse_mode="HTML"
+                    )
+            else:
+                await context.bot.send_message(
+                    chat_id=target_chat_id,
+                    text="🔥 Топ-5 популярных товаров за 24 часа (нет доступных фото)",
+                    parse_mode="HTML"
+                )
             # Подтверждение пользователю
             if not update.message.from_user.first_name == 'django_task':
                 await update.message.reply_text("✅ Топ-5 отправлен в маркетинговую группу.")
 
         except Exception as e:
             logger.error(f"Ошибка в команде /popular: {e}", exc_info=True)
-            if not update.django_task:
+            if not update.message.from_user.first_name == 'django_task':
                 await update.message.reply_text(
                     "❌ Произошла ошибка при обработке команды."
                 )

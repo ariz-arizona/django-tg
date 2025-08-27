@@ -14,7 +14,7 @@ from tg_bot.bot.abstract import AbstractBot
 from tg_bot.models import (
     TgUser,
 )
-from cardparser.bot.wb_image_url import Se
+from cardparser.services.wb_link_builder import Se
 from cardparser.models import (
     ParseProduct,
     TgUserProduct,

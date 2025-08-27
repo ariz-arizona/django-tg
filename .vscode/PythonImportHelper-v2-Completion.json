@@ -407,10 +407,10 @@
     },
     {
         "label": "Se",
-        "importPath": "cardparser.bot.wb_image_url",
-        "description": "cardparser.bot.wb_image_url",
+        "importPath": "cardparser.services.wb_link_builder",
+        "description": "cardparser.services.wb_link_builder",
         "isExtraImport": true,
-        "detail": "cardparser.bot.wb_image_url",
+        "detail": "cardparser.services.wb_link_builder",
         "documentation": {}
     },
     {
@@ -1518,21 +1518,21 @@
         "documentation": {}
     },
     {
-        "label": "Se",
-        "kind": 6,
-        "importPath": "app.cardparser.bot.wb_image_url",
-        "description": "app.cardparser.bot.wb_image_url",
-        "peekOfCode": "class Se:\n    @staticmethod\n    def vol_host_v2(e):\n        t = e // 100000\n        if 0 <= t <= 143:\n            r = \"01\"\n        elif t <= 287:\n            r = \"02\"\n        elif t <= 431:\n            r = \"03\"",
-        "detail": "app.cardparser.bot.wb_image_url",
-        "documentation": {}
-    },
-    {
         "label": "Migration",
         "kind": 6,
         "importPath": "app.cardparser.migrations.0001_initial",
         "description": "app.cardparser.migrations.0001_initial",
         "peekOfCode": "class Migration(migrations.Migration):\n    initial = True\n    dependencies = [\n        ('tg_bot', '0030_parseproduct_name'),  # Убедись, что выполнена\n    ]\n    operations = [\n        # Шаг 1: Физически переименовываем таблицы в БД\n        RunSQL(\"ALTER TABLE tg_bot_brand RENAME TO cardparser_brand;\"),\n        RunSQL(\"ALTER TABLE tg_bot_category RENAME TO cardparser_category;\"),\n        RunSQL(\"ALTER TABLE tg_bot_parseproduct RENAME TO cardparser_parseproduct;\"),",
         "detail": "app.cardparser.migrations.0001_initial",
+        "documentation": {}
+    },
+    {
+        "label": "Se",
+        "kind": 6,
+        "importPath": "app.cardparser.services.wb_link_builder",
+        "description": "app.cardparser.services.wb_link_builder",
+        "peekOfCode": "class Se:\n    @staticmethod\n    def vol_host_v2(e):\n        t = e // 100000\n        if 0 <= t <= 143:\n            r = \"01\"\n        elif t <= 287:\n            r = \"02\"\n        elif t <= 431:\n            r = \"03\"",
+        "detail": "app.cardparser.services.wb_link_builder",
         "documentation": {}
     },
     {

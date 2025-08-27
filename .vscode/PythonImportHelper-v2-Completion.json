@@ -1602,7 +1602,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "BASE_DIR = Path(__file__).resolve().parent.parent\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\nSECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nTG_WEBHOOK_HOST_RAW = urlparse(os.environ.get(\"TG_WEBHOOK_HOST\"))\nALLOWED_HOSTS = [\n    \"localhost\",",
+        "peekOfCode": "BASE_DIR = Path(__file__).resolve().parent.parent\n# Quick-start development settings - unsuitable for production\n# See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/\n# SECURITY WARNING: keep the secret key used in production secret!\nSECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nTG_WEBHOOK_HOST_RAW = urlparse(os.environ.get(\"TG_WEBHOOK_HOST\")).netloc\nALLOWED_HOSTS = [\n    \"localhost\",",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1611,7 +1611,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "SECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nTG_WEBHOOK_HOST_RAW = urlparse(os.environ.get(\"TG_WEBHOOK_HOST\"))\nALLOWED_HOSTS = [\n    \"localhost\",\n    TG_WEBHOOK_HOST_RAW,\n]\nTG_WEBHOOK_HOST = f\"https://{TG_WEBHOOK_HOST_RAW}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")",
+        "peekOfCode": "SECRET_KEY = \"django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=\"\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\nTG_WEBHOOK_HOST_RAW = urlparse(os.environ.get(\"TG_WEBHOOK_HOST\")).netloc\nALLOWED_HOSTS = [\n    \"localhost\",\n    TG_WEBHOOK_HOST_RAW,\n]\nTG_WEBHOOK_HOST = f\"https://{TG_WEBHOOK_HOST_RAW}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1620,7 +1620,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "DEBUG = True\nTG_WEBHOOK_HOST_RAW = urlparse(os.environ.get(\"TG_WEBHOOK_HOST\"))\nALLOWED_HOSTS = [\n    \"localhost\",\n    TG_WEBHOOK_HOST_RAW,\n]\nTG_WEBHOOK_HOST = f\"https://{TG_WEBHOOK_HOST_RAW}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or \"false\").lower() == \"true\"",
+        "peekOfCode": "DEBUG = True\nTG_WEBHOOK_HOST_RAW = urlparse(os.environ.get(\"TG_WEBHOOK_HOST\")).netloc\nALLOWED_HOSTS = [\n    \"localhost\",\n    TG_WEBHOOK_HOST_RAW,\n]\nTG_WEBHOOK_HOST = f\"https://{TG_WEBHOOK_HOST_RAW}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or \"false\").lower() == \"true\"",
         "detail": "app.server.settings",
         "documentation": {}
     },
@@ -1629,7 +1629,7 @@
         "kind": 5,
         "importPath": "app.server.settings",
         "description": "app.server.settings",
-        "peekOfCode": "TG_WEBHOOK_HOST_RAW = urlparse(os.environ.get(\"TG_WEBHOOK_HOST\"))\nALLOWED_HOSTS = [\n    \"localhost\",\n    TG_WEBHOOK_HOST_RAW,\n]\nTG_WEBHOOK_HOST = f\"https://{TG_WEBHOOK_HOST_RAW}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or \"false\").lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)",
+        "peekOfCode": "TG_WEBHOOK_HOST_RAW = urlparse(os.environ.get(\"TG_WEBHOOK_HOST\")).netloc\nALLOWED_HOSTS = [\n    \"localhost\",\n    TG_WEBHOOK_HOST_RAW,\n]\nTG_WEBHOOK_HOST = f\"https://{TG_WEBHOOK_HOST_RAW}\"\nPICTURE_CHAT = os.environ.get(\"PICTURE_CHAT\")\nPARSER_URL = os.environ.get(\"PARSER\")\nTG_DEBUG = (os.environ.get(\"TG_DEBUG\") or \"false\").lower() == \"true\"\nCSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)",
         "detail": "app.server.settings",
         "documentation": {}
     },

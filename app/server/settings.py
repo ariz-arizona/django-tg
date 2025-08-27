@@ -30,8 +30,7 @@ SECRET_KEY = "django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-TG_WEBHOOK_HOST_RAW = urlparse(os.environ.get("TG_WEBHOOK_HOST"))
-
+TG_WEBHOOK_HOST_RAW = urlparse(os.environ.get("TG_WEBHOOK_HOST")).netloc
 ALLOWED_HOSTS = [
     "localhost",
     TG_WEBHOOK_HOST_RAW,

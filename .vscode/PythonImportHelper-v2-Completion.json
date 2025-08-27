@@ -49,7 +49,7 @@
         "documentation": {}
     },
     {
-        "label": "migrations",
+        "label": "models",
         "importPath": "django.db",
         "description": "django.db",
         "isExtraImport": true,
@@ -185,6 +185,38 @@
         "documentation": {}
     },
     {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "migrations",
         "importPath": "django.db",
         "description": "django.db",
@@ -297,7 +329,7 @@
         "documentation": {}
     },
     {
-        "label": "models",
+        "label": "migrations",
         "importPath": "django.db",
         "description": "django.db",
         "isExtraImport": true,
@@ -326,6 +358,14 @@
         "description": "django.db.migrations.operations.special",
         "isExtraImport": true,
         "detail": "django.db.migrations.operations.special",
+        "documentation": {}
+    },
+    {
+        "label": "admin",
+        "importPath": "django.contrib",
+        "description": "django.contrib",
+        "isExtraImport": true,
+        "detail": "django.contrib",
         "documentation": {}
     },
     {
@@ -457,142 +497,6 @@
         "documentation": {}
     },
     {
-        "label": "TarotDeck",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotCardItem",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotCard",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "ExtendedMeaning",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotUserReading",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumDeck",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumItem",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "Rune",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumItem",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumDeck",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "Rune",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotCard",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "ExtendedMeaning",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotMeaningCategory",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotCard",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotDeck",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "TarotCardItem",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
         "label": "TgUser",
         "importPath": "tg_bot.models",
         "description": "tg_bot.models",
@@ -601,6 +505,38 @@
         "documentation": {}
     },
     {
+        "label": "OraculumItem",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumDeck",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Rune",
+        "importPath": "tg_bot.models",
+        "description": "tg_bot.models",
+        "isExtraImport": true,
+        "detail": "tg_bot.models",
+        "documentation": {}
+    },
+    {
+        "label": "AppConfig",
+        "importPath": "django.apps",
+        "description": "django.apps",
+        "isExtraImport": true,
+        "detail": "django.apps",
+        "documentation": {}
+    },
+    {
         "label": "AppConfig",
         "importPath": "django.apps",
         "description": "django.apps",
@@ -630,6 +566,22 @@
         "description": "django.test",
         "isExtraImport": true,
         "detail": "django.test",
+        "documentation": {}
+    },
+    {
+        "label": "TestCase",
+        "importPath": "django.test",
+        "description": "django.test",
+        "isExtraImport": true,
+        "detail": "django.test",
+        "documentation": {}
+    },
+    {
+        "label": "render",
+        "importPath": "django.shortcuts",
+        "description": "django.shortcuts",
+        "isExtraImport": true,
+        "detail": "django.shortcuts",
         "documentation": {}
     },
     {
@@ -737,6 +689,39 @@
         "description": "django.core.wsgi",
         "isExtraImport": true,
         "detail": "django.core.wsgi",
+        "documentation": {}
+    },
+    {
+        "label": "django.utils.timezone",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "django.utils.timezone",
+        "description": "django.utils.timezone",
+        "detail": "django.utils.timezone",
+        "documentation": {}
+    },
+    {
+        "label": "now",
+        "importPath": "django.utils.timezone",
+        "description": "django.utils.timezone",
+        "isExtraImport": true,
+        "detail": "django.utils.timezone",
+        "documentation": {}
+    },
+    {
+        "label": "now",
+        "importPath": "django.utils.timezone",
+        "description": "django.utils.timezone",
+        "isExtraImport": true,
+        "detail": "django.utils.timezone",
+        "documentation": {}
+    },
+    {
+        "label": "timezone",
+        "importPath": "django.utils",
+        "description": "django.utils",
+        "isExtraImport": true,
+        "detail": "django.utils",
         "documentation": {}
     },
     {
@@ -957,31 +942,6 @@
         "importPath": "requests",
         "description": "requests",
         "detail": "requests",
-        "documentation": {}
-    },
-    {
-        "label": "django.utils.timezone",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "django.utils.timezone",
-        "description": "django.utils.timezone",
-        "detail": "django.utils.timezone",
-        "documentation": {}
-    },
-    {
-        "label": "now",
-        "importPath": "django.utils.timezone",
-        "description": "django.utils.timezone",
-        "isExtraImport": true,
-        "detail": "django.utils.timezone",
-        "documentation": {}
-    },
-    {
-        "label": "now",
-        "importPath": "django.utils.timezone",
-        "description": "django.utils.timezone",
-        "isExtraImport": true,
-        "detail": "django.utils.timezone",
         "documentation": {}
     },
     {
@@ -1252,11 +1212,115 @@
         "documentation": {}
     },
     {
-        "label": "BaseCommand",
-        "importPath": "django.core.management.base",
-        "description": "django.core.management.base",
+        "label": "TarotDeck",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
         "isExtraImport": true,
-        "detail": "django.core.management.base",
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCardItem",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCard",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "ExtendedMeaning",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotUserReading",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumDeck",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumItem",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Rune",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCard",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "ExtendedMeaning",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotMeaningCategory",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCard",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotDeck",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCardItem",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
         "documentation": {}
     },
     {
@@ -1292,11 +1356,11 @@
         "documentation": {}
     },
     {
-        "label": "timezone",
-        "importPath": "django.utils",
-        "description": "django.utils",
+        "label": "BaseCommand",
+        "importPath": "django.core.management.base",
+        "description": "django.core.management.base",
         "isExtraImport": true,
-        "detail": "django.utils",
+        "detail": "django.core.management.base",
         "documentation": {}
     },
     {
@@ -1949,6 +2013,195 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tarot.migrations.0001_initial",
+        "description": "app.tarot.migrations.0001_initial",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0032_remove_extendedmeaning_category_base_and_more'),  # убедись, что выполнена\n    ]\n    operations = [\n        # Шаг 1: Физически переименовываем таблицы в БД\n        migrations.RunSQL(\"ALTER TABLE tg_bot_oraculumdeck RENAME TO tarot_oraculumdeck;\"),\n        migrations.RunSQL(\"ALTER TABLE tg_bot_oraculumitem RENAME TO tarot_oraculumitem;\"),\n        migrations.RunSQL(\"ALTER TABLE tg_bot_tarotcard RENAME TO tarot_tarotcard;\"),\n        migrations.RunSQL(\"ALTER TABLE tg_bot_tarotdeck RENAME TO tarot_tarotdeck;\"),",
+        "detail": "app.tarot.migrations.0001_initial",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCardAdmin",
+        "kind": 6,
+        "importPath": "app.tarot.admin",
+        "description": "app.tarot.admin",
+        "peekOfCode": "class TarotCardAdmin(admin.ModelAdmin):\n    list_display = (\"card_id\", \"name\", \"is_major\")  # Добавлено card_id для наглядности\n    list_editable = (\"is_major\",)  # Разрешаем редактирование прямо в списке\n    list_filter = (\"is_major\",)  # Добавляем фильтр по этому полю\n    search_fields = (\"name\", \"card_id\")  # Поиск по названию и ID карты\n@admin.register(ExtendedMeaning)\nclass ExtendedMeaningAdmin(admin.ModelAdmin):\n    list_display = (\"tarot_card\", \"category\", \"category_base\", \"text\")\n@admin.register(TarotMeaningCategory)\nclass CategoryAdmin(admin.ModelAdmin):",
+        "detail": "app.tarot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "ExtendedMeaningAdmin",
+        "kind": 6,
+        "importPath": "app.tarot.admin",
+        "description": "app.tarot.admin",
+        "peekOfCode": "class ExtendedMeaningAdmin(admin.ModelAdmin):\n    list_display = (\"tarot_card\", \"category\", \"category_base\", \"text\")\n@admin.register(TarotMeaningCategory)\nclass CategoryAdmin(admin.ModelAdmin):\n    pass\n@admin.register(TarotDeck)\nclass TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"",
+        "detail": "app.tarot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "CategoryAdmin",
+        "kind": 6,
+        "importPath": "app.tarot.admin",
+        "description": "app.tarot.admin",
+        "peekOfCode": "class CategoryAdmin(admin.ModelAdmin):\n    pass\n@admin.register(TarotDeck)\nclass TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"\n    list_display = (\"name\", \"link\")  # Поля, отображаемые в списке\n    search_fields = (\"name\",)  # Поля для поиска\n    list_filter = (\"name\",)  # Фильтры в правой панели",
+        "detail": "app.tarot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "TarotDeckAdmin",
+        "kind": 6,
+        "importPath": "app.tarot.admin",
+        "description": "app.tarot.admin",
+        "peekOfCode": "class TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"\n    list_display = (\"name\", \"link\")  # Поля, отображаемые в списке\n    search_fields = (\"name\",)  # Поля для поиска\n    list_filter = (\"name\",)  # Фильтры в правой панели\n@admin.register(TarotCardItem)\nclass CardAdmin(admin.ModelAdmin):\n    \"\"\"",
+        "detail": "app.tarot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "CardAdmin",
+        "kind": 6,
+        "importPath": "app.tarot.admin",
+        "description": "app.tarot.admin",
+        "peekOfCode": "class CardAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели Card.\n    \"\"\"\n    list_display = (\"deck\", \"tarot_card\", \"img_id\")  # Поля, отображаемые в списке\n    search_fields = (\"deck__name\", \"tarot_card__name\")  # Поля для поиска\n    list_filter = (\"deck\", \"tarot_card\")  # Фильтры в правой панели\n@admin.register(TarotUserReading)\nclass TarotUserReadingAdmin(admin.ModelAdmin):\n    # Поля, которые будут отображаться в списке записей",
+        "detail": "app.tarot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "TarotUserReadingAdmin",
+        "kind": 6,
+        "importPath": "app.tarot.admin",
+        "description": "app.tarot.admin",
+        "peekOfCode": "class TarotUserReadingAdmin(admin.ModelAdmin):\n    # Поля, которые будут отображаться в списке записей\n    list_display = (\"user\", \"date\", \"text\", \"message_id\")\n    # Поля, по которым можно фильтровать записи\n    list_filter = (\"user\", \"date\")\n    # Поля, по которым можно искать записи\n    search_fields = (\"text\", \"user__username\", \"message_id\")\n    # Поля, которые будут использоваться для детального просмотра записи\n    fieldsets = (\n        (",
+        "detail": "app.tarot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumDeckAdmin",
+        "kind": 6,
+        "importPath": "app.tarot.admin",
+        "description": "app.tarot.admin",
+        "peekOfCode": "class OraculumDeckAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"description\", \"created_at\")\n    search_fields = (\"name\", \"description\")\n    list_filter = (\"created_at\",)\n@admin.register(OraculumItem)\nclass OraculumItemAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"deck\", \"description\")\n    search_fields = (\"name\", \"description\", \"deck__name\")\n    list_filter = (\"deck\",)\n@admin.register(Rune)",
+        "detail": "app.tarot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumItemAdmin",
+        "kind": 6,
+        "importPath": "app.tarot.admin",
+        "description": "app.tarot.admin",
+        "peekOfCode": "class OraculumItemAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"deck\", \"description\")\n    search_fields = (\"name\", \"description\", \"deck__name\")\n    list_filter = (\"deck\",)\n@admin.register(Rune)\nclass RuneAdmin(admin.ModelAdmin):\n    list_display = (\"symbol\", \"type\", \"sticker\")\n    search_fields = (\"type\", \"symbol\")\n    list_filter = (\"type\",)\n    fieldsets = (",
+        "detail": "app.tarot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "RuneAdmin",
+        "kind": 6,
+        "importPath": "app.tarot.admin",
+        "description": "app.tarot.admin",
+        "peekOfCode": "class RuneAdmin(admin.ModelAdmin):\n    list_display = (\"symbol\", \"type\", \"sticker\")\n    search_fields = (\"type\", \"symbol\")\n    list_filter = (\"type\",)\n    fieldsets = (\n        (\n            \"Основная информация\",\n            {\n                \"fields\": (\"type\", \"symbol\", \"sticker\"),\n            },",
+        "detail": "app.tarot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "TarotConfig",
+        "kind": 6,
+        "importPath": "app.tarot.apps",
+        "description": "app.tarot.apps",
+        "peekOfCode": "class TarotConfig(AppConfig):\n    default_auto_field = 'django.db.models.BigAutoField'\n    name = 'tarot'",
+        "detail": "app.tarot.apps",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCard",
+        "kind": 6,
+        "importPath": "app.tarot.models",
+        "description": "app.tarot.models",
+        "peekOfCode": "class TarotCard(models.Model):\n    card_id = models.CharField(max_length=10, unique=True, verbose_name=\"ID карты\")\n    name = models.CharField(max_length=255, verbose_name=\"Название карты\")\n    meaning = models.TextField(verbose_name=\"Основное значение\")\n    meaning_url = models.URLField(\n        verbose_name=\"Ссылка на значение\", blank=True, null=True\n    )\n    is_major = models.BooleanField(default=False)\n    def __str__(self):\n        return self.name",
+        "detail": "app.tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotMeaningCategory",
+        "kind": 6,
+        "importPath": "app.tarot.models",
+        "description": "app.tarot.models",
+        "peekOfCode": "class TarotMeaningCategory(models.Model):\n    name = models.CharField(max_length=50, verbose_name=\"Категория\", unique=True)\n    def __str__(self):\n        return self.name\n    class Meta:\n        verbose_name = f\"{bot_prefix}: Категория\"\n        verbose_name_plural = f\"{bot_prefix}: Категории\"\nclass ExtendedMeaning(models.Model):\n    tarot_card = models.ForeignKey(\n        TarotCard, on_delete=models.CASCADE, related_name=\"extended_meanings\"",
+        "detail": "app.tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "ExtendedMeaning",
+        "kind": 6,
+        "importPath": "app.tarot.models",
+        "description": "app.tarot.models",
+        "peekOfCode": "class ExtendedMeaning(models.Model):\n    tarot_card = models.ForeignKey(\n        TarotCard, on_delete=models.CASCADE, related_name=\"extended_meanings\"\n    )\n    category = models.CharField(max_length=50, verbose_name=\"Категория\")\n    category_base = models.ForeignKey(\n        TarotMeaningCategory, on_delete=models.SET_NULL, null=True, related_name=\"cat\"\n    )\n    text = models.TextField(verbose_name=\"Текст значения\")\n    def __str__(self):",
+        "detail": "app.tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotDeck",
+        "kind": 6,
+        "importPath": "app.tarot.models",
+        "description": "app.tarot.models",
+        "peekOfCode": "class TarotDeck(models.Model):\n    \"\"\"\n    Модель для хранения информации о колоде Таро.\n    \"\"\"\n    name = models.CharField(max_length=255, unique=True, verbose_name=\"Название колоды\")\n    link = models.CharField(\n        max_length=255,\n        null=True,\n        blank=True,\n        default=None,",
+        "detail": "app.tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotCardItem",
+        "kind": 6,
+        "importPath": "app.tarot.models",
+        "description": "app.tarot.models",
+        "peekOfCode": "class TarotCardItem(models.Model):\n    \"\"\"\n    Модель для хранения информации о карте в колоде.\n    \"\"\"\n    deck = models.ForeignKey(\n        TarotDeck, on_delete=models.CASCADE, related_name=\"cards\", verbose_name=\"Колода\"\n    )\n    tarot_card = models.ForeignKey(\n        \"TarotCard\",\n        on_delete=models.CASCADE,",
+        "detail": "app.tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotUserReading",
+        "kind": 6,
+        "importPath": "app.tarot.models",
+        "description": "app.tarot.models",
+        "peekOfCode": "class TarotUserReading(models.Model):\n    user = models.ForeignKey(\n        \"tg_bot.TgUser\",  # Укажите имя модели, если TgUser определена в другом месте\n        on_delete=models.SET_NULL,\n        related_name=\"readings\",\n        null=True,\n        verbose_name=\"Пользователь\",  # Человекочитаемое имя для поля\n    )\n    date = models.DateTimeField(\n        default=timezone.now, verbose_name=\"Дата гадания\"",
+        "detail": "app.tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumDeck",
+        "kind": 6,
+        "importPath": "app.tarot.models",
+        "description": "app.tarot.models",
+        "peekOfCode": "class OraculumDeck(models.Model):\n    name = models.CharField(\n        max_length=255,\n        verbose_name=\"Название колоды\",\n        help_text=\"Название колоды (например, 'Колода МЛАДЕНЦА').\",\n    )\n    description = models.TextField(\n        verbose_name=\"Описание колоды\",\n        help_text=\"Краткое описание колоды.\",\n        blank=True,",
+        "detail": "app.tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumItem",
+        "kind": 6,
+        "importPath": "app.tarot.models",
+        "description": "app.tarot.models",
+        "peekOfCode": "class OraculumItem(models.Model):\n    deck = models.ForeignKey(\n        OraculumDeck,\n        on_delete=models.CASCADE,\n        related_name=\"cards\",\n        verbose_name=\"Колода\",\n        help_text=\"Колода, к которой относится карта.\",\n    )\n    img_id = models.CharField(\n        max_length=255,",
+        "detail": "app.tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Rune",
+        "kind": 6,
+        "importPath": "app.tarot.models",
+        "description": "app.tarot.models",
+        "peekOfCode": "class Rune(models.Model):\n    type = models.CharField(max_length=50, verbose_name=\"Тип руны\")\n    symbol = models.CharField(max_length=10, verbose_name=\"Символ руны\")\n    sticker = models.CharField(max_length=100, verbose_name=\"ID стикера\")\n    # Прямое значение\n    straight_keys = models.TextField(verbose_name=\"Ключи (прямое)\")\n    straight_meaning = models.TextField(verbose_name=\"Значение (прямое)\")\n    straight_pos_1 = models.TextField(verbose_name=\"Позиция 1 (прямое)\")\n    straight_pos_2 = models.TextField(verbose_name=\"Позиция 2 (прямое)\")\n    straight_pos_3 = models.TextField(verbose_name=\"Позиция 3 (прямое)\")",
+        "detail": "app.tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "bot_prefix",
+        "kind": 5,
+        "importPath": "app.tarot.models",
+        "description": "app.tarot.models",
+        "peekOfCode": "bot_prefix = \"Tarot\"\nclass TarotCard(models.Model):\n    card_id = models.CharField(max_length=10, unique=True, verbose_name=\"ID карты\")\n    name = models.CharField(max_length=255, verbose_name=\"Название карты\")\n    meaning = models.TextField(verbose_name=\"Основное значение\")\n    meaning_url = models.URLField(\n        verbose_name=\"Ссылка на значение\", blank=True, null=True\n    )\n    is_major = models.BooleanField(default=False)\n    def __str__(self):",
+        "detail": "app.tarot.models",
+        "documentation": {}
+    },
+    {
         "label": "AbstractBot",
         "kind": 6,
         "importPath": "app.tg_bot.bot.abstract",
@@ -2282,6 +2535,15 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.tg_bot.migrations.0032_remove_extendedmeaning_category_base_and_more",
+        "description": "app.tg_bot.migrations.0032_remove_extendedmeaning_category_base_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('tg_bot', '0031_remove_parseproduct_brand_and_more'),\n    ]\n    operations = [\n                migrations.SeparateDatabaseAndState(\n            database_operations=[],  # Ничего не делаем с БД\n            state_operations=[\n        migrations.RemoveField(\n            model_name='extendedmeaning',",
+        "detail": "app.tg_bot.migrations.0032_remove_extendedmeaning_category_base_and_more",
+        "documentation": {}
+    },
+    {
         "label": "Bot",
         "kind": 6,
         "importPath": "app.tg_bot.models.base",
@@ -2300,182 +2562,11 @@
         "documentation": {}
     },
     {
-        "label": "TarotCard",
-        "kind": 6,
-        "importPath": "app.tg_bot.models.tarot",
-        "description": "app.tg_bot.models.tarot",
-        "peekOfCode": "class TarotCard(models.Model):\n    card_id = models.CharField(max_length=10, unique=True, verbose_name=\"ID карты\")\n    name = models.CharField(max_length=255, verbose_name=\"Название карты\")\n    meaning = models.TextField(verbose_name=\"Основное значение\")\n    meaning_url = models.URLField(\n        verbose_name=\"Ссылка на значение\", blank=True, null=True\n    )\n    is_major = models.BooleanField(default=False)\n    def __str__(self):\n        return self.name",
-        "detail": "app.tg_bot.models.tarot",
-        "documentation": {}
-    },
-    {
-        "label": "TarotMeaningCategory",
-        "kind": 6,
-        "importPath": "app.tg_bot.models.tarot",
-        "description": "app.tg_bot.models.tarot",
-        "peekOfCode": "class TarotMeaningCategory(models.Model):\n    name = models.CharField(max_length=50, verbose_name=\"Категория\", unique=True)\n    def __str__(self):\n        return self.name\n    class Meta:\n        verbose_name = f\"{bot_prefix}: Категория\"\n        verbose_name_plural = f\"{bot_prefix}: Категории\"\nclass ExtendedMeaning(models.Model):\n    tarot_card = models.ForeignKey(\n        TarotCard, on_delete=models.CASCADE, related_name=\"extended_meanings\"",
-        "detail": "app.tg_bot.models.tarot",
-        "documentation": {}
-    },
-    {
-        "label": "ExtendedMeaning",
-        "kind": 6,
-        "importPath": "app.tg_bot.models.tarot",
-        "description": "app.tg_bot.models.tarot",
-        "peekOfCode": "class ExtendedMeaning(models.Model):\n    tarot_card = models.ForeignKey(\n        TarotCard, on_delete=models.CASCADE, related_name=\"extended_meanings\"\n    )\n    category = models.CharField(max_length=50, verbose_name=\"Категория\")\n    category_base = models.ForeignKey(\n        TarotMeaningCategory, on_delete=models.SET_NULL, null=True, related_name=\"cat\"\n    )\n    text = models.TextField(verbose_name=\"Текст значения\")\n    def __str__(self):",
-        "detail": "app.tg_bot.models.tarot",
-        "documentation": {}
-    },
-    {
-        "label": "TarotDeck",
-        "kind": 6,
-        "importPath": "app.tg_bot.models.tarot",
-        "description": "app.tg_bot.models.tarot",
-        "peekOfCode": "class TarotDeck(models.Model):\n    \"\"\"\n    Модель для хранения информации о колоде Таро.\n    \"\"\"\n    name = models.CharField(max_length=255, unique=True, verbose_name=\"Название колоды\")\n    link = models.CharField(\n        max_length=255,\n        null=True,\n        blank=True,\n        default=None,",
-        "detail": "app.tg_bot.models.tarot",
-        "documentation": {}
-    },
-    {
-        "label": "TarotCardItem",
-        "kind": 6,
-        "importPath": "app.tg_bot.models.tarot",
-        "description": "app.tg_bot.models.tarot",
-        "peekOfCode": "class TarotCardItem(models.Model):\n    \"\"\"\n    Модель для хранения информации о карте в колоде.\n    \"\"\"\n    deck = models.ForeignKey(\n        TarotDeck, on_delete=models.CASCADE, related_name=\"cards\", verbose_name=\"Колода\"\n    )\n    tarot_card = models.ForeignKey(\n        \"TarotCard\",\n        on_delete=models.CASCADE,",
-        "detail": "app.tg_bot.models.tarot",
-        "documentation": {}
-    },
-    {
-        "label": "TarotUserReading",
-        "kind": 6,
-        "importPath": "app.tg_bot.models.tarot",
-        "description": "app.tg_bot.models.tarot",
-        "peekOfCode": "class TarotUserReading(models.Model):\n    user = models.ForeignKey(\n        \"TgUser\",  # Укажите имя модели, если TgUser определена в другом месте\n        on_delete=models.SET_NULL,\n        related_name=\"readings\",\n        null=True,\n        verbose_name=\"Пользователь\",  # Человекочитаемое имя для поля\n    )\n    date = models.DateTimeField(\n        default=timezone.now, verbose_name=\"Дата гадания\"",
-        "detail": "app.tg_bot.models.tarot",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumDeck",
-        "kind": 6,
-        "importPath": "app.tg_bot.models.tarot",
-        "description": "app.tg_bot.models.tarot",
-        "peekOfCode": "class OraculumDeck(models.Model):\n    name = models.CharField(\n        max_length=255,\n        verbose_name=\"Название колоды\",\n        help_text=\"Название колоды (например, 'Колода МЛАДЕНЦА').\",\n    )\n    description = models.TextField(\n        verbose_name=\"Описание колоды\",\n        help_text=\"Краткое описание колоды.\",\n        blank=True,",
-        "detail": "app.tg_bot.models.tarot",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumItem",
-        "kind": 6,
-        "importPath": "app.tg_bot.models.tarot",
-        "description": "app.tg_bot.models.tarot",
-        "peekOfCode": "class OraculumItem(models.Model):\n    deck = models.ForeignKey(\n        OraculumDeck,\n        on_delete=models.CASCADE,\n        related_name=\"cards\",\n        verbose_name=\"Колода\",\n        help_text=\"Колода, к которой относится карта.\",\n    )\n    img_id = models.CharField(\n        max_length=255,",
-        "detail": "app.tg_bot.models.tarot",
-        "documentation": {}
-    },
-    {
-        "label": "Rune",
-        "kind": 6,
-        "importPath": "app.tg_bot.models.tarot",
-        "description": "app.tg_bot.models.tarot",
-        "peekOfCode": "class Rune(models.Model):\n    type = models.CharField(max_length=50, verbose_name=\"Тип руны\")\n    symbol = models.CharField(max_length=10, verbose_name=\"Символ руны\")\n    sticker = models.CharField(max_length=100, verbose_name=\"ID стикера\")\n    # Прямое значение\n    straight_keys = models.TextField(verbose_name=\"Ключи (прямое)\")\n    straight_meaning = models.TextField(verbose_name=\"Значение (прямое)\")\n    straight_pos_1 = models.TextField(verbose_name=\"Позиция 1 (прямое)\")\n    straight_pos_2 = models.TextField(verbose_name=\"Позиция 2 (прямое)\")\n    straight_pos_3 = models.TextField(verbose_name=\"Позиция 3 (прямое)\")",
-        "detail": "app.tg_bot.models.tarot",
-        "documentation": {}
-    },
-    {
-        "label": "bot_prefix",
-        "kind": 5,
-        "importPath": "app.tg_bot.models.tarot",
-        "description": "app.tg_bot.models.tarot",
-        "peekOfCode": "bot_prefix = \"Tarot\"\nclass TarotCard(models.Model):\n    card_id = models.CharField(max_length=10, unique=True, verbose_name=\"ID карты\")\n    name = models.CharField(max_length=255, verbose_name=\"Название карты\")\n    meaning = models.TextField(verbose_name=\"Основное значение\")\n    meaning_url = models.URLField(\n        verbose_name=\"Ссылка на значение\", blank=True, null=True\n    )\n    is_major = models.BooleanField(default=False)\n    def __str__(self):",
-        "detail": "app.tg_bot.models.tarot",
-        "documentation": {}
-    },
-    {
         "label": "BotAdmin",
         "kind": 6,
         "importPath": "app.tg_bot.admin",
         "description": "app.tg_bot.admin",
-        "peekOfCode": "class BotAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"token\", \"chat_id\", \"bot_type\", \"created_at\", \"updated_at\")\n    search_fields = (\"name\", \"token\", \"chat_id\")\n    list_filter = (\"bot_type\", \"created_at\")\n@admin.register(TarotCard)\nclass TarotCardAdmin(admin.ModelAdmin):\n    list_display = (\"card_id\", \"name\", \"is_major\")  # Добавлено card_id для наглядности\n    list_editable = (\"is_major\",)  # Разрешаем редактирование прямо в списке\n    list_filter = (\"is_major\",)  # Добавляем фильтр по этому полю\n    search_fields = (\"name\", \"card_id\")  # Поиск по названию и ID карты",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "TarotCardAdmin",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class TarotCardAdmin(admin.ModelAdmin):\n    list_display = (\"card_id\", \"name\", \"is_major\")  # Добавлено card_id для наглядности\n    list_editable = (\"is_major\",)  # Разрешаем редактирование прямо в списке\n    list_filter = (\"is_major\",)  # Добавляем фильтр по этому полю\n    search_fields = (\"name\", \"card_id\")  # Поиск по названию и ID карты\n@admin.register(ExtendedMeaning)\nclass ExtendedMeaningAdmin(admin.ModelAdmin):\n    list_display = (\"tarot_card\", \"category\", \"category_base\", \"text\")\n@admin.register(TarotMeaningCategory)\nclass CategoryAdmin(admin.ModelAdmin):",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "ExtendedMeaningAdmin",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class ExtendedMeaningAdmin(admin.ModelAdmin):\n    list_display = (\"tarot_card\", \"category\", \"category_base\", \"text\")\n@admin.register(TarotMeaningCategory)\nclass CategoryAdmin(admin.ModelAdmin):\n    pass\n@admin.register(TarotDeck)\nclass TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "CategoryAdmin",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class CategoryAdmin(admin.ModelAdmin):\n    pass\n@admin.register(TarotDeck)\nclass TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"\n    list_display = (\"name\", \"link\")  # Поля, отображаемые в списке\n    search_fields = (\"name\",)  # Поля для поиска\n    list_filter = (\"name\",)  # Фильтры в правой панели",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "TarotDeckAdmin",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"\n    list_display = (\"name\", \"link\")  # Поля, отображаемые в списке\n    search_fields = (\"name\",)  # Поля для поиска\n    list_filter = (\"name\",)  # Фильтры в правой панели\n@admin.register(TarotCardItem)\nclass CardAdmin(admin.ModelAdmin):\n    \"\"\"",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "CardAdmin",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class CardAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели Card.\n    \"\"\"\n    list_display = (\"deck\", \"tarot_card\", \"img_id\")  # Поля, отображаемые в списке\n    search_fields = (\"deck__name\", \"tarot_card__name\")  # Поля для поиска\n    list_filter = (\"deck\", \"tarot_card\")  # Фильтры в правой панели\n@admin.register(TarotUserReading)\nclass TarotUserReadingAdmin(admin.ModelAdmin):\n    # Поля, которые будут отображаться в списке записей",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "TarotUserReadingAdmin",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class TarotUserReadingAdmin(admin.ModelAdmin):\n    # Поля, которые будут отображаться в списке записей\n    list_display = (\"user\", \"date\", \"text\", \"message_id\")\n    # Поля, по которым можно фильтровать записи\n    list_filter = (\"user\", \"date\")\n    # Поля, по которым можно искать записи\n    search_fields = (\"text\", \"user__username\", \"message_id\")\n    # Поля, которые будут использоваться для детального просмотра записи\n    fieldsets = (\n        (",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumDeckAdmin",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class OraculumDeckAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"description\", \"created_at\")\n    search_fields = (\"name\", \"description\")\n    list_filter = (\"created_at\",)\n@admin.register(OraculumItem)\nclass OraculumItemAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"deck\", \"description\")\n    search_fields = (\"name\", \"description\", \"deck__name\")\n    list_filter = (\"deck\",)\n@admin.register(Rune)",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumItemAdmin",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class OraculumItemAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"deck\", \"description\")\n    search_fields = (\"name\", \"description\", \"deck__name\")\n    list_filter = (\"deck\",)\n@admin.register(Rune)\nclass RuneAdmin(admin.ModelAdmin):\n    list_display = (\"symbol\", \"type\", \"sticker\")\n    search_fields = (\"type\", \"symbol\")\n    list_filter = (\"type\",)\n    fieldsets = (",
-        "detail": "app.tg_bot.admin",
-        "documentation": {}
-    },
-    {
-        "label": "RuneAdmin",
-        "kind": 6,
-        "importPath": "app.tg_bot.admin",
-        "description": "app.tg_bot.admin",
-        "peekOfCode": "class RuneAdmin(admin.ModelAdmin):\n    list_display = (\"symbol\", \"type\", \"sticker\")\n    search_fields = (\"type\", \"symbol\")\n    list_filter = (\"type\",)\n    fieldsets = (\n        (\n            \"Основная информация\",\n            {\n                \"fields\": (\"type\", \"symbol\", \"sticker\"),\n            },",
+        "peekOfCode": "class BotAdmin(admin.ModelAdmin):\n    list_display = (\"name\", \"token\", \"chat_id\", \"bot_type\", \"created_at\", \"updated_at\")\n    search_fields = (\"name\", \"token\", \"chat_id\")\n    list_filter = (\"bot_type\", \"created_at\")",
         "detail": "app.tg_bot.admin",
         "documentation": {}
     },

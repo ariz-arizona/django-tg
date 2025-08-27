@@ -1,7 +1,7 @@
 import json
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from tg_bot.models import TarotCard, TarotDeck, TarotCardItem
+from tarot.models import TarotCard, TarotDeck, TarotCardItem
 from server.logger import logger
 
 class Command(BaseCommand):

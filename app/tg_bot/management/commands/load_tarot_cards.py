@@ -1,8 +1,9 @@
 import json
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from tg_bot.models import TarotCard, ExtendedMeaning,TarotMeaningCategory
+from tarot.models import TarotCard, ExtendedMeaning, TarotMeaningCategory
 from server.logger import logger
+
 
 class Command(BaseCommand):
     help = "Загружает данные о картах Таро из JSON-файла в базу данных."
@@ -35,8 +36,9 @@ class Command(BaseCommand):
                     category=category,
                     defaults={"text": text},
                 )
-                
 
-            logger.info(self.style.SUCCESS(f"Карта '{card_data['name']}' успешно загружена."))
+            logger.info(
+                self.style.SUCCESS(f"Карта '{card_data['name']}' успешно загружена.")
+            )
 
         logger.info(self.style.SUCCESS("Все данные успешно загружены в базу данных."))

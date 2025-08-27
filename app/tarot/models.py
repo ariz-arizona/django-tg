@@ -1,4 +1,6 @@
 from django.db import models
+
+from django.db import models
 from django.utils import timezone
 
 from tg_bot.models import TgUser
@@ -101,7 +103,7 @@ class TarotCardItem(models.Model):
 
 class TarotUserReading(models.Model):
     user = models.ForeignKey(
-        "TgUser",  # Укажите имя модели, если TgUser определена в другом месте
+        "tg_bot.TgUser",  # Укажите имя модели, если TgUser определена в другом месте
         on_delete=models.SET_NULL,
         related_name="readings",
         null=True,

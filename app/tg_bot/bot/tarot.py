@@ -22,6 +22,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from tg_bot.bot.abstract import AbstractBot
 from tg_bot.models import (
     TgUser,
+)
+from tarot.models import (
     TarotDeck,
     TarotCardItem,
     TarotCard,
@@ -31,7 +33,6 @@ from tg_bot.models import (
     OraculumItem,
     Rune,
 )
-
 from server.logger import logger
 from django.conf import settings
 

@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "django_celery_results",
     "rest_framework",
     "tg_bot",
+    "tarot",
     "cardparser"
 ]
 

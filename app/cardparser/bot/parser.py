@@ -354,17 +354,19 @@ class ParserBot(AbstractBot):
 
     async def parse_ozon(self, ozon_id, context):
         url = f"https://api.ozon.ru/composer-api.bx/page/json/v2?url=/{ozon_id}"
-        parser_url_ozon = (await BotSettings.get_active()).parser_url_ozon
-        parser_url = f"{parser_url_ozon}/v1"
+        # parser_url_ozon = (await BotSettings.get_active()).parser_url_ozon
+        # parser_url = f"{parser_url_ozon}/v1"
 
-        # Отправляем запрос на парсер
-        payload = {"cmd": "request.get", "maxTimeout": 60000, "url": url}
-        response = requests.post(
-            parser_url,
-            headers={"Content-Type": "application/json"},
-            data=json.dumps(payload),
-        )
-        ozon_api = response.json()
+        # # Отправляем запрос на парсер
+        # payload = {"cmd": "request.get", "maxTimeout": 60000, "url": url}
+        # response = requests.post(
+        #     parser_url,
+        #     headers={"Content-Type": "application/json"},
+        #     data=json.dumps(payload),
+        # )
+        # ozon_api = response.json()
+        ozon_req = requests.get(url)
+        ozon_api = ozon_req.json()
         try:
             # Проверяем статус ответа
             if ozon_api.get("status") != "ok":

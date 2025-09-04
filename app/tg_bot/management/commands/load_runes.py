@@ -1,6 +1,6 @@
 import json
 from django.core.management.base import BaseCommand
-from tg_bot.models import Rune
+from tarot.models import Rune
 from django.conf import settings
 
 class Command(BaseCommand):

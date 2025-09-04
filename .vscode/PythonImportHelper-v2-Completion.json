@@ -502,30 +502,6 @@
         "documentation": {}
     },
     {
-        "label": "OraculumItem",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "OraculumDeck",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
-        "label": "Rune",
-        "importPath": "tg_bot.models",
-        "description": "tg_bot.models",
-        "isExtraImport": true,
-        "detail": "tg_bot.models",
-        "documentation": {}
-    },
-    {
         "label": "Se",
         "importPath": "cardparser.services.wb_link_builder",
         "description": "cardparser.services.wb_link_builder",
@@ -1382,6 +1358,30 @@
     },
     {
         "label": "OraculumItem",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "Rune",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumItem",
+        "importPath": "tarot.models",
+        "description": "tarot.models",
+        "isExtraImport": true,
+        "detail": "tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "OraculumDeck",
         "importPath": "tarot.models",
         "description": "tarot.models",
         "isExtraImport": true,

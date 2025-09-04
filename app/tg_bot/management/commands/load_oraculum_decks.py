@@ -1,7 +1,7 @@
 import json
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from tg_bot.models import OraculumItem, OraculumDeck
+from tarot.models import OraculumItem, OraculumDeck
 from server.logger import logger
 
 

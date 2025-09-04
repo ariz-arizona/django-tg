@@ -479,6 +479,7 @@ class ParserBot(AbstractBot):
                 raise Exception("no image")
 
             result = {
+                "name": heading["title"],
                 "media": img,
                 "caption": "\n".join(txt),
                 "parse_mode": "HTML",

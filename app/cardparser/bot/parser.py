@@ -353,23 +353,33 @@ class ParserBot(AbstractBot):
             return {}
 
     async def parse_ozon(self, ozon_id, context):
-        url = f"https://api.ozon.ru/composer-api.bx/page/json/v2?url=/{ozon_id}"
-        # parser_url_ozon = (await BotSettings.get_active()).parser_url_ozon
-        # parser_url = f"{parser_url_ozon}/v1"
-
-        # # Отправляем запрос на парсер
-        # payload = {"cmd": "request.get", "maxTimeout": 60000, "url": url}
-        # response = requests.post(
-        #     parser_url,
-        #     headers={"Content-Type": "application/json"},
-        #     data=json.dumps(payload),
+        url = f"https://api.ozon.ru/entrypoint-api.bx/page/json/v2?url=/{ozon_id}"
+        # ozon_req = requests.get(
+        #     url,
+        #     headers={
+        #         "Content-Type": "application/json;charset=UTF-8",
+        #         'x-o3-page-type': 'pdp',
+        #     },
         # )
-        # ozon_api = response.json()
-        ozon_req = requests.get(url)
-        ozon_api = ozon_req.json()
+        # ozon_api = ozon_req.json()
+        parser_url_ozon = (await BotSettings.get_active()).parser_url_ozon
+        parser_url = f"{parser_url_ozon}/v1"
+
+        # Отправляем запрос на парсер
+        payload = {"cmd": "request.get", "maxTimeout": 60000, "url": url}
+        response = requests.post(
+            parser_url,
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(payload),
+        )
+        ozon_api = response.json()
         try:
             # Проверяем статус ответа
             if ozon_api.get("status") != "ok":
+                logger.info(ozon_api.get("status"))
+                logger.info(ozon_api)
+                logger.info(ozon_api.text())
+                logger.info(url)
                 raise Exception("Parse error")
 
             if "seller" in ozon_api["solution"]["url"]:
@@ -468,11 +478,30 @@ class ParserBot(AbstractBot):
             if not img:
                 raise Exception("no image")
 
-            return {
+            result = {
                 "media": img,
                 "caption": "\n".join(txt),
                 "parse_mode": "HTML",
             }
+
+            if brand:
+                try:
+                    result["brand"] = {
+                        "id": brand["link"].split("/")[-1],
+                        "name": brand["content"]["title"]["text"][0]["content"],
+                    }
+                except Exception as e:
+                    logger.info(e)
+            if r.get("layoutTrackingInfo"):
+                try:
+                    track = json.loads(r.get("layoutTrackingInfo"))
+                    result["category"] = {
+                        "id": track["categoryId"],
+                        "name": track["categoryName"],
+                    }
+                except Exception as e:
+                    logger.info(e)
+            return result
         except Exception as e:
             logger.error(e)
             return None
@@ -583,9 +612,9 @@ class ParserBot(AbstractBot):
 
     async def handle_popular_command(self, update: Update, context: CallbackContext):
         try:
-            if not update.message.from_user.first_name == 'django_task':
+            if not update.message.from_user.first_name == "django_task":
                 return
-            
+
             # Получаем активные настройки (асинхронно)
             settings = await BotSettings.get_active()
             if not settings:
@@ -595,13 +624,17 @@ class ParserBot(AbstractBot):
             # Проверяем, что marketing_group_id задан
             target_chat_id = settings.marketing_group_id
             if not target_chat_id:
-                await update.message.reply_text("❌ Не задан chat_id для маркетинговой группы.")
+                await update.message.reply_text(
+                    "❌ Не задан chat_id для маркетинговой группы."
+                )
                 return
 
             # Получаем топ-5 популярных товаров за 24 часа
             popular = await sync_to_async(get_popular_products)(hours=24, limit=5)
             if not popular:
-                await update.message.reply_text("📉 За последние 24 часа нет данных о популярных товарах.")
+                await update.message.reply_text(
+                    "📉 За последние 24 часа нет данных о популярных товарах."
+                )
                 return
 
             # Формируем сообщение
@@ -611,13 +644,13 @@ class ParserBot(AbstractBot):
                 brand = item["brand"]
                 platform = item["product_type"]
                 count = item["request_count"]
-                message += f"{i}. <b>{name}</b> ({brand}, {platform}) — {count} запросов\n"
+                message += (
+                    f"{i}. <b>{name}</b> ({brand}, {platform}) — {count} запросов\n"
+                )
 
             # Отправляем в маркетинговую группу
             await context.bot.send_message(
-                chat_id=target_chat_id,
-                text=message,
-                parse_mode="HTML"
+                chat_id=target_chat_id, text=message, parse_mode="HTML"
             )
             # Формируем медиагруппу
             media_group = []
@@ -640,8 +673,7 @@ class ParserBot(AbstractBot):
                 try:
                     product = await ParseProduct.objects.aget(id=item["id"])
                     image = await ProductImage.objects.filter(
-                        product=product,
-                        image_type="telegram"
+                        product=product, image_type="telegram"
                     ).afirst()
 
                     if image and image.file_id:
@@ -649,7 +681,7 @@ class ParserBot(AbstractBot):
                             InputMediaPhoto(
                                 media=image.file_id,
                                 caption=full_caption,
-                                parse_mode="HTML"
+                                parse_mode="HTML",
                             )
                         )
                 except ParseProduct.DoesNotExist:
@@ -659,8 +691,7 @@ class ParserBot(AbstractBot):
             if media_group:
                 try:
                     await context.bot.send_media_group(
-                        chat_id=target_chat_id,
-                        media=media_group
+                        chat_id=target_chat_id, media=media_group
                     )
                     logger.info("✅ Топ-5 с фото отправлен в группу.")
                 except Exception as e:
@@ -669,13 +700,13 @@ class ParserBot(AbstractBot):
                     await context.bot.send_message(
                         chat_id=target_chat_id,
                         text="🔥 Топ-5 популярных товаров (ошибка отправки фото)",
-                        parse_mode="HTML"
+                        parse_mode="HTML",
                     )
             else:
                 await context.bot.send_message(
                     chat_id=target_chat_id,
                     text="🔥 Топ-5 популярных товаров за 24 часа (нет доступных фото)",
-                    parse_mode="HTML"
+                    parse_mode="HTML",
                 )
             # Подтверждение пользователю
             logger.info("✅ Топ-5 отправлен в маркетинговую группу.")

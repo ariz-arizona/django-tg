@@ -17,6 +17,7 @@ from tg_bot.bot.abstract import AbstractBot
 from tg_bot.models import (
     TgUser,
 )
+from cardparser.utils import render_template
 from cardparser.services.wb_link_builder import Se
 from cardparser.services.popular import get_popular_products
 from cardparser.models import (
@@ -26,6 +27,7 @@ from cardparser.models import (
     Category,
     ProductImage,
     BotSettings,
+    EventCaption
 )
 
 # Класс для парсера бота, который наследует AbstractBot
@@ -625,21 +627,24 @@ class ParserBot(AbstractBot):
             # Проверяем, что marketing_group_id задан
             target_chat_id = settings.marketing_group_id
             if not target_chat_id:
-                await update.message.reply_text(
-                    "❌ Не задан chat_id для маркетинговой группы."
-                )
+                logger.info("❌ Не задан chat_id для маркетинговой группы.")
                 return
 
             # Получаем топ-5 популярных товаров за 24 часа
             popular = await sync_to_async(get_popular_products)(hours=24, limit=5)
             if not popular:
-                await update.message.reply_text(
-                    "📉 За последние 24 часа нет данных о популярных товарах."
-                )
+                logger.info("📉 За последние 24 часа нет данных о популярных товарах.")
+                return
+
+            msg_obj = await EventCaption.aget_active_by_type(
+                EventCaption.EventType.POPULAR
+            )
+            if not msg_obj:
+                logger.info("Нет шаблона сообщений.")
                 return
 
             # Формируем сообщение
-            message = "🔥 <b>Топ-5 популярных товаров за 24 часа</b>:\n\n"
+            message = msg_obj["text"]
             for i, item in enumerate(popular, start=1):
                 name = item["name"]
                 brand = item["brand"]
@@ -663,11 +668,15 @@ class ParserBot(AbstractBot):
                 caption_text = item["caption"].strip()
 
                 # Полная подпись к фото
-                full_caption = (
-                    f"<b>{name}</b>\n"
-                    f"📌 {caption_text}\n"
-                    f"🏷️ <i>{brand}</i> | {platform}\n"
-                    f"📥 Запросов: {count}"
+                full_caption = render_template(
+                    msg_obj["caption"],
+                    {
+                        "name": name,
+                        "caption_text": caption_text,
+                        "brand": brand,
+                        "platform": platform,
+                        "count": count,
+                    },
                 )
 
                 # Получаем товар и его фото

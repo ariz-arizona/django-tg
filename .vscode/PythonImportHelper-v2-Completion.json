@@ -502,6 +502,14 @@
         "documentation": {}
     },
     {
+        "label": "render_template",
+        "importPath": "cardparser.utils",
+        "description": "cardparser.utils",
+        "isExtraImport": true,
+        "detail": "cardparser.utils",
+        "documentation": {}
+    },
+    {
         "label": "Se",
         "importPath": "cardparser.services.wb_link_builder",
         "description": "cardparser.services.wb_link_builder",
@@ -559,6 +567,14 @@
     },
     {
         "label": "BotSettings",
+        "importPath": "cardparser.models",
+        "description": "cardparser.models",
+        "isExtraImport": true,
+        "detail": "cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "EventCaption",
         "importPath": "cardparser.models",
         "description": "cardparser.models",
         "isExtraImport": true,
@@ -1837,7 +1853,7 @@
         "kind": 6,
         "importPath": "app.cardparser.models",
         "description": "app.cardparser.models",
-        "peekOfCode": "class EventCaption(models.Model):\n    EVENT_TYPE_CHOICES = [\n        ('popular', 'Топ популярных'),\n        ('default', 'По умолчанию'),\n    ]\n    event_type = models.CharField(\n        max_length=20,\n        choices=EVENT_TYPE_CHOICES,\n        verbose_name=\"Тип события\"\n    )",
+        "peekOfCode": "class EventCaption(models.Model):\n    class EventType(models.TextChoices):\n        POPULAR = 'popular', 'Топ популярных'\n        DEFAULT = 'default', 'По умолчанию'\n    event_type = models.CharField(\n        max_length=20,\n        choices=EventType.choices,\n        verbose_name=\"Тип события\"\n    )\n    text = models.TextField(",
         "detail": "app.cardparser.models",
         "documentation": {}
     },
@@ -1875,6 +1891,15 @@
         "description": "app.cardparser.tasks",
         "peekOfCode": "redis_client = redis.StrictRedis(\n    host=os.getenv(\"REDIS_HOST\"), port=os.getenv(\"REDIS_PORT\"), db=2\n)\n@shared_task\ndef trigger_popular_command(bot_id: int):\n    \"\"\"\n    Задача: имитирует команду /popular от администратора.\n    Кладёт update в очередь — бот обрабатывает как обычное сообщение.\n    \"\"\"\n    # Токен бота из настроек",
         "detail": "app.cardparser.tasks",
+        "documentation": {}
+    },
+    {
+        "label": "render_template",
+        "kind": 2,
+        "importPath": "app.cardparser.utils",
+        "description": "app.cardparser.utils",
+        "peekOfCode": "def render_template(template: str, context: dict) -> str:\n    \"\"\"\n    Подставляет значения из словаря `context` в шаблон.\n    Заменяет все вхождения {key} на соответствующее значение.\n    Пример:\n        render_template(\"Привет, {name}!\", {\"name\": \"Анна\"}) → \"Привет, Анна!\"\n    :param template: строка с шаблоном (может быть None или пустой)\n    :param context: словарь с данными для подстановки\n    :return: обработанная строка\n    \"\"\"",
+        "detail": "app.cardparser.utils",
         "documentation": {}
     },
     {

@@ -253,14 +253,14 @@ class BotSettings(models.Model):
         return await sync_to_async(cls.get_active_sync)()
     
 class EventCaption(models.Model):
-    EVENT_TYPE_CHOICES = [
-        ('popular', 'Топ популярных'),
-        ('default', 'По умолчанию'),
-    ]
+    class EventType(models.TextChoices):
+        POPULAR = 'popular', 'Топ популярных'
+        DEFAULT = 'default', 'По умолчанию'
+
 
     event_type = models.CharField(
         max_length=20,
-        choices=EVENT_TYPE_CHOICES,
+        choices=EventType.choices,
         verbose_name="Тип события"
     )
     text = models.TextField(
@@ -296,13 +296,19 @@ class EventCaption(models.Model):
         return f"{self.get_event_type_display()} — {(self.text or '-')[:50] or (self.caption or '-')[:50]}"
     
     @classmethod
-    async def aget_active_by_type(cls, event_type: str) -> str:
+    async def aget_active_by_type(cls, event_type: str) -> dict:
         """
-        Асинхронно получает текст активной подписи по типу события.
-        Если не найдена — возвращает None или дефолтный текст.
+        Принимает строку, например 'popular' или EventType.POPULAR.
         """
+        # Если передали EventType.POPULAR (enum), превратим в строку
+        if hasattr(event_type, 'value'):  # это элемент TextChoices
+            event_type = event_type.value
+
         try:
             obj = await cls.objects.aget(event_type=event_type, is_active=True)
-            return obj.caption.strip()
+            return {
+                "text": obj.text.strip().replace('\\n', '\n') if obj.text else None,
+                "caption": obj.caption.strip().replace('\\n', '\n') if obj.caption else None,
+            }
         except cls.DoesNotExist:
-            return None  # или можно вернуть дефолтный текст
+            return None

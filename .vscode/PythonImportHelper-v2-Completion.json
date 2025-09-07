@@ -623,6 +623,22 @@
         "documentation": {}
     },
     {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "models",
         "importPath": "django.db",
         "description": "django.db",
@@ -1646,6 +1662,15 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.cardparser.migrations.0003_eventcaption",
+        "description": "app.cardparser.migrations.0003_eventcaption",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('cardparser', '0002_botsettings'),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='EventCaption',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),\n                ('event_type', models.CharField(choices=[('popular', 'Топ популярных'), ('default', 'По умолчанию')], max_length=20, verbose_name='Тип события')),",
+        "detail": "app.cardparser.migrations.0003_eventcaption",
+        "documentation": {}
+    },
+    {
         "label": "get_popular_products",
         "kind": 2,
         "importPath": "app.cardparser.services.popular",
@@ -1736,6 +1761,15 @@
         "documentation": {}
     },
     {
+        "label": "EventCaptionAdmin",
+        "kind": 6,
+        "importPath": "app.cardparser.admin",
+        "description": "app.cardparser.admin",
+        "peekOfCode": "class EventCaptionAdmin(admin.ModelAdmin):\n    # Поля, которые видно в списке\n    list_display = (\n        'get_event_type_display_name',\n        'short_text',\n        'short_caption',\n        'is_active',\n        'updated_at'\n    )\n    # Поля, которые можно редактировать прямо в списке",
+        "detail": "app.cardparser.admin",
+        "documentation": {}
+    },
+    {
         "label": "CardparserConfig",
         "kind": 6,
         "importPath": "app.cardparser.apps",
@@ -1795,6 +1829,15 @@
         "importPath": "app.cardparser.models",
         "description": "app.cardparser.models",
         "peekOfCode": "class BotSettings(models.Model):\n    \"\"\"\n    Глобальные настройки бота. Только одна запись может быть активной.\n    Ограничение enforced на уровне базы данных.\n    \"\"\"\n    active = models.BooleanField(\n        default=False,\n        verbose_name=\"Активные настройки\",\n        help_text=\"Только одна запись в системе может быть активной.\"\n    )",
+        "detail": "app.cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "EventCaption",
+        "kind": 6,
+        "importPath": "app.cardparser.models",
+        "description": "app.cardparser.models",
+        "peekOfCode": "class EventCaption(models.Model):\n    EVENT_TYPE_CHOICES = [\n        ('popular', 'Топ популярных'),\n        ('default', 'По умолчанию'),\n    ]\n    event_type = models.CharField(\n        max_length=20,\n        choices=EVENT_TYPE_CHOICES,\n        verbose_name=\"Тип события\"\n    )",
         "detail": "app.cardparser.models",
         "documentation": {}
     },

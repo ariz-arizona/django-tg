@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from tg_bot.models import Bot, TgUser
-from .models import ParseProduct, TgUserProduct, Brand, Category, ProductImage, BotSettings
+from .models import ParseProduct, TgUserProduct, Brand, Category, ProductImage, BotSettings, EventCaption
 
 
 @admin.register(TgUserProduct)
@@ -253,3 +253,48 @@ class BotSettingsAdmin(admin.ModelAdmin):
         if obj.parser_url_wb:
             lines.append(f"WB: <code style='font-size:0.9em'>{obj.parser_url_wb}</code>")
         return format_html("<br>".join(lines)) if lines else "-"
+    
+@admin.register(EventCaption)
+class EventCaptionAdmin(admin.ModelAdmin):
+    # Поля, которые видно в списке
+    list_display = (
+        'get_event_type_display_name',
+        'short_text',
+        'short_caption',
+        'is_active',
+        'updated_at'
+    )
+
+    # Поля, которые можно редактировать прямо в списке
+    list_editable = ('is_active',)
+
+    # Фильтры справа
+    list_filter = ('event_type', 'is_active')
+
+    # Поиск по тексту подписи
+    search_fields = ('caption',)
+
+    # Сортировка: сначала по типу, потом активные сверху
+    ordering = ('event_type', '-is_active')
+
+    # Чтобы поле updated_at было только для чтения
+    readonly_fields = ('updated_at',)
+
+    # Удобное отображение типа события
+    def get_event_type_display_name(self, obj):
+        return obj.get_event_type_display()
+    get_event_type_display_name.short_description = "Тип события"
+    get_event_type_display_name.admin_order_field = 'event_type'
+
+    # Превью подписи
+    def short_text(self, obj):
+        if not obj.text:
+            return "-"
+        return (obj.text.strip()[:60] + "...") if len(obj.text.strip()) > 60 else obj.text.strip()
+    short_text.short_description = "Текст выдачи"
+
+    def short_caption(self, obj):
+        if not obj.caption:
+            return "-"
+        return (obj.caption.strip()[:60] + "...") if len(obj.caption.strip()) > 60 else obj.caption.strip()
+    short_caption.short_description = "Подпись к фото"

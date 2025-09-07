@@ -251,3 +251,58 @@ class BotSettings(models.Model):
         Использует sync_to_async внутри.
         """
         return await sync_to_async(cls.get_active_sync)()
+    
+class EventCaption(models.Model):
+    EVENT_TYPE_CHOICES = [
+        ('popular', 'Топ популярных'),
+        ('default', 'По умолчанию'),
+    ]
+
+    event_type = models.CharField(
+        max_length=20,
+        choices=EVENT_TYPE_CHOICES,
+        verbose_name="Тип события"
+    )
+    text = models.TextField(
+        verbose_name="Текст выдачи",
+        help_text="Общий текст, например, перед списком или медиагруппой. Можно использовать HTML.",
+        blank=True,
+        null=True
+    )
+    caption = models.TextField(
+        verbose_name="Подпись к фото",
+        help_text="Текст, который будет на каждом фото (например, в медиагруппе). Можно использовать HTML.",
+        blank=True,
+        null=True
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Активна"
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Обновлено")
+
+    class Meta:
+        verbose_name = f"{bot_prefix}: Подпись для события"
+        verbose_name_plural = f"{bot_prefix}: Подписи для событий"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['event_type'],
+                condition=models.Q(is_active=True),
+                name='unique_active_event_type'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.get_event_type_display()} — {(self.text or '-')[:50] or (self.caption or '-')[:50]}"
+    
+    @classmethod
+    async def aget_active_by_type(cls, event_type: str) -> str:
+        """
+        Асинхронно получает текст активной подписи по типу события.
+        Если не найдена — возвращает None или дефолтный текст.
+        """
+        try:
+            obj = await cls.objects.aget(event_type=event_type, is_active=True)
+            return obj.caption.strip()
+        except cls.DoesNotExist:
+            return None  # или можно вернуть дефолтный текст

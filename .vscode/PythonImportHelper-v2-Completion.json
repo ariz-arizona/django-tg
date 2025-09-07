@@ -519,10 +519,10 @@
     },
     {
         "label": "get_popular_products",
-        "importPath": "cardparser.services.popular",
-        "description": "cardparser.services.popular",
+        "importPath": "cardparser.services.marketing_queryset",
+        "description": "cardparser.services.marketing_queryset",
         "isExtraImport": true,
-        "detail": "cardparser.services.popular",
+        "detail": "cardparser.services.marketing_queryset",
         "documentation": {}
     },
     {
@@ -1689,10 +1689,10 @@
     {
         "label": "get_popular_products",
         "kind": 2,
-        "importPath": "app.cardparser.services.popular",
-        "description": "app.cardparser.services.popular",
+        "importPath": "app.cardparser.services.marketing_queryset",
+        "description": "app.cardparser.services.marketing_queryset",
         "peekOfCode": "def get_popular_products(\n    hours: int = 24,\n    days: int = 0,\n    limit: int = 10\n):\n    \"\"\"\n    Возвращает топ-товаров за период:\n    - Сортирует по количеству запросов (desc)\n    - При равном количестве — по времени последнего запроса (desc)\n    Реализовано через SQL (annotate), чтобы не грузить Python.",
-        "detail": "app.cardparser.services.popular",
+        "detail": "app.cardparser.services.marketing_queryset",
         "documentation": {}
     },
     {

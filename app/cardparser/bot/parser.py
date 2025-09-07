@@ -19,7 +19,7 @@ from tg_bot.models import (
 )
 from cardparser.utils import render_template
 from cardparser.services.wb_link_builder import Se
-from cardparser.services.popular import get_popular_products
+from cardparser.services.marketing_queryset import get_popular_products
 from cardparser.models import (
     ParseProduct,
     TgUserProduct,
@@ -27,7 +27,7 @@ from cardparser.models import (
     Category,
     ProductImage,
     BotSettings,
-    EventCaption
+    EventCaption,
 )
 
 # Класс для парсера бота, который наследует AbstractBot
@@ -614,38 +614,46 @@ class ParserBot(AbstractBot):
             )
 
     async def handle_popular_command(self, update: Update, context: CallbackContext):
+        items = await sync_to_async(get_popular_products)(hours=24, limit=5)
+        event_type = EventCaption.EventType.POPULAR
+        await self.send_to_marketing_group(items, event_type, update, context)
+
+    async def send_to_marketing_group(
+        self,
+        items: list[dict],
+        event_type: EventCaption.EventType,
+        update: Update,
+        context: CallbackContext,
+    ):
         try:
+
             if not update.message.from_user.first_name == "django_task":
                 return
 
             # Получаем активные настройки (асинхронно)
             settings = await BotSettings.get_active()
             if not settings:
-                await update.message.reply_text("❌ Нет активных настроек бота.")
+                logger.error("❌ Нет активных настроек бота.")
                 return
 
             # Проверяем, что marketing_group_id задан
             target_chat_id = settings.marketing_group_id
             if not target_chat_id:
-                logger.info("❌ Не задан chat_id для маркетинговой группы.")
+                logger.error("❌ Не задан chat_id для маркетинговой группы.")
                 return
 
-            # Получаем топ-5 популярных товаров за 24 часа
-            popular = await sync_to_async(get_popular_products)(hours=24, limit=5)
-            if not popular:
-                logger.info("📉 За последние 24 часа нет данных о популярных товарах.")
+            if not items:
+                logger.info("Нет товаров для вывода")
                 return
 
-            msg_obj = await EventCaption.aget_active_by_type(
-                EventCaption.EventType.POPULAR
-            )
+            msg_obj = await EventCaption.aget_active_by_type(event_type)
             if not msg_obj:
                 logger.info("Нет шаблона сообщений.")
                 return
 
             # Формируем сообщение
             message = msg_obj["text"]
-            for i, item in enumerate(popular, start=1):
+            for i, item in enumerate(items, start=1):
                 name = item["name"]
                 brand = item["brand"]
                 platform = item["product_type"]
@@ -660,7 +668,7 @@ class ParserBot(AbstractBot):
             )
             # Формируем медиагруппу
             media_group = []
-            for item in popular:
+            for item in items:
                 name = item["name"]
                 brand = item["brand"]
                 platform = item["product_type"]
@@ -703,23 +711,15 @@ class ParserBot(AbstractBot):
                     await context.bot.send_media_group(
                         chat_id=target_chat_id, media=media_group
                     )
-                    logger.info("✅ Топ-5 с фото отправлен в группу.")
+                    logger.info(
+                        f"{event_type} {len(queryset)} с фото отправлен в группу."
+                    )
                 except Exception as e:
                     logger.error(f"Не удалось отправить медиагруппу: {e}")
-                    # fallback — текст
-                    await context.bot.send_message(
-                        chat_id=target_chat_id,
-                        text="🔥 Топ-5 популярных товаров (ошибка отправки фото)",
-                        parse_mode="HTML",
-                    )
             else:
-                await context.bot.send_message(
-                    chat_id=target_chat_id,
-                    text="🔥 Топ-5 популярных товаров за 24 часа (нет доступных фото)",
-                    parse_mode="HTML",
-                )
-            # Подтверждение пользователю
-            logger.info("✅ Топ-5 отправлен в маркетинговую группу.")
+                logger.error("Нет картинок")
 
         except Exception as e:
-            logger.error(f"Ошибка в команде /popular: {e}", exc_info=True)
+            logger.error(
+                f"Ошибка в отправке картинок в маркетинговую группу: {e}", exc_info=True
+            )

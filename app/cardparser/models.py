@@ -255,6 +255,7 @@ class BotSettings(models.Model):
 class EventCaption(models.Model):
     class EventType(models.TextChoices):
         POPULAR = 'popular', 'Топ популярных'
+        TOP_BRAND = 'top_brand', 'Активный бренд'
         DEFAULT = 'default', 'По умолчанию'
 
 

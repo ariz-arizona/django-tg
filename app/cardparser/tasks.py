@@ -15,12 +15,7 @@ redis_client = redis.StrictRedis(
 )
 
 
-@shared_task
-def trigger_popular_command(bot_id: int):
-    """
-    Задача: имитирует команду /popular от администратора.
-    Кладёт update в очередь — бот обрабатывает как обычное сообщение.
-    """
+def put_django_task_command_to_bot_queue(bot_id, command):
     # Токен бота из настроек
     bot = Bot.objects.get(id=bot_id, bot_type=Bot.BOT_TYPE_CHOICES[0][0])
     bot_token = bot.token
@@ -31,6 +26,9 @@ def trigger_popular_command(bot_id: int):
 
     now = int(time.time())
     
+    full_command = f"/{command}"
+    command_length = len(full_command)
+
     # Пример update — как если бы админ написал /popular в личку
     update_dict = {
         "update_id": now,
@@ -42,12 +40,12 @@ def trigger_popular_command(bot_id: int):
                 "first_name": "django_task",
             },
             "chat": {
-                "id": bot.chat_id,  
+                "id": bot.chat_id,
                 "type": "private",
             },
-            "date": now, 
-            "text": "/popular",
-            "entities": [{"type": "bot_command", "offset": 0, "length": 9}],
+            "date": now,
+            "text": full_command,
+            "entities": [{"type": "bot_command", "offset": 0, "length": command_length}],
         },
     }
 
@@ -57,4 +55,32 @@ def trigger_popular_command(bot_id: int):
         redis_client.rpush(queue_key, json_str)
     except Exception as e:
         # Можно залогировать, если нужно
-        logger.error(f"Ошибка при отправке /popular в очередь: {e}")
+        logger.error(f"Ошибка при отправке {command} в очередь: {e}")
+
+
+@shared_task
+def trigger_popular_command(bot_id: int):
+    """
+    [Админка] Отправляет команду /popular в очередь бота для формирования
+    и отправки топ-5 популярных товаров за 24 часа в маркетинговую группу.
+
+    Параметры:
+        bot_id (int): ID бота в системе, чей токен будет использован для определения очереди.
+
+    Используется для ручного или автоматического (по расписанию) запуска рассылки.
+    """
+    put_django_task_command_to_bot_queue(bot_id, "popular")
+
+
+@shared_task
+def trigger_top_brand_command(bot_id: int):
+    """
+    [Админка] Отправляет команду /top_brand в очередь бота для формирования
+    и отправки топ-5 товаров самого активного бренда за 24 часа в маркетинговую группу.
+
+    Параметры:
+        bot_id (int): ID бота в системе, чей токен будет использован для определения очереди.
+
+    Используется для ручного или автоматического (по расписанию) запуска рассылки.
+    """
+    put_django_task_command_to_bot_queue(bot_id, "top_brand")

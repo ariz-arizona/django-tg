@@ -19,7 +19,10 @@ from tg_bot.models import (
 )
 from cardparser.utils import render_template
 from cardparser.services.wb_link_builder import Se
-from cardparser.services.marketing_queryset import get_popular_products
+from cardparser.services.marketing_queryset import (
+    get_popular_products,
+    get_brand_and_its_top_products,
+)
 from cardparser.models import (
     ParseProduct,
     TgUserProduct,
@@ -57,6 +60,7 @@ class ParserBot(AbstractBot):
             CommandHandler("start", self.start),
             CommandHandler("search", self.handle_search_command, has_args=True),
             CommandHandler("popular", self.handle_popular_command),
+            CommandHandler("top_brand", self.handle_topbrand_command),
         ]
 
     async def wb_image_url_get(self, context, card_id, session):
@@ -613,6 +617,16 @@ class ParserBot(AbstractBot):
                 "Произошла ошибка при выполнении поиска. Пожалуйста, попробуйте снова."
             )
 
+    async def handle_topbrand_command(self, update: Update, context: CallbackContext):
+        items = await sync_to_async(get_brand_and_its_top_products)(hours=24, limit=5)
+        event_type = EventCaption.EventType.TOP_BRAND
+        await self.send_to_marketing_group(
+            items["top_products"],
+            event_type,
+            update,
+            context,
+        )
+
     async def handle_popular_command(self, update: Update, context: CallbackContext):
         items = await sync_to_async(get_popular_products)(hours=24, limit=5)
         event_type = EventCaption.EventType.POPULAR
@@ -711,9 +725,7 @@ class ParserBot(AbstractBot):
                     await context.bot.send_media_group(
                         chat_id=target_chat_id, media=media_group
                     )
-                    logger.info(
-                        f"{event_type} {len(queryset)} с фото отправлен в группу."
-                    )
+                    logger.info(f"{event_type} {len(items)} с фото отправлен в группу.")
                 except Exception as e:
                     logger.error(f"Не удалось отправить медиагруппу: {e}")
             else:

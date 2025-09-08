@@ -9,6 +9,7 @@ PRODUCT_TYPE_CHOICES = [
     ("wb", "Wildberries"),
 ]
 
+
 class Brand(models.Model):
     """Модель бренда с учётом принадлежности к платформе"""
 
@@ -62,7 +63,7 @@ class ParseProduct(models.Model):
         blank=True,
         null=True,
         verbose_name="Название товара",
-        help_text="Официальное название товара (опционально)"
+        help_text="Официальное название товара (опционально)",
     )
     product_type = models.CharField(
         max_length=10, choices=PRODUCT_TYPE_CHOICES, verbose_name="Тип продукта"
@@ -167,43 +168,49 @@ class TgUserProduct(models.Model):
     def __str__(self):
         return f"{self.tg_user} -> {self.product}"
 
+
 class BotSettings(models.Model):
     """
     Глобальные настройки бота. Только одна запись может быть активной.
     Ограничение enforced на уровне базы данных.
     """
+
     active = models.BooleanField(
         default=False,
         verbose_name="Активные настройки",
-        help_text="Только одна запись в системе может быть активной."
+        help_text="Только одна запись в системе может быть активной.",
     )
 
     picture_chat_id = models.CharField(
         max_length=50,
         verbose_name="Chat ID для загрузки картинок",
-        help_text="Telegram chat ID, куда бот будет отправлять изображения для получения file_id"
+        help_text="Telegram chat ID, куда бот будет отправлять изображения для получения file_id",
     )
 
     parser_url_ozon = models.URLField(
-        blank=True, null=True,
+        blank=True,
+        null=True,
         verbose_name="URL парсера Ozon",
-        help_text="API или веб-адрес для парсинга товаров Ozon"
+        help_text="API или веб-адрес для парсинга товаров Ozon",
     )
 
     parser_url_wb = models.URLField(
-        blank=True, null=True,
+        blank=True,
+        null=True,
         verbose_name="URL парсера Wildberries",
-        help_text="API или веб-адрес для парсинга товаров Wildberries"
+        help_text="API или веб-адрес для парсинга товаров Wildberries",
     )
 
     marketing_group_id = models.CharField(
         max_length=50,
         verbose_name="Группа для вывода маркетинга",
-        help_text="Telegram chat ID группы, куда отправляются популярные товары"
+        help_text="Telegram chat ID группы, куда отправляются популярные товары",
     )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Последнее обновление")
+    updated_at = models.DateTimeField(
+        auto_now=True, verbose_name="Последнее обновление"
+    )
 
     class Meta:
         verbose_name = f"{bot_prefix}: Настройки бота"
@@ -214,15 +221,14 @@ class BotSettings(models.Model):
         constraints = [
             # 1. Гарантируем, что active=True может быть только у одной записи
             models.UniqueConstraint(
-                fields=['active'],
+                fields=["active"],
                 condition=models.Q(active=True),
-                name='unique_active_settings'
+                name="unique_active_settings",
             ),
         ]
 
     def __str__(self):
         return f"Активно ✅" if self.active else "Неактивно ❌"
-
 
     @classmethod
     def get_active_sync(cls):
@@ -251,36 +257,31 @@ class BotSettings(models.Model):
         Использует sync_to_async внутри.
         """
         return await sync_to_async(cls.get_active_sync)()
-    
+
+
 class EventCaption(models.Model):
     class EventType(models.TextChoices):
-        POPULAR = 'popular', 'Топ популярных'
-        TOP_BRAND = 'top_brand', 'Активный бренд'
-        TOP_CATEGORY = 'top_category', 'Активная категория'
-        DEFAULT = 'default', 'По умолчанию'
-
+        POPULAR = "popular", "Топ популярных"
+        TOP_BRAND = "top_brand", "Активный бренд"
+        TOP_CATEGORY = "top_category", "Активная категория"
+        DEFAULT = "default", "По умолчанию"
 
     event_type = models.CharField(
-        max_length=20,
-        choices=EventType.choices,
-        verbose_name="Тип события"
+        max_length=20, choices=EventType.choices, verbose_name="Тип события"
     )
     text = models.TextField(
         verbose_name="Текст выдачи",
         help_text="Общий текст, например, перед списком или медиагруппой. Можно использовать HTML.",
         blank=True,
-        null=True
+        null=True,
     )
     caption = models.TextField(
         verbose_name="Подпись к фото",
         help_text="Текст, который будет на каждом фото (например, в медиагруппе). Можно использовать HTML.",
         blank=True,
-        null=True
+        null=True,
     )
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name="Активна"
-    )
+    is_active = models.BooleanField(default=True, verbose_name="Активна")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Обновлено")
 
     class Meta:
@@ -288,29 +289,83 @@ class EventCaption(models.Model):
         verbose_name_plural = f"{bot_prefix}: Подписи для событий"
         constraints = [
             models.UniqueConstraint(
-                fields=['event_type'],
+                fields=["event_type"],
                 condition=models.Q(is_active=True),
-                name='unique_active_event_type'
+                name="unique_active_event_type",
             )
         ]
 
     def __str__(self):
         return f"{self.get_event_type_display()} — {(self.text or '-')[:50] or (self.caption or '-')[:50]}"
-    
+
     @classmethod
     async def aget_active_by_type(cls, event_type: str) -> dict:
         """
         Принимает строку, например 'popular' или EventType.POPULAR.
         """
         # Если передали EventType.POPULAR (enum), превратим в строку
-        if hasattr(event_type, 'value'):  # это элемент TextChoices
+        if hasattr(event_type, "value"):  # это элемент TextChoices
             event_type = event_type.value
 
         try:
             obj = await cls.objects.aget(event_type=event_type, is_active=True)
             return {
-                "text": obj.text.strip().replace('\\n', '\n') if obj.text else None,
-                "caption": obj.caption.strip().replace('\\n', '\n') if obj.caption else None,
+                "text": obj.text.strip().replace("\\n", "\n") if obj.text else None,
+                "caption": (
+                    obj.caption.strip().replace("\\n", "\n") if obj.caption else None
+                ),
             }
+        except cls.DoesNotExist:
+            return None
+
+
+class ProductTemplate(models.Model):
+    """Шаблон для форматирования карточки товара — минималистичная версия"""
+
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name="Название шаблона",
+        help_text="Уникальное имя для идентификации шаблона, например: 'Основной', 'Короткий', 'С эмодзи'",
+    )
+    template = models.TextField(
+        verbose_name="Текст шаблона",
+        help_text=(
+            "Используйте плейсхолдеры в фигурных скобках: "
+            "{brand}, {name}, {price_display}, {sizes_display}, {availability}, {link}, {sku}. "
+        ),
+    )
+    is_default = models.BooleanField(
+        default=False,
+        verbose_name="Шаблон по умолчанию",
+        help_text="Будет использоваться, если в коде не указано конкретное имя шаблона. Только один шаблон может быть 'по умолчанию'."
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Создан")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Обновлён")
+
+    class Meta:
+        verbose_name = f"{bot_prefix}: Шаблон товара"
+        verbose_name_plural = f"{bot_prefix}: Шаблоны товаров"
+        ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['is_default'],
+                condition=models.Q(is_default=True),
+                name='unique_default_template'
+            )
+        ]
+
+    def __str__(self):
+        return self.name
+    
+    @classmethod
+    async def aget_default_template(cls) -> str:
+        """
+        Асинхронно возвращает текст шаблона, помеченного как 'по умолчанию'.
+        Если такого нет — возвращает пустую строку.
+        """
+        try:
+            obj = await cls.objects.aget(is_default=True)
+            return obj.template
         except cls.DoesNotExist:
             return None

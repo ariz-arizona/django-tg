@@ -32,6 +32,7 @@ from cardparser.models import (
     ProductImage,
     BotSettings,
     EventCaption,
+    ProductTemplate,
 )
 
 # Класс для парсера бота, который наследует AbstractBot
@@ -232,15 +233,18 @@ class ParserBot(AbstractBot):
                 "is_bot": update.message.from_user.is_bot,
             },
         )
-        # Пример шаблона — можно вынести в конфиг или БД
-        DEFAULT_TEMPLATE = """\
+
+        pictures = []
+        default_template = await ProductTemplate.aget_default_template()
+        if not default_template:
+            default_template = """\
 Разбор карточки {sku}
 {brand} <a href="{link}">{name}</a>
 Цена: {price_display}
 Размеры: {sizes_display}
 Наличие: {availability_display}
 """
-        pictures = []
+
         for i in items:
             p = await parse_func(i, context)
             if p and p["media"]:
@@ -251,14 +255,21 @@ class ParserBot(AbstractBot):
                     "brand": caption_data.get("brand", "Неизвестный бренд"),
                     "name": caption_data.get("name", "Без названия"),
                     "link": caption_data.get("link", "#"),
+                    "hash_type": "#" + product_type,
                 }
 
+                if "category" in p:
+                    template_context["hash_category"] = "#" + re.sub(r'\W+', '_', p["category"]["name"].lower())
+
+                if "brand" in p:
+                    template_context["hash_brand"] = "#" + re.sub(r'\W+', '_', p["brand"]["name"].lower())
+
                 sizes = caption_data.get("sizes", [])
-                logger.info(caption_data)
+
                 active_prices = [
-                    p.get('price')
+                    p.get("price")
                     for p in caption_data.get("sizes", [])
-                    if p.get('price') is not None and p.get('price') > 0
+                    if p.get("price") is not None and p.get("price") > 0
                 ]
                 show_common_price = (
                     len(set(active_prices)) == 1 if active_prices else False
@@ -287,7 +298,7 @@ class ParserBot(AbstractBot):
                     else "❌ Нет в наличии"
                 )
 
-                rendered_caption = render_template(DEFAULT_TEMPLATE, template_context)
+                rendered_caption = render_template(default_template, template_context)
 
                 pictures.append(
                     {

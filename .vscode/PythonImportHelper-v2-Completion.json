@@ -598,6 +598,14 @@
         "documentation": {}
     },
     {
+        "label": "ProductTemplate",
+        "importPath": "cardparser.models",
+        "description": "cardparser.models",
+        "isExtraImport": true,
+        "detail": "cardparser.models",
+        "documentation": {}
+    },
+    {
         "label": "TgUserProduct",
         "importPath": "cardparser.models",
         "description": "cardparser.models",
@@ -636,6 +644,22 @@
         "importPath": "django.db.models.deletion",
         "description": "django.db.models.deletion",
         "detail": "django.db.models.deletion",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
         "documentation": {}
     },
     {
@@ -1794,6 +1818,15 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.cardparser.migrations.0005_producttemplate",
+        "description": "app.cardparser.migrations.0005_producttemplate",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('cardparser', '0004_alter_eventcaption_options_eventcaption_text_and_more'),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='ProductTemplate',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),\n                ('name', models.CharField(help_text=\"Уникальное имя для идентификации шаблона, например: 'Основной', 'Короткий', 'С эмодзи'\", max_length=100, unique=True, verbose_name='Название шаблона')),",
+        "detail": "app.cardparser.migrations.0005_producttemplate",
+        "documentation": {}
+    },
+    {
         "label": "get_category_and_its_top_products",
         "kind": 2,
         "importPath": "app.cardparser.services.marketing_queryset",
@@ -1911,6 +1944,15 @@
         "documentation": {}
     },
     {
+        "label": "ProductTemplateAdmin",
+        "kind": 6,
+        "importPath": "app.cardparser.admin",
+        "description": "app.cardparser.admin",
+        "peekOfCode": "class ProductTemplateAdmin(admin.ModelAdmin):\n    list_display = [\"name\", \"is_default\", \"created_at\", \"updated_at\"]\n    list_filter = [\"is_default\"]\n    search_fields = [\"name\"]\n    ordering = [\"name\"]\n    fieldsets = (\n        (None, {\n            \"fields\": (\"name\", \"is_default\", \"template\"),\n            \"description\": (\n                \"<p><strong>Плейсхолдеры:</strong> {brand}, {name}, {price_display}, \"",
+        "detail": "app.cardparser.admin",
+        "documentation": {}
+    },
+    {
         "label": "CardparserConfig",
         "kind": 6,
         "importPath": "app.cardparser.apps",
@@ -1942,7 +1984,7 @@
         "kind": 6,
         "importPath": "app.cardparser.models",
         "description": "app.cardparser.models",
-        "peekOfCode": "class ParseProduct(models.Model):\n    \"\"\"Модель для хранения данных о продукте.\"\"\"\n    product_id = models.CharField(max_length=255, verbose_name=\"ID товара\")\n    caption = models.TextField(verbose_name=\"Подпись к фото\")\n    name = models.CharField(\n        max_length=255,\n        blank=True,\n        null=True,\n        verbose_name=\"Название товара\",\n        help_text=\"Официальное название товара (опционально)\"",
+        "peekOfCode": "class ParseProduct(models.Model):\n    \"\"\"Модель для хранения данных о продукте.\"\"\"\n    product_id = models.CharField(max_length=255, verbose_name=\"ID товара\")\n    caption = models.TextField(verbose_name=\"Подпись к фото\")\n    name = models.CharField(\n        max_length=255,\n        blank=True,\n        null=True,\n        verbose_name=\"Название товара\",\n        help_text=\"Официальное название товара (опционально)\",",
         "detail": "app.cardparser.models",
         "documentation": {}
     },
@@ -1969,7 +2011,7 @@
         "kind": 6,
         "importPath": "app.cardparser.models",
         "description": "app.cardparser.models",
-        "peekOfCode": "class BotSettings(models.Model):\n    \"\"\"\n    Глобальные настройки бота. Только одна запись может быть активной.\n    Ограничение enforced на уровне базы данных.\n    \"\"\"\n    active = models.BooleanField(\n        default=False,\n        verbose_name=\"Активные настройки\",\n        help_text=\"Только одна запись в системе может быть активной.\"\n    )",
+        "peekOfCode": "class BotSettings(models.Model):\n    \"\"\"\n    Глобальные настройки бота. Только одна запись может быть активной.\n    Ограничение enforced на уровне базы данных.\n    \"\"\"\n    active = models.BooleanField(\n        default=False,\n        verbose_name=\"Активные настройки\",\n        help_text=\"Только одна запись в системе может быть активной.\",\n    )",
         "detail": "app.cardparser.models",
         "documentation": {}
     },
@@ -1978,7 +2020,16 @@
         "kind": 6,
         "importPath": "app.cardparser.models",
         "description": "app.cardparser.models",
-        "peekOfCode": "class EventCaption(models.Model):\n    class EventType(models.TextChoices):\n        POPULAR = 'popular', 'Топ популярных'\n        TOP_BRAND = 'top_brand', 'Активный бренд'\n        TOP_CATEGORY = 'top_category', 'Активная категория'\n        DEFAULT = 'default', 'По умолчанию'\n    event_type = models.CharField(\n        max_length=20,\n        choices=EventType.choices,\n        verbose_name=\"Тип события\"",
+        "peekOfCode": "class EventCaption(models.Model):\n    class EventType(models.TextChoices):\n        POPULAR = \"popular\", \"Топ популярных\"\n        TOP_BRAND = \"top_brand\", \"Активный бренд\"\n        TOP_CATEGORY = \"top_category\", \"Активная категория\"\n        DEFAULT = \"default\", \"По умолчанию\"\n    event_type = models.CharField(\n        max_length=20, choices=EventType.choices, verbose_name=\"Тип события\"\n    )\n    text = models.TextField(",
+        "detail": "app.cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "ProductTemplate",
+        "kind": 6,
+        "importPath": "app.cardparser.models",
+        "description": "app.cardparser.models",
+        "peekOfCode": "class ProductTemplate(models.Model):\n    \"\"\"Шаблон для форматирования карточки товара — минималистичная версия\"\"\"\n    name = models.CharField(\n        max_length=100,\n        unique=True,\n        verbose_name=\"Название шаблона\",\n        help_text=\"Уникальное имя для идентификации шаблона, например: 'Основной', 'Короткий', 'С эмодзи'\",\n    )\n    template = models.TextField(\n        verbose_name=\"Текст шаблона\",",
         "detail": "app.cardparser.models",
         "documentation": {}
     },

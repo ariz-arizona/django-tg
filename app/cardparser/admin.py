@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from tg_bot.models import Bot, TgUser
-from .models import ParseProduct, TgUserProduct, Brand, Category, ProductImage, BotSettings, EventCaption
+from .models import ParseProduct, TgUserProduct, Brand, Category, ProductImage, BotSettings, EventCaption, ProductTemplate
 
 
 @admin.register(TgUserProduct)
@@ -298,3 +298,32 @@ class EventCaptionAdmin(admin.ModelAdmin):
             return "-"
         return (obj.caption.strip()[:60] + "...") if len(obj.caption.strip()) > 60 else obj.caption.strip()
     short_caption.short_description = "Подпись к фото"
+    
+@admin.register(ProductTemplate)
+class ProductTemplateAdmin(admin.ModelAdmin):
+    list_display = ["name", "is_default", "created_at", "updated_at"]
+    list_filter = ["is_default"]
+    search_fields = ["name"]
+    ordering = ["name"]
+    
+    fieldsets = (
+        (None, {
+            "fields": ("name", "is_default", "template"),
+            "description": (
+                "<p><strong>Плейсхолдеры:</strong> {brand}, {name}, {price_display}, "
+                "{sizes_display}, {availability}, {link}, {sku}</p>"
+            )
+        }),
+        ("Системная информация", {
+            "fields": ("created_at", "updated_at"),
+            "classes": ("collapse",),
+        }),
+    )
+
+    readonly_fields = ["created_at", "updated_at"]
+
+    def get_readonly_fields(self, request, obj=None):
+        # Запрещаем менять название после создания (чтобы не сломать код, который на него ссылается)
+        if obj:
+            return self.readonly_fields + ["name"]
+        return self.readonly_fields

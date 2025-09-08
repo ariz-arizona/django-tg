@@ -1726,7 +1726,7 @@
         "kind": 2,
         "importPath": "app.cardparser.bot.parser",
         "description": "app.cardparser.bot.parser",
-        "peekOfCode": "def parse_price_string(price_str: str) -> float:\n    \"\"\"\n    Преобразует строку вида \"3 021 ₽\" или \"2 900 ₽\" в число 3021.0\n    Удаляет все нецифровые символы, кроме точки (для копеек, если понадобится).\n    \"\"\"\n    if not isinstance(price_str, str):\n        return 0.0\n    # Удаляем всё, кроме цифр и точки\n    cleaned = ''.join(c for c in price_str if c.isdigit() or c == '.')\n    return float(cleaned) if cleaned else 0.0",
+        "peekOfCode": "def parse_price_string(price_str: str) -> float:\n    \"\"\"\n    Преобразует строку вида \"3 021 ₽\" или \"2 900 ₽\" в число 3021.0\n    Удаляет все нецифровые символы, кроме точки (для копеек, если понадобится).\n    \"\"\"\n    if not isinstance(price_str, str):\n        return 0.0\n    # Удаляем всё, кроме цифр и точки\n    cleaned = \"\".join(c for c in price_str if c.isdigit() or c == \".\")\n    return float(cleaned) if cleaned else 0.0",
         "detail": "app.cardparser.bot.parser",
         "documentation": {}
     },

@@ -60,6 +60,7 @@ def format_sizes_for_template(sizes: list, show_common_price: bool = False) -> s
 
     return ", ".join(parts)
 
+
 def parse_price_string(price_str: str) -> float:
     """
     Преобразует строку вида "3 021 ₽" или "2 900 ₽" в число 3021.0
@@ -68,8 +69,9 @@ def parse_price_string(price_str: str) -> float:
     if not isinstance(price_str, str):
         return 0.0
     # Удаляем всё, кроме цифр и точки
-    cleaned = ''.join(c for c in price_str if c.isdigit() or c == '.')
+    cleaned = "".join(c for c in price_str if c.isdigit() or c == ".")
     return float(cleaned) if cleaned else 0.0
+
 
 class ParserBot(AbstractBot):
     def __init__(self):
@@ -171,18 +173,10 @@ class ParserBot(AbstractBot):
 
                         sizes.append(obj)
 
-                    active_prices = {
-                        s.get("price", None) for s in sizes if s["available"]
-                    }
-                    show_common_price = len(active_prices) == 1
-
                     # Формируем текст
                     txt.append(f"Разбор карточки WB <code>{sku}</code>")
                     txt.append(f'{brand} <a href="{link}">{name}</a>')
-                    if show_common_price:
-                        common_price = next(iter(active_prices))
-                        txt.append(f"Цена: {common_price} ₽")
-
+                    show_common_price = True
                     txt.append("Размеры и цена:")
                     txt.append(
                         ", ".join(
@@ -201,8 +195,6 @@ class ParserBot(AbstractBot):
                         "link": link,
                         "sizes": sizes,
                         "availability": any(size["available"] for size in sizes),
-                        "show_common_price": show_common_price,
-                        "active_prices": list(active_prices),
                     }
                     if brand:
                         caption_data["brand"] = brand
@@ -264,9 +256,9 @@ class ParserBot(AbstractBot):
                 sizes = caption_data.get("sizes", [])
                 logger.info(caption_data)
                 active_prices = [
-                    p
-                    for p in caption_data.get("active_prices", [])
-                    if p is not None and p > 0
+                    p.get('price')
+                    for p in caption_data.get("sizes", [])
+                    if p.get('price') is not None and p.get('price') > 0
                 ]
                 show_common_price = (
                     len(set(active_prices)) == 1 if active_prices else False
@@ -275,14 +267,17 @@ class ParserBot(AbstractBot):
                     min_price = min(active_prices)
                     max_price = max(active_prices)
                     if show_common_price:
-                        template_context["price_display"] = f"{min_price:,.0f}".replace(",", " ") + " ₽"
+                        template_context["price_display"] = (
+                            f"{min_price:,.0f}".replace(",", " ") + " ₽"
+                        )
                     else:
                         template_context["price_display"] = (
-                            f"{min_price:,.0f} – {max_price:,.0f}".replace(",", " ") + " ₽"
+                            f"{min_price:,.0f} – {max_price:,.0f}".replace(",", " ")
+                            + " ₽"
                         )
                 else:
                     template_context["price_display"] = "—"
-                    
+
                 template_context["sizes_display"] = format_sizes_for_template(
                     sizes, show_common_price
                 )
@@ -502,6 +497,7 @@ class ParserBot(AbstractBot):
             price = None
             brand_name = None
             availability = True
+            sizes = []
 
             # Обработка виджетов
             error = self.get_ozon_widget(widget_states, "error")
@@ -517,6 +513,7 @@ class ParserBot(AbstractBot):
             )
             search_results = self.get_ozon_widget(widget_states, "searchResults")
             user_adult_modal = self.get_ozon_widget(widget_states, "userAdultModal")
+            aspects_data = self.get_ozon_widget(widget_states, "webAspects")
 
             if out_of_stock:
                 sku = out_of_stock.get("sku")
@@ -588,15 +585,62 @@ class ParserBot(AbstractBot):
                     None,
                 )
 
+            if aspects_data:
+                for aspect in aspects_data.get("aspects", []):
+                    if aspect.get("aspectKey") == "size":  # Только размеры
+                        for variant in aspect.get("variants", []):
+                            size_name = ""
+                            # Извлекаем название размера
+                            text_rs = variant.get("data", {}).get("textRs", [])
+                            if (
+                                text_rs
+                                and isinstance(text_rs, list)
+                                and len(text_rs) > 0
+                            ):
+                                size_name = "".join(
+                                    item.get("content", "")
+                                    for item in text_rs
+                                    if item.get("type") == "text"
+                                ).strip()
+
+                            # Определяем наличие
+                            available = variant.get("availability") == "inStock"
+
+                            # Парсим цену
+                            raw_price = variant.get(
+                                "price"
+                            )  # Может быть строкой "2 900 ₽" или числом 2900
+                            aspect_price = None
+                            if raw_price:
+                                if isinstance(raw_price, str):
+                                    aspect_price = parse_price_string(raw_price)
+                                else:
+                                    aspect_price = float(raw_price)
+
+                            sizes.append(
+                                {
+                                    "name": size_name,
+                                    "available": available,
+                                    "price": aspect_price,
+                                }
+                            )
+            elif out_of_stock:
+                sizes.append(
+                    {
+                        "name": out_of_stock.get("skuName"),
+                        "available": False,
+                        "price": parse_price_string(out_of_stock.get("price")),
+                    }
+                )
+
             if not img:
                 raise Exception("no image")
-            act_price = parse_price_string(price["price"] if price else add_to_cart.get("price"))
+
             caption_data = {
                 "sku": sku,
                 "name": product_name[0:20],
                 "link": f'https://ozon.ru{page_info.get("url", ozon_id)}',
-                "show_common_price": True,  # На Ozon всегда одна цена
-                "active_prices": [act_price if (price or add_to_cart) else 0],
+                "sizes": sizes,
                 "availability": availability,
             }
 

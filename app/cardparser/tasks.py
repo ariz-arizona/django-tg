@@ -27,7 +27,8 @@ def put_django_task_command_to_bot_queue(bot_id, command):
     now = int(time.time())
     
     full_command = f"/{command}"
-    command_length = len(full_command)
+    command_length = len(full_command.split(' ', 1)[0])
+    logger.info(f'Отправляем в очередь команду {full_command} с длиной {command_length}')
 
     # Пример update — как если бы админ написал /popular в личку
     update_dict = {
@@ -73,14 +74,20 @@ def trigger_popular_command(bot_id: int):
 
 
 @shared_task
-def trigger_top_brand_command(bot_id: int):
+def trigger_top_brand_command(bot_id: int, exclude_ids=None):
     """
     [Админка] Отправляет команду /top_brand в очередь бота для формирования
     и отправки топ-5 товаров самого активного бренда за 24 часа в маркетинговую группу.
 
     Параметры:
         bot_id (int): ID бота в системе, чей токен будет использован для определения очереди.
+        exclude_ids (list[int], optional): Список ID категорий для исключения.
 
     Используется для ручного или автоматического (по расписанию) запуска рассылки.
     """
-    put_django_task_command_to_bot_queue(bot_id, "top_brand")
+    if exclude_ids is None:
+        exclude_ids = []
+    # Убедимся, что это список
+    if not isinstance(exclude_ids, (list, tuple)):
+        exclude_ids = []
+    put_django_task_command_to_bot_queue(bot_id, f"top_brand {' '.join(map(str, exclude_ids))}")

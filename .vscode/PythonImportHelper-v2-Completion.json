@@ -1937,7 +1937,7 @@
         "kind": 2,
         "importPath": "app.cardparser.tasks",
         "description": "app.cardparser.tasks",
-        "peekOfCode": "def put_django_task_command_to_bot_queue(bot_id, command):\n    # Токен бота из настроек\n    bot = Bot.objects.get(id=bot_id, bot_type=Bot.BOT_TYPE_CHOICES[0][0])\n    bot_token = bot.token\n    if not bot_token:\n        return\n    queue_key = f\"bot_messages_queue_{bot.token}\"\n    now = int(time.time())\n    full_command = f\"/{command}\"\n    command_length = len(full_command)",
+        "peekOfCode": "def put_django_task_command_to_bot_queue(bot_id, command):\n    # Токен бота из настроек\n    bot = Bot.objects.get(id=bot_id, bot_type=Bot.BOT_TYPE_CHOICES[0][0])\n    bot_token = bot.token\n    if not bot_token:\n        return\n    queue_key = f\"bot_messages_queue_{bot.token}\"\n    now = int(time.time())\n    full_command = f\"/{command}\"\n    command_length = len(full_command.split(' ', 1)[0])",
         "detail": "app.cardparser.tasks",
         "documentation": {}
     },
@@ -1955,7 +1955,7 @@
         "kind": 2,
         "importPath": "app.cardparser.tasks",
         "description": "app.cardparser.tasks",
-        "peekOfCode": "def trigger_top_brand_command(bot_id: int):\n    \"\"\"\n    [Админка] Отправляет команду /top_brand в очередь бота для формирования\n    и отправки топ-5 товаров самого активного бренда за 24 часа в маркетинговую группу.\n    Параметры:\n        bot_id (int): ID бота в системе, чей токен будет использован для определения очереди.\n    Используется для ручного или автоматического (по расписанию) запуска рассылки.\n    \"\"\"\n    put_django_task_command_to_bot_queue(bot_id, \"top_brand\")",
+        "peekOfCode": "def trigger_top_brand_command(bot_id: int, exclude_ids=None):\n    \"\"\"\n    [Админка] Отправляет команду /top_brand в очередь бота для формирования\n    и отправки топ-5 товаров самого активного бренда за 24 часа в маркетинговую группу.\n    Параметры:\n        bot_id (int): ID бота в системе, чей токен будет использован для определения очереди.\n        exclude_ids (list[int], optional): Список ID категорий для исключения.\n    Используется для ручного или автоматического (по расписанию) запуска рассылки.\n    \"\"\"\n    if exclude_ids is None:",
         "detail": "app.cardparser.tasks",
         "documentation": {}
     },
@@ -2945,7 +2945,7 @@
         "kind": 2,
         "importPath": "app.tg_bot.views",
         "description": "app.tg_bot.views",
-        "peekOfCode": "def webhook(request, token):\n    if request.method == \"POST\":\n        # Получаем JSON строку из тела запроса\n        json_str = request.body.decode(\"UTF-8\")\n        # Проверка, что это сообщение (опционально)\n        try:\n            # Вы можете просто поместить строку JSON в очередь\n            redis_client.rpush(f\"bot_messages_queue_{token}\", json_str)\n            logger.info(f\"Сообщение добавлено в очередь: {json_str[0:50]}\")\n            return JsonResponse({\"status\": \"ok\"})",
+        "peekOfCode": "def webhook(request, token):\n    if request.method == \"POST\":\n        # Получаем JSON строку из тела запроса\n        json_str = request.body.decode(\"UTF-8\")\n        # Проверка, что это сообщение (опционально)\n        try:\n            # Вы можете просто поместить строку JSON в очередь\n            redis_client.rpush(f\"bot_messages_queue_{token}\", json_str)\n            message = json.loads(json_str)\n            logger.info(f\"Сообщение добавлено в очередь: {message}\")",
         "detail": "app.tg_bot.views",
         "documentation": {}
     },

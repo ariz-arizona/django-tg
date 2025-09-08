@@ -1,5 +1,6 @@
 import redis
 import os
+import json
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -30,7 +31,8 @@ def webhook(request, token):
         try:
             # Вы можете просто поместить строку JSON в очередь
             redis_client.rpush(f"bot_messages_queue_{token}", json_str)
-            logger.info(f"Сообщение добавлено в очередь: {json_str[0:50]}")
+            message = json.loads(json_str)
+            logger.info(f"Сообщение добавлено в очередь: {message}")
             return JsonResponse({"status": "ok"})
         except Exception as e:
             logger.error(

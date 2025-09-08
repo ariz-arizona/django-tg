@@ -74,7 +74,7 @@ class ParserBot(AbstractBot):
                 logger.info(f"Проверка URL: {image_url}")
 
                 async with session.head(image_url) as response:
-                    logger.info(f"Ответ сервера: {response.status}")
+                    logger.debug(f"Ответ сервера: {response.status}")
 
                     if response.status == 200:
                         image_size = int(response.headers.get("content-length", 0))
@@ -618,7 +618,13 @@ class ParserBot(AbstractBot):
             )
 
     async def handle_topbrand_command(self, update: Update, context: CallbackContext):
-        items = await sync_to_async(get_brand_and_its_top_products)(hours=24, limit=5)
+        exclude_cat_raw = update.message.text.split(maxsplit=1)
+        exclude_cat_ids = []
+        if len(exclude_cat_raw) > 1:
+            exclude_cat_ids = [int(x) for x in exclude_cat_raw[1].strip().split(" ")]
+        items = await sync_to_async(get_brand_and_its_top_products)(
+            hours=24, limit=5, exclude_category_ids=exclude_cat_ids
+        )
         event_type = EventCaption.EventType.TOP_BRAND
         await self.send_to_marketing_group(
             items["top_products"],

@@ -91,3 +91,22 @@ def trigger_top_brand_command(bot_id: int, exclude_ids=None):
     if not isinstance(exclude_ids, (list, tuple)):
         exclude_ids = []
     put_django_task_command_to_bot_queue(bot_id, f"top_brand {' '.join(map(str, exclude_ids))}")
+    
+@shared_task
+def trigger_top_category_command(bot_id: int, exclude_ids=None):
+    """
+    [Админка] Отправляет команду /top_category в очередь бота для формирования
+    и отправки топ-5 товаров самой активной категории за 24 часа в маркетинговую группу.
+
+    Параметры:
+        bot_id (int): ID бота в системе, чей токен будет использован для определения очереди.
+        exclude_ids (list[int], optional): Список ID категорий для исключения.
+
+    Используется для ручного или автоматического (по расписанию) запуска рассылки.
+    """
+    if exclude_ids is None:
+        exclude_ids = []
+    # Убедимся, что это список
+    if not isinstance(exclude_ids, (list, tuple)):
+        exclude_ids = []
+    put_django_task_command_to_bot_queue(bot_id, f"top_category {' '.join(map(str, exclude_ids))}")

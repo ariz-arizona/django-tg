@@ -534,6 +534,14 @@
         "documentation": {}
     },
     {
+        "label": "get_category_and_its_top_products",
+        "importPath": "cardparser.services.marketing_queryset",
+        "description": "cardparser.services.marketing_queryset",
+        "isExtraImport": true,
+        "detail": "cardparser.services.marketing_queryset",
+        "documentation": {}
+    },
+    {
         "label": "ParseProduct",
         "importPath": "cardparser.models",
         "description": "cardparser.models",
@@ -614,12 +622,36 @@
         "documentation": {}
     },
     {
+        "label": "Category",
+        "importPath": "cardparser.models",
+        "description": "cardparser.models",
+        "isExtraImport": true,
+        "detail": "cardparser.models",
+        "documentation": {}
+    },
+    {
         "label": "django.db.models.deletion",
         "kind": 6,
         "isExtraImport": true,
         "importPath": "django.db.models.deletion",
         "description": "django.db.models.deletion",
         "detail": "django.db.models.deletion",
+        "documentation": {}
+    },
+    {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
         "documentation": {}
     },
     {
@@ -1735,6 +1767,24 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.cardparser.migrations.0004_alter_eventcaption_options_eventcaption_text_and_more",
+        "description": "app.cardparser.migrations.0004_alter_eventcaption_options_eventcaption_text_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('cardparser', '0003_eventcaption'),\n    ]\n    operations = [\n        migrations.AlterModelOptions(\n            name='eventcaption',\n            options={'verbose_name': 'Card Parser: Подпись для события', 'verbose_name_plural': 'Card Parser: Подписи для событий'},\n        ),\n        migrations.AddField(",
+        "detail": "app.cardparser.migrations.0004_alter_eventcaption_options_eventcaption_text_and_more",
+        "documentation": {}
+    },
+    {
+        "label": "get_category_and_its_top_products",
+        "kind": 2,
+        "importPath": "app.cardparser.services.marketing_queryset",
+        "description": "app.cardparser.services.marketing_queryset",
+        "peekOfCode": "def get_category_and_its_top_products(\n    hours: int = 24,\n    days: int = 0,\n    exclude_category_ids: Optional[List[int]] = None,\n    limit: int = 5,\n) -> Dict[str, Any]:\n    \"\"\"\n    Возвращает самую активную категорию по количеству уникальных запрошенных товаров\n    и топ-N самых запрашиваемых товаров этой категории.\n    :param hours: Часы для фильтрации (по умолчанию 24)",
+        "detail": "app.cardparser.services.marketing_queryset",
+        "documentation": {}
+    },
+    {
         "label": "get_brand_and_its_top_products",
         "kind": 2,
         "importPath": "app.cardparser.services.marketing_queryset",
@@ -1748,7 +1798,7 @@
         "kind": 2,
         "importPath": "app.cardparser.services.marketing_queryset",
         "description": "app.cardparser.services.marketing_queryset",
-        "peekOfCode": "def get_popular_products(\n    hours: int = 24,\n    days: int = 0,\n    limit: int = 10\n):\n    \"\"\"\n    Возвращает топ-товаров за период:\n    - Сортирует по количеству запросов (desc)\n    - При равном количестве — по времени последнего запроса (desc)\n    Реализовано через SQL (annotate), чтобы не грузить Python.",
+        "peekOfCode": "def get_popular_products(hours: int = 24, days: int = 0, limit: int = 10):\n    \"\"\"\n    Возвращает топ-товаров за период:\n    - Сортирует по количеству запросов (desc)\n    - При равном количестве — по времени последнего запроса (desc)\n    Реализовано через SQL (annotate), чтобы не грузить Python.\n    \"\"\"\n    time_threshold = timezone.now() - timedelta(days=days, hours=hours)\n    # 1. Агрегируем в БД: count и last_sent\n    stats = (",
         "detail": "app.cardparser.services.marketing_queryset",
         "documentation": {}
     },
@@ -1910,7 +1960,7 @@
         "kind": 6,
         "importPath": "app.cardparser.models",
         "description": "app.cardparser.models",
-        "peekOfCode": "class EventCaption(models.Model):\n    class EventType(models.TextChoices):\n        POPULAR = 'popular', 'Топ популярных'\n        TOP_BRAND = 'top_brand', 'Активный бренд'\n        DEFAULT = 'default', 'По умолчанию'\n    event_type = models.CharField(\n        max_length=20,\n        choices=EventType.choices,\n        verbose_name=\"Тип события\"\n    )",
+        "peekOfCode": "class EventCaption(models.Model):\n    class EventType(models.TextChoices):\n        POPULAR = 'popular', 'Топ популярных'\n        TOP_BRAND = 'top_brand', 'Активный бренд'\n        TOP_CATEGORY = 'top_category', 'Активная категория'\n        DEFAULT = 'default', 'По умолчанию'\n    event_type = models.CharField(\n        max_length=20,\n        choices=EventType.choices,\n        verbose_name=\"Тип события\"",
         "detail": "app.cardparser.models",
         "documentation": {}
     },
@@ -1956,6 +2006,15 @@
         "importPath": "app.cardparser.tasks",
         "description": "app.cardparser.tasks",
         "peekOfCode": "def trigger_top_brand_command(bot_id: int, exclude_ids=None):\n    \"\"\"\n    [Админка] Отправляет команду /top_brand в очередь бота для формирования\n    и отправки топ-5 товаров самого активного бренда за 24 часа в маркетинговую группу.\n    Параметры:\n        bot_id (int): ID бота в системе, чей токен будет использован для определения очереди.\n        exclude_ids (list[int], optional): Список ID категорий для исключения.\n    Используется для ручного или автоматического (по расписанию) запуска рассылки.\n    \"\"\"\n    if exclude_ids is None:",
+        "detail": "app.cardparser.tasks",
+        "documentation": {}
+    },
+    {
+        "label": "trigger_top_category_command",
+        "kind": 2,
+        "importPath": "app.cardparser.tasks",
+        "description": "app.cardparser.tasks",
+        "peekOfCode": "def trigger_top_category_command(bot_id: int, exclude_ids=None):\n    \"\"\"\n    [Админка] Отправляет команду /top_category в очередь бота для формирования\n    и отправки топ-5 товаров самой активной категории за 24 часа в маркетинговую группу.\n    Параметры:\n        bot_id (int): ID бота в системе, чей токен будет использован для определения очереди.\n        exclude_ids (list[int], optional): Список ID категорий для исключения.\n    Используется для ручного или автоматического (по расписанию) запуска рассылки.\n    \"\"\"\n    if exclude_ids is None:",
         "detail": "app.cardparser.tasks",
         "documentation": {}
     },

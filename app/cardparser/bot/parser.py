@@ -22,6 +22,7 @@ from cardparser.services.wb_link_builder import Se
 from cardparser.services.marketing_queryset import (
     get_popular_products,
     get_brand_and_its_top_products,
+    get_category_and_its_top_products,
 )
 from cardparser.models import (
     ParseProduct,
@@ -61,6 +62,7 @@ class ParserBot(AbstractBot):
             CommandHandler("search", self.handle_search_command, has_args=True),
             CommandHandler("popular", self.handle_popular_command),
             CommandHandler("top_brand", self.handle_topbrand_command),
+            CommandHandler("top_category", self.handle_topcategory_command),
         ]
 
     async def wb_image_url_get(self, context, card_id, session):
@@ -616,7 +618,23 @@ class ParserBot(AbstractBot):
             await update.message.reply_text(
                 "Произошла ошибка при выполнении поиска. Пожалуйста, попробуйте снова."
             )
-
+            
+    async def handle_topcategory_command(self, update: Update, context: CallbackContext):
+        exclude_cat_raw = update.message.text.split(maxsplit=1)
+        exclude_cat_ids = []
+        if len(exclude_cat_raw) > 1:
+            exclude_cat_ids = [int(x) for x in exclude_cat_raw[1].strip().split(" ")]
+        items = await sync_to_async(get_category_and_its_top_products)(
+            hours=24, limit=5, exclude_category_ids=exclude_cat_ids
+        )
+        event_type = EventCaption.EventType.TOP_CATEGORY
+        await self.send_to_marketing_group(
+            items["top_products"],
+            event_type,
+            update,
+            context,
+        )
+        
     async def handle_topbrand_command(self, update: Update, context: CallbackContext):
         exclude_cat_raw = update.message.text.split(maxsplit=1)
         exclude_cat_ids = []

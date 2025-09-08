@@ -41,6 +41,36 @@ ozon_regexp = r"ozon\.ru\/(t\/[^\s]*)\/?"
 combined_regexp = f"({wb_regexp}|{ozon_regexp})"
 
 
+def format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:
+    if not sizes:
+        return "—"
+
+    parts = []
+    for size in sizes:
+        emoji = "✅" if size.get("available") else "❌"
+        name = f"<b>{size.get('name', '?')}</b>"  # ← ДОБАВЛЕНО <b>...</b>
+        price_part = ""
+
+        if not show_common_price and "price" in size and size["price"] > 0:
+            # Форматируем цену с пробелами: 3268 → "3 268"
+            formatted_price = f"{size['price']:,.0f}".replace(",", " ")
+            price_part = f" — {formatted_price} ₽"
+
+        parts.append(f"{emoji} {name}{price_part}")
+
+    return ", ".join(parts)
+
+def parse_price_string(price_str: str) -> float:
+    """
+    Преобразует строку вида "3 021 ₽" или "2 900 ₽" в число 3021.0
+    Удаляет все нецифровые символы, кроме точки (для копеек, если понадобится).
+    """
+    if not isinstance(price_str, str):
+        return 0.0
+    # Удаляем всё, кроме цифр и точки
+    cleaned = ''.join(c for c in price_str if c.isdigit() or c == '.')
+    return float(cleaned) if cleaned else 0.0
+
 class ParserBot(AbstractBot):
     def __init__(self):
         self.handlers = self.get_handlers()
@@ -167,13 +197,15 @@ class ParserBot(AbstractBot):
 
                     caption_data = {
                         "sku": sku,
-                        "brand": brand,
                         "name": name,
                         "link": link,
                         "sizes": sizes,
+                        "availability": any(size["available"] for size in sizes),
                         "show_common_price": show_common_price,
                         "active_prices": list(active_prices),
                     }
+                    if brand:
+                        caption_data["brand"] = brand
 
                     return {
                         "media": image_url,
@@ -208,15 +240,64 @@ class ParserBot(AbstractBot):
                 "is_bot": update.message.from_user.is_bot,
             },
         )
-
+        # Пример шаблона — можно вынести в конфиг или БД
+        DEFAULT_TEMPLATE = """\
+Разбор карточки {sku}
+{brand} <a href="{link}">{name}</a>
+Цена: {price_display}
+Размеры: {sizes_display}
+Наличие: {availability_display}
+"""
         pictures = []
         for i in items:
             p = await parse_func(i, context)
             if p and p["media"]:
+                caption_data = p["caption_data"]
+                template_context = {
+                    "sku": caption_data.get("sku", "N/A"),
+                    "sizes": caption_data.get("sizes", "-"),
+                    "brand": caption_data.get("brand", "Неизвестный бренд"),
+                    "name": caption_data.get("name", "Без названия"),
+                    "link": caption_data.get("link", "#"),
+                }
+
+                sizes = caption_data.get("sizes", [])
+                logger.info(caption_data)
+                active_prices = [
+                    p
+                    for p in caption_data.get("active_prices", [])
+                    if p is not None and p > 0
+                ]
+                show_common_price = (
+                    len(set(active_prices)) == 1 if active_prices else False
+                )
+                if active_prices:
+                    min_price = min(active_prices)
+                    max_price = max(active_prices)
+                    if show_common_price:
+                        template_context["price_display"] = f"{min_price:,.0f}".replace(",", " ") + " ₽"
+                    else:
+                        template_context["price_display"] = (
+                            f"{min_price:,.0f} – {max_price:,.0f}".replace(",", " ") + " ₽"
+                        )
+                else:
+                    template_context["price_display"] = "—"
+                    
+                template_context["sizes_display"] = format_sizes_for_template(
+                    sizes, show_common_price
+                )
+                template_context["availability_display"] = (
+                    "✅ В наличии"
+                    if caption_data["availability"]
+                    else "❌ Нет в наличии"
+                )
+
+                rendered_caption = render_template(DEFAULT_TEMPLATE, template_context)
+
                 pictures.append(
                     {
                         "media": p["media"],
-                        "caption": p["caption"],
+                        "caption": rendered_caption,
                         "parse_mode": p["parse_mode"],
                     }
                 )
@@ -420,6 +501,7 @@ class ParserBot(AbstractBot):
             product_name = None
             price = None
             brand_name = None
+            availability = True
 
             # Обработка виджетов
             error = self.get_ozon_widget(widget_states, "error")
@@ -439,6 +521,7 @@ class ParserBot(AbstractBot):
             if out_of_stock:
                 sku = out_of_stock.get("sku")
                 product_name = out_of_stock.get("skuName", "")
+                availability = False
             else:
                 sku = add_to_cart.get("sku", None) or heading.get("id", None)
                 product_name = heading.get("title", "")
@@ -507,15 +590,18 @@ class ParserBot(AbstractBot):
 
             if not img:
                 raise Exception("no image")
-
+            act_price = parse_price_string(price["price"] if price else add_to_cart.get("price"))
             caption_data = {
                 "sku": sku,
-                "brand": brand_name,
-                "name": product_name,
+                "name": product_name[0:20],
                 "link": f'https://ozon.ru{page_info.get("url", ozon_id)}',
                 "show_common_price": True,  # На Ozon всегда одна цена
-                "active_prices": [price["price"] if price else 0],
+                "active_prices": [act_price if (price or add_to_cart) else 0],
+                "availability": availability,
             }
+
+            if brand_name:
+                caption_data["brand"] = brand_name
 
             result = {
                 "name": product_name,
@@ -533,6 +619,7 @@ class ParserBot(AbstractBot):
                     }
                 except Exception as e:
                     logger.info(e)
+
             if r.get("layoutTrackingInfo"):
                 try:
                     track = json.loads(r.get("layoutTrackingInfo"))

@@ -1713,11 +1713,29 @@
         "documentation": {}
     },
     {
+        "label": "format_sizes_for_template",
+        "kind": 2,
+        "importPath": "app.cardparser.bot.parser",
+        "description": "app.cardparser.bot.parser",
+        "peekOfCode": "def format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:\n    if not sizes:\n        return \"—\"\n    parts = []\n    for size in sizes:\n        emoji = \"✅\" if size.get(\"available\") else \"❌\"\n        name = f\"<b>{size.get('name', '?')}</b>\"  # ← ДОБАВЛЕНО <b>...</b>\n        price_part = \"\"\n        if not show_common_price and \"price\" in size and size[\"price\"] > 0:\n            # Форматируем цену с пробелами: 3268 → \"3 268\"",
+        "detail": "app.cardparser.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "parse_price_string",
+        "kind": 2,
+        "importPath": "app.cardparser.bot.parser",
+        "description": "app.cardparser.bot.parser",
+        "peekOfCode": "def parse_price_string(price_str: str) -> float:\n    \"\"\"\n    Преобразует строку вида \"3 021 ₽\" или \"2 900 ₽\" в число 3021.0\n    Удаляет все нецифровые символы, кроме точки (для копеек, если понадобится).\n    \"\"\"\n    if not isinstance(price_str, str):\n        return 0.0\n    # Удаляем всё, кроме цифр и точки\n    cleaned = ''.join(c for c in price_str if c.isdigit() or c == '.')\n    return float(cleaned) if cleaned else 0.0",
+        "detail": "app.cardparser.bot.parser",
+        "documentation": {}
+    },
+    {
         "label": "wb_regexp",
         "kind": 5,
         "importPath": "app.cardparser.bot.parser",
         "description": "app.cardparser.bot.parser",
-        "peekOfCode": "wb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (",
+        "peekOfCode": "wb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\ndef format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:\n    if not sizes:\n        return \"—\"\n    parts = []\n    for size in sizes:\n        emoji = \"✅\" if size.get(\"available\") else \"❌\"\n        name = f\"<b>{size.get('name', '?')}</b>\"  # ← ДОБАВЛЕНО <b>...</b>",
         "detail": "app.cardparser.bot.parser",
         "documentation": {}
     },
@@ -1726,7 +1744,7 @@
         "kind": 5,
         "importPath": "app.cardparser.bot.parser",
         "description": "app.cardparser.bot.parser",
-        "peekOfCode": "ozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (\n                    (filters.TEXT & filters.Regex(combined_regexp))",
+        "peekOfCode": "ozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\ndef format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:\n    if not sizes:\n        return \"—\"\n    parts = []\n    for size in sizes:\n        emoji = \"✅\" if size.get(\"available\") else \"❌\"\n        name = f\"<b>{size.get('name', '?')}</b>\"  # ← ДОБАВЛЕНО <b>...</b>\n        price_part = \"\"",
         "detail": "app.cardparser.bot.parser",
         "documentation": {}
     },
@@ -1735,7 +1753,7 @@
         "kind": 5,
         "importPath": "app.cardparser.bot.parser",
         "description": "app.cardparser.bot.parser",
-        "peekOfCode": "combined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\nclass ParserBot(AbstractBot):\n    def __init__(self):\n        self.handlers = self.get_handlers()\n    def get_handlers(self):\n        return [\n            MessageHandler(\n                (\n                    (filters.TEXT & filters.Regex(combined_regexp))\n                    | (filters.CAPTION & filters.CaptionRegex(combined_regexp))",
+        "peekOfCode": "combined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\ndef format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:\n    if not sizes:\n        return \"—\"\n    parts = []\n    for size in sizes:\n        emoji = \"✅\" if size.get(\"available\") else \"❌\"\n        name = f\"<b>{size.get('name', '?')}</b>\"  # ← ДОБАВЛЕНО <b>...</b>\n        price_part = \"\"\n        if not show_common_price and \"price\" in size and size[\"price\"] > 0:",
         "detail": "app.cardparser.bot.parser",
         "documentation": {}
     },

@@ -165,11 +165,22 @@ class ParserBot(AbstractBot):
                         )
                     )
 
+                    caption_data = {
+                        "sku": sku,
+                        "brand": brand,
+                        "name": name,
+                        "link": link,
+                        "sizes": sizes,
+                        "show_common_price": show_common_price,
+                        "active_prices": list(active_prices),
+                    }
+
                     return {
                         "media": image_url,
                         "caption": "\n".join(txt),
                         "parse_mode": "HTML",
                         "name": product.get("name"),
+                        "caption_data": caption_data,
                         "brand": {
                             "id": product.get("brandId"),
                             "name": product.get("brand"),
@@ -405,6 +416,10 @@ class ParserBot(AbstractBot):
             page_info = r.get("pageInfo", {})
             txt = []
             img = None
+            sku = None
+            product_name = None
+            price = None
+            brand_name = None
 
             # Обработка виджетов
             error = self.get_ozon_widget(widget_states, "error")
@@ -420,6 +435,14 @@ class ParserBot(AbstractBot):
             )
             search_results = self.get_ozon_widget(widget_states, "searchResults")
             user_adult_modal = self.get_ozon_widget(widget_states, "userAdultModal")
+
+            if out_of_stock:
+                sku = out_of_stock.get("sku")
+                product_name = out_of_stock.get("skuName", "")
+            else:
+                sku = add_to_cart.get("sku", None) or heading.get("id", None)
+                product_name = heading.get("title", "")
+                brand_name = brand.get("name", "")
 
             if error or user_adult_modal:
                 txt.append(r["seo"]["title"])
@@ -449,7 +472,6 @@ class ParserBot(AbstractBot):
                 txt.append(
                     f"Разбор карточки OZON <code>{gallery.get('sku', '') or heading.get('id', '')}</code>"
                 )
-                brand_name = brand.get("name", "")
                 txt.append(
                     f"{brand_name}<a href='https://ozon.ru{page_info.get('url', ozon_id)}'>{heading.get('title', '')}</a>"
                 )
@@ -486,9 +508,19 @@ class ParserBot(AbstractBot):
             if not img:
                 raise Exception("no image")
 
+            caption_data = {
+                "sku": sku,
+                "brand": brand_name,
+                "name": product_name,
+                "link": f'https://ozon.ru{page_info.get("url", ozon_id)}',
+                "show_common_price": True,  # На Ozon всегда одна цена
+                "active_prices": [price["price"] if price else 0],
+            }
+
             result = {
-                "name": heading["title"],
+                "name": product_name,
                 "media": img,
+                "caption_data": caption_data,
                 "caption": "\n".join(txt),
                 "parse_mode": "HTML",
             }
@@ -512,7 +544,7 @@ class ParserBot(AbstractBot):
                     logger.info(e)
             return result
         except Exception as e:
-            logger.error(e)
+            logger.error(e, exc_info=True)
             return None
 
     async def start(self, update: Update, context: CallbackContext):
@@ -618,8 +650,10 @@ class ParserBot(AbstractBot):
             await update.message.reply_text(
                 "Произошла ошибка при выполнении поиска. Пожалуйста, попробуйте снова."
             )
-            
-    async def handle_topcategory_command(self, update: Update, context: CallbackContext):
+
+    async def handle_topcategory_command(
+        self, update: Update, context: CallbackContext
+    ):
         exclude_cat_raw = update.message.text.split(maxsplit=1)
         exclude_cat_ids = []
         if len(exclude_cat_raw) > 1:
@@ -634,7 +668,7 @@ class ParserBot(AbstractBot):
             update,
             context,
         )
-        
+
     async def handle_topbrand_command(self, update: Update, context: CallbackContext):
         exclude_cat_raw = update.message.text.split(maxsplit=1)
         exclude_cat_ids = []

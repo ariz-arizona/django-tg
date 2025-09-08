@@ -93,6 +93,14 @@
         "documentation": {}
     },
     {
+        "label": "Chat",
+        "importPath": "telegram",
+        "description": "telegram",
+        "isExtraImport": true,
+        "detail": "telegram",
+        "documentation": {}
+    },
+    {
         "label": "Update",
         "importPath": "telegram",
         "description": "telegram",
@@ -138,6 +146,14 @@
         "description": "telegram",
         "isExtraImport": true,
         "detail": "telegram",
+        "documentation": {}
+    },
+    {
+        "label": "ChatType",
+        "importPath": "telegram.constants",
+        "description": "telegram.constants",
+        "isExtraImport": true,
+        "detail": "telegram.constants",
         "documentation": {}
     },
     {
@@ -3073,7 +3089,7 @@
         "kind": 2,
         "importPath": "app.tg_bot.views",
         "description": "app.tg_bot.views",
-        "peekOfCode": "def webhook(request, token):\n    if request.method == \"POST\":\n        # Получаем JSON строку из тела запроса\n        json_str = request.body.decode(\"UTF-8\")\n        # Проверка, что это сообщение (опционально)\n        try:\n            # Вы можете просто поместить строку JSON в очередь\n            redis_client.rpush(f\"bot_messages_queue_{token}\", json_str)\n            message = json.loads(json_str)\n            logger.info(f\"Сообщение добавлено в очередь: {message}\")",
+        "peekOfCode": "def webhook(request, token):\n    if request.method == \"POST\":\n        # Получаем JSON строку из тела запроса\n        json_str = request.body.decode(\"UTF-8\")\n        # Проверка, что это сообщение (опционально)\n        try:\n            # Вы можете просто поместить строку JSON в очередь\n            redis_client.rpush(f\"bot_messages_queue_{token}\", json_str)\n            message = json.loads(json_str)\n            message_content = message.get(\"message\")",
         "detail": "app.tg_bot.views",
         "documentation": {}
     },

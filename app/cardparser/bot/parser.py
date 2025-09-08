@@ -4,7 +4,8 @@ import aiohttp
 import json
 import requests
 from asgiref.sync import sync_to_async
-from telegram import Update, InputMediaPhoto
+from telegram import Update, InputMediaPhoto, Chat
+from telegram.constants import ChatType
 from telegram.ext import CommandHandler, MessageHandler, CallbackContext, filters
 
 from django.utils.timezone import now
@@ -248,6 +249,7 @@ class ParserBot(AbstractBot):
         for i in items:
             p = await parse_func(i, context)
             if p and p["media"]:
+                hash_prefix = "bot_"
                 caption_data = p["caption_data"]
                 template_context = {
                     "sku": caption_data.get("sku", "N/A"),
@@ -255,14 +257,38 @@ class ParserBot(AbstractBot):
                     "brand": caption_data.get("brand", "Неизвестный бренд"),
                     "name": caption_data.get("name", "Без названия"),
                     "link": caption_data.get("link", "#"),
-                    "hash_type": "#" + product_type,
+                    "hash_type": "#" + hash_prefix + product_type,
+                    "hash_category": "",
+                    "hash_brand": "",
                 }
 
                 if "category" in p:
-                    template_context["hash_category"] = "#" + re.sub(r'\W+', '_', p["category"]["name"].lower())
+                    template_context["hash_category"] = (
+                        "#"
+                        + hash_prefix
+                        + re.sub(r"\W+", "_", p["category"]["name"].lower())
+                    )
 
                 if "brand" in p:
-                    template_context["hash_brand"] = "#" + re.sub(r'\W+', '_', p["brand"]["name"].lower())
+                    template_context["hash_brand"] = (
+                        "#"
+                        + hash_prefix
+                        + re.sub(r"\W+", "_", p["brand"]["name"].lower())
+                    )
+
+                promo_parts = []
+                promo_parts.append(
+                    f"🤖 <a href='{context.bot.link}'>@{context.bot.username}</a>"
+                )
+
+                settings = await BotSettings.get_active()
+                chat_instance = await context.bot.get_chat(settings.marketing_group_id)
+                if chat_instance.link:
+                    promo_parts.append(
+                        f"💬 <a href='{chat_instance.link}'>Группа поддержки</a>"
+                    )
+
+                template_context["promo"] = " | ".join(promo_parts)
 
                 sizes = caption_data.get("sizes", [])
 

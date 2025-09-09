@@ -743,6 +743,22 @@
         "documentation": {}
     },
     {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "models",
         "importPath": "django.db",
         "description": "django.db",
@@ -1840,6 +1856,15 @@
         "description": "app.cardparser.migrations.0005_producttemplate",
         "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('cardparser', '0004_alter_eventcaption_options_eventcaption_text_and_more'),\n    ]\n    operations = [\n        migrations.CreateModel(\n            name='ProductTemplate',\n            fields=[\n                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),\n                ('name', models.CharField(help_text=\"Уникальное имя для идентификации шаблона, например: 'Основной', 'Короткий', 'С эмодзи'\", max_length=100, unique=True, verbose_name='Название шаблона')),",
         "detail": "app.cardparser.migrations.0005_producttemplate",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.cardparser.migrations.0006_alter_producttemplate_template_and_more",
+        "description": "app.cardparser.migrations.0006_alter_producttemplate_template_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('cardparser', '0005_producttemplate'),\n    ]\n    operations = [\n        migrations.AlterField(\n            model_name='producttemplate',\n            name='template',\n            field=models.TextField(help_text='Используйте плейсхолдеры в фигурных скобках: {brand}, {name}, {price_display}, {sizes_display}, {availability}, {link}, {sku}. ', verbose_name='Текст шаблона'),\n        ),",
+        "detail": "app.cardparser.migrations.0006_alter_producttemplate_template_and_more",
         "documentation": {}
     },
     {
@@ -3089,7 +3114,7 @@
         "kind": 2,
         "importPath": "app.tg_bot.views",
         "description": "app.tg_bot.views",
-        "peekOfCode": "def webhook(request, token):\n    if request.method == \"POST\":\n        # Получаем JSON строку из тела запроса\n        json_str = request.body.decode(\"UTF-8\")\n        # Проверка, что это сообщение (опционально)\n        try:\n            # Вы можете просто поместить строку JSON в очередь\n            redis_client.rpush(f\"bot_messages_queue_{token}\", json_str)\n            message = json.loads(json_str)\n            message_content = message.get(\"message\")",
+        "peekOfCode": "def webhook(request, token):\n    if request.method == \"POST\":\n        # Получаем JSON строку из тела запроса\n        json_str = request.body.decode(\"UTF-8\")\n        # Проверка, что это сообщение (опционально)\n        try:\n            # Вы можете просто поместить строку JSON в очередь\n            redis_client.rpush(f\"bot_messages_queue_{token}\", json_str)\n            message = json.loads(json_str)\n            message_content = message.get(\"message\", {})",
         "detail": "app.tg_bot.views",
         "documentation": {}
     },

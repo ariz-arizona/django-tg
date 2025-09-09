@@ -32,7 +32,7 @@ def webhook(request, token):
             # Вы можете просто поместить строку JSON в очередь
             redis_client.rpush(f"bot_messages_queue_{token}", json_str)
             message = json.loads(json_str)
-            message_content = message.get("message")
+            message_content = message.get("message", {})
             logger.info((
                 f"Сообщение добавлено в очередь: update_id: {message['update_id']}" 
                 f" от {message_content.get('from', {}).get('username')} {message_content.get('from', {}).get('id')}"

@@ -453,6 +453,7 @@ class ParserBot(AbstractBot):
     async def handle_links_based_on_message(
         self, update: Update, context: CallbackContext
     ):
+        logger.info(update)
         if not update.effective_message:
             return
         message_text = update.effective_message.caption or update.effective_message.text

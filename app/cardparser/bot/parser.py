@@ -934,7 +934,7 @@ class ParserBot(AbstractBot):
                 try:
                     product = await ParseProduct.objects.aget(id=item["id"])
                     image = await ProductImage.objects.filter(product=product).afirst()
-
+                    
                     if image.image_type == "telegram" and image.file_id:
                         media = image.file_id
                     elif image.image_type == "link" and image.url:
@@ -943,7 +943,7 @@ class ParserBot(AbstractBot):
                         # Пропускаем, если нет данных
                         continue
 
-                    if image and image.file_id:
+                    if media:
                         media_group.append(
                             InputMediaPhoto(
                                 media=media,

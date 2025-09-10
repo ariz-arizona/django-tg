@@ -96,9 +96,7 @@ class ParserBot(AbstractBot):
                 & ~filters.COMMAND,
                 self.handle_links_based_on_message,
             ),
-            CommandHandler(
-                "last", self.handle_last_products
-            ),  # Обработчик для команды /last
+            CommandHandler("last", self.handle_last_products),
             CommandHandler("start", self.start),
             CommandHandler("search", self.handle_search_command, has_args=True),
             CommandHandler("popular", self.handle_popular_command),
@@ -283,6 +281,8 @@ class ParserBot(AbstractBot):
                     old_ozon_product.product_id = sku
                     await old_ozon_product.asave(update_fields=["product_id"])
                     logger.info(f"Ozon: обновлён product_id с {item_id} на {sku}")
+                    
+                    # logger.info(await ParseProduct.objects.filter(product_id=sku).acount())
             except ParseProduct.DoesNotExist:
                 # Ничего страшного — просто такого товара ещё не было
                 pass
@@ -302,6 +302,8 @@ class ParserBot(AbstractBot):
 
         # --- 5. Обновление, если данные изменились ---
         need_update = False
+        
+        # logger.info('UPDATE!!!!')
 
         # Обновляем caption_data, если изменился
         if product.caption_data != p["caption_data"]:
@@ -343,7 +345,7 @@ class ParserBot(AbstractBot):
 
         if product_image is None:
             # Создаём новое изображение
-            await ProductImage.objects.acreate(product=product, **media_type)
+            product_image = await ProductImage.objects.acreate(product=product, **media_type)
         else:
             # Обновляем, если что-то изменилось
             if (
@@ -515,7 +517,7 @@ class ParserBot(AbstractBot):
     async def handle_links_based_on_message(
         self, update: Update, context: CallbackContext
     ):
-        # logger.info(update)
+        logger.info(update)
         if not update.effective_message:
             return
         message_text = update.effective_message.caption or update.effective_message.text
@@ -859,12 +861,16 @@ class ParserBot(AbstractBot):
             # Получаем текст запроса
             parts = update.message.text.split(maxsplit=1)
             if len(parts) < 2:
-                await update.message.reply_text("Пожалуйста, укажите запрос для поиска.")
+                await update.message.reply_text(
+                    "Пожалуйста, укажите запрос для поиска."
+                )
                 return
 
             query = parts[1].strip()[:50]
             if not query:
-                await update.message.reply_text("Пожалуйста, укажите запрос для поиска.")
+                await update.message.reply_text(
+                    "Пожалуйста, укажите запрос для поиска."
+                )
                 return
 
             # Получаем шаблон и ссылку на чат поддержки один раз
@@ -876,7 +882,9 @@ class ParserBot(AbstractBot):
             settings = await BotSettings.get_active()
             if settings and settings.marketing_group_id:
                 try:
-                    chat_instance = await context.bot.get_chat(settings.marketing_group_id)
+                    chat_instance = await context.bot.get_chat(
+                        settings.marketing_group_id
+                    )
                     marketing_chat_link = chat_instance.link
                 except Exception as e:
                     logger.warning(f"Не удалось получить ссылку на чат поддержки: {e}")
@@ -889,7 +897,7 @@ class ParserBot(AbstractBot):
                     | Q(category__name__icontains=query)
                 )
                 .select_related("brand", "category")  # предзагружаем связи
-                .order_by("-created_at")[:10]         # последние 10
+                .order_by("-created_at")[:10]  # последние 10
             )
 
             user_products = []
@@ -909,7 +917,9 @@ class ParserBot(AbstractBot):
                 # Получаем изображение
                 product_image = await product.images.afirst()
                 if not product_image:
-                    logger.warning(f"У товара {product.id} нет изображения, пропускаем.")
+                    logger.warning(
+                        f"У товара {product.id} нет изображения, пропускаем."
+                    )
                     continue
 
                 # Генерируем подпись
@@ -921,7 +931,9 @@ class ParserBot(AbstractBot):
                         marketing_chat_link=marketing_chat_link,
                     )
                 except Exception as e:
-                    logger.error(f"Ошибка генерации подписи для товара {product.id}: {e}")
+                    logger.error(
+                        f"Ошибка генерации подписи для товара {product.id}: {e}"
+                    )
                     caption = "Описание недоступно"
 
                 # Определяем медиа
@@ -931,7 +943,9 @@ class ParserBot(AbstractBot):
                     else product_image.file_id
                 )
                 if not media_value:
-                    logger.warning(f"У товара {product.id} нет валидного media, пропускаем.")
+                    logger.warning(
+                        f"У товара {product.id} нет валидного media, пропускаем."
+                    )
                     continue
 
                 # Добавляем в группу
@@ -944,13 +958,14 @@ class ParserBot(AbstractBot):
                 )
 
             if not media_group:
-                await update.message.reply_text("Нет товаров с изображениями для отображения.")
+                await update.message.reply_text(
+                    "Нет товаров с изображениями для отображения."
+                )
                 return
 
             # --- 📤 Отправляем ---
             await update.message.reply_media_group(
-                media=media_group,
-                reply_to_message_id=update.message.message_id
+                media=media_group, reply_to_message_id=update.message.message_id
             )
 
         except IndexError:

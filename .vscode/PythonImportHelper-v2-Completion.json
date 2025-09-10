@@ -61,6 +61,23 @@
         "documentation": {}
     },
     {
+        "label": "asgiref.sync",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "asgiref.sync",
+        "description": "asgiref.sync",
+        "detail": "asgiref.sync",
+        "documentation": {}
+    },
+    {
+        "label": "sync_to_async",
+        "importPath": "asgiref.sync",
+        "description": "asgiref.sync",
+        "isExtraImport": true,
+        "detail": "asgiref.sync",
+        "documentation": {}
+    },
+    {
         "label": "sync_to_async",
         "importPath": "asgiref.sync",
         "description": "asgiref.sync",
@@ -150,6 +167,14 @@
     },
     {
         "label": "ChatType",
+        "importPath": "telegram.constants",
+        "description": "telegram.constants",
+        "isExtraImport": true,
+        "detail": "telegram.constants",
+        "documentation": {}
+    },
+    {
+        "label": "MessageEntityType",
         "importPath": "telegram.constants",
         "description": "telegram.constants",
         "isExtraImport": true,
@@ -663,6 +688,14 @@
     },
     {
         "label": "Category",
+        "importPath": "cardparser.models",
+        "description": "cardparser.models",
+        "isExtraImport": true,
+        "detail": "cardparser.models",
+        "documentation": {}
+    },
+    {
+        "label": "ParseProduct",
         "importPath": "cardparser.models",
         "description": "cardparser.models",
         "isExtraImport": true,
@@ -2147,7 +2180,7 @@
         "kind": 2,
         "importPath": "app.cardparser.tasks",
         "description": "app.cardparser.tasks",
-        "peekOfCode": "def put_django_task_command_to_bot_queue(bot_id, command):\n    # Токен бота из настроек\n    bot = Bot.objects.get(id=bot_id, bot_type=Bot.BOT_TYPE_CHOICES[0][0])\n    bot_token = bot.token\n    if not bot_token:\n        return\n    queue_key = f\"bot_messages_queue_{bot.token}\"\n    now = int(time.time())\n    full_command = f\"/{command}\"\n    command_length = len(full_command.split(' ', 1)[0])",
+        "peekOfCode": "def put_django_task_command_to_bot_queue(bot_id, txt, is_text=False):\n    # Токен бота из настроек\n    bot = Bot.objects.get(id=bot_id, bot_type=Bot.BOT_TYPE_CHOICES[0][0])\n    bot_token = bot.token\n    if not bot_token:\n        return\n    queue_key = f\"bot_messages_queue_{bot.token}\"\n    now = int(time.time())\n    if not is_text:\n        full_command = f\"/{txt}\"",
         "detail": "app.cardparser.tasks",
         "documentation": {}
     },
@@ -2179,11 +2212,20 @@
         "documentation": {}
     },
     {
+        "label": "reparse_empty_caption_products",
+        "kind": 2,
+        "importPath": "app.cardparser.tasks",
+        "description": "app.cardparser.tasks",
+        "peekOfCode": "def reparse_empty_caption_products(bot_id):\n    \"\"\"\n    Celery задача: находит товары с пустым caption_data и перепарсивает их.\n    \"\"\"\n    try:\n        products = ParseProduct.objects.filter(caption_data={}).order_by(\"-updated_at\")\n        if products:\n            product = products.first()\n            if product.product_type == \"wb\":\n                link = f\"https://www.wildberries.ru/catalog/{product.product_id}/detail.aspx\"",
+        "detail": "app.cardparser.tasks",
+        "documentation": {}
+    },
+    {
         "label": "redis_client",
         "kind": 5,
         "importPath": "app.cardparser.tasks",
         "description": "app.cardparser.tasks",
-        "peekOfCode": "redis_client = redis.StrictRedis(\n    host=os.getenv(\"REDIS_HOST\"), port=os.getenv(\"REDIS_PORT\"), db=2\n)\ndef put_django_task_command_to_bot_queue(bot_id, command):\n    # Токен бота из настроек\n    bot = Bot.objects.get(id=bot_id, bot_type=Bot.BOT_TYPE_CHOICES[0][0])\n    bot_token = bot.token\n    if not bot_token:\n        return\n    queue_key = f\"bot_messages_queue_{bot.token}\"",
+        "peekOfCode": "redis_client = redis.StrictRedis(\n    host=os.getenv(\"REDIS_HOST\"), port=os.getenv(\"REDIS_PORT\"), db=2\n)\ndef put_django_task_command_to_bot_queue(bot_id, txt, is_text=False):\n    # Токен бота из настроек\n    bot = Bot.objects.get(id=bot_id, bot_type=Bot.BOT_TYPE_CHOICES[0][0])\n    bot_token = bot.token\n    if not bot_token:\n        return\n    queue_key = f\"bot_messages_queue_{bot.token}\"",
         "detail": "app.cardparser.tasks",
         "documentation": {}
     },

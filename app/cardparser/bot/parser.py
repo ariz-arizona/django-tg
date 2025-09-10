@@ -217,7 +217,7 @@ class ParserBot(AbstractBot):
                         },
                     }
                 except Exception as e:
-                    logger.error(e)
+                    logger.error(e, exc_info=True)
                     return None
 
     async def handle_links(
@@ -453,7 +453,7 @@ class ParserBot(AbstractBot):
     async def handle_links_based_on_message(
         self, update: Update, context: CallbackContext
     ):
-        logger.info(update)
+        # logger.info(update)
         if not update.effective_message:
             return
         message_text = update.effective_message.caption or update.effective_message.text
@@ -700,7 +700,7 @@ class ParserBot(AbstractBot):
                         "name": brand["content"]["title"]["text"][0]["content"],
                     }
                 except Exception as e:
-                    logger.info(e)
+                    logger.info(e, exc_info=True)
 
             if r.get("layoutTrackingInfo"):
                 try:
@@ -710,7 +710,7 @@ class ParserBot(AbstractBot):
                         "name": track["categoryName"],
                     }
                 except Exception as e:
-                    logger.info(e)
+                    logger.info(e, exc_info=True)
             return result
         except Exception as e:
             logger.error(e, exc_info=True)

@@ -43,6 +43,7 @@ def webhook(request, token):
                 logger.info((
                     f"Сообщение добавлено в очередь: update_id: {message['update_id']}" 
                 ))
+                logger.info(message)
             return JsonResponse({"status": "ok"})
         except Exception as e:
             logger.error(

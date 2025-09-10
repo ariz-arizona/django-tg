@@ -348,10 +348,9 @@ class ParserBot(AbstractBot):
                 if brand_data:
                     brand_id = brand_data.get("id")
                     brand_name = brand_data.get("name")
-
                     if brand_id and brand_name:
                         try:
-                            brand_obj, created = await Brand.objects.aget_or_create(
+                            brand_obj, created = await Brand.objects.aupdate_or_create(
                                 brand_id=str(brand_id),
                                 product_type=product_type,
                                 defaults={"name": brand_name},
@@ -370,7 +369,7 @@ class ParserBot(AbstractBot):
                     if category_id and category_name:
                         try:
                             category_obj, created = (
-                                await Category.objects.aget_or_create(
+                                await Category.objects.aupdate_or_create(
                                     subject_id=int(category_id),
                                     product_type=product_type,
                                     defaults={
@@ -625,43 +624,46 @@ class ParserBot(AbstractBot):
 
             if aspects_data:
                 for aspect in aspects_data.get("aspects", []):
-                    if aspect.get("aspectKey") == "size":  # Только размеры
-                        for variant in aspect.get("variants", []):
-                            size_name = ""
-                            # Извлекаем название размера
-                            text_rs = variant.get("data", {}).get("textRs", [])
-                            if (
-                                text_rs
-                                and isinstance(text_rs, list)
-                                and len(text_rs) > 0
-                            ):
-                                size_name = "".join(
-                                    item.get("content", "")
-                                    for item in text_rs
-                                    if item.get("type") == "text"
-                                ).strip()
+                    for variant in aspect.get("variants", []):
+                        size_name = ""
+                        # Извлекаем название размера
+                        text_rs = variant.get("data", {}).get("textRs", [])
+                        if text_rs and isinstance(text_rs, list) and len(text_rs) > 0:
+                            size_name = "".join(
+                                item.get("content", "")
+                                for item in text_rs
+                                if item.get("type") == "text"
+                            ).strip()
 
-                            # Определяем наличие
-                            available = variant.get("availability") == "inStock"
+                        # Определяем наличие
+                        available = variant.get("availability") == "inStock"
 
-                            # Парсим цену
-                            raw_price = variant.get(
-                                "price"
-                            )  # Может быть строкой "2 900 ₽" или числом 2900
-                            aspect_price = None
-                            if raw_price:
-                                if isinstance(raw_price, str):
-                                    aspect_price = parse_price_string(raw_price)
-                                else:
-                                    aspect_price = float(raw_price)
+                        # Парсим цену
+                        raw_price = variant.get(
+                            "price"
+                        )  # Может быть строкой "2 900 ₽" или числом 2900
+                        aspect_price = None
+                        if raw_price:
+                            if isinstance(raw_price, str):
+                                aspect_price = parse_price_string(raw_price)
+                            else:
+                                aspect_price = float(raw_price)
 
-                            sizes.append(
-                                {
-                                    "name": size_name,
-                                    "available": available,
-                                    "price": aspect_price,
-                                }
-                            )
+                        sizes.append(
+                            {
+                                "name": size_name,
+                                "available": available,
+                                "price": aspect_price,
+                            }
+                        )
+            elif price:
+                sizes.append(
+                    {
+                        "name": "Единый",
+                        "available": True,
+                        "price": parse_price_string(price.get("cardPrice")),
+                    }
+                )
             elif out_of_stock:
                 sizes.append(
                     {
@@ -682,8 +684,8 @@ class ParserBot(AbstractBot):
                 "availability": availability,
             }
 
-            if brand_name:
-                caption_data["brand"] = brand_name
+            if brand:
+                caption_data["brand"] = brand["content"]["title"]["text"][0]["content"]
 
             result = {
                 "name": product_name,
@@ -696,7 +698,7 @@ class ParserBot(AbstractBot):
             if brand:
                 try:
                     result["brand"] = {
-                        "id": brand["link"].split("/")[-1],
+                        "id": brand["link"].split("/")[1],
                         "name": brand["content"]["title"]["text"][0]["content"],
                     }
                 except Exception as e:
@@ -932,7 +934,7 @@ class ParserBot(AbstractBot):
                 try:
                     product = await ParseProduct.objects.aget(id=item["id"])
                     image = await ProductImage.objects.filter(product=product).afirst()
-                    
+
                     if image.image_type == "telegram" and image.file_id:
                         media = image.file_id
                     elif image.image_type == "link" and image.url:

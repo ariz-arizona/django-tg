@@ -294,6 +294,22 @@
         "documentation": {}
     },
     {
+        "label": "Subquery",
+        "importPath": "django.db.models",
+        "description": "django.db.models",
+        "isExtraImport": true,
+        "detail": "django.db.models",
+        "documentation": {}
+    },
+    {
+        "label": "OuterRef",
+        "importPath": "django.db.models",
+        "description": "django.db.models",
+        "isExtraImport": true,
+        "detail": "django.db.models",
+        "documentation": {}
+    },
+    {
         "label": "Count",
         "importPath": "django.db.models",
         "description": "django.db.models",
@@ -1807,7 +1823,7 @@
         "kind": 5,
         "importPath": "app.cardparser.bot.parser",
         "description": "app.cardparser.bot.parser",
-        "peekOfCode": "wb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\ndef format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:\n    if not sizes:\n        return \"—\"\n    parts = []\n    for size in sizes:\n        emoji = \"✅\" if size.get(\"available\") else \"❌\"\n        name = f\"<b>{size.get('name', '?')}</b>\"  # ← ДОБАВЛЕНО <b>...</b>",
+        "peekOfCode": "wb_regexp = r\"wildberries\\.ru\\/(catalog\\/(\\d*)|product\\?card=(\\d*))\"\nozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\ndefault_caption_template = \"\"\"\\\nРазбор карточки {sku}\n{brand} <a href=\"{link}\">{name}</a>\nЦена: {price_display}\nРазмеры: {sizes_display}\nНаличие: {availability_display}\n\"\"\"",
         "detail": "app.cardparser.bot.parser",
         "documentation": {}
     },
@@ -1816,7 +1832,7 @@
         "kind": 5,
         "importPath": "app.cardparser.bot.parser",
         "description": "app.cardparser.bot.parser",
-        "peekOfCode": "ozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\ndef format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:\n    if not sizes:\n        return \"—\"\n    parts = []\n    for size in sizes:\n        emoji = \"✅\" if size.get(\"available\") else \"❌\"\n        name = f\"<b>{size.get('name', '?')}</b>\"  # ← ДОБАВЛЕНО <b>...</b>\n        price_part = \"\"",
+        "peekOfCode": "ozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\ndefault_caption_template = \"\"\"\\\nРазбор карточки {sku}\n{brand} <a href=\"{link}\">{name}</a>\nЦена: {price_display}\nРазмеры: {sizes_display}\nНаличие: {availability_display}\n\"\"\"\ndef format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:",
         "detail": "app.cardparser.bot.parser",
         "documentation": {}
     },
@@ -1825,7 +1841,16 @@
         "kind": 5,
         "importPath": "app.cardparser.bot.parser",
         "description": "app.cardparser.bot.parser",
-        "peekOfCode": "combined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\ndef format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:\n    if not sizes:\n        return \"—\"\n    parts = []\n    for size in sizes:\n        emoji = \"✅\" if size.get(\"available\") else \"❌\"\n        name = f\"<b>{size.get('name', '?')}</b>\"  # ← ДОБАВЛЕНО <b>...</b>\n        price_part = \"\"\n        if not show_common_price and \"price\" in size and size[\"price\"] > 0:",
+        "peekOfCode": "combined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\ndefault_caption_template = \"\"\"\\\nРазбор карточки {sku}\n{brand} <a href=\"{link}\">{name}</a>\nЦена: {price_display}\nРазмеры: {sizes_display}\nНаличие: {availability_display}\n\"\"\"\ndef format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:\n    if not sizes:",
+        "detail": "app.cardparser.bot.parser",
+        "documentation": {}
+    },
+    {
+        "label": "default_caption_template",
+        "kind": 5,
+        "importPath": "app.cardparser.bot.parser",
+        "description": "app.cardparser.bot.parser",
+        "peekOfCode": "default_caption_template = \"\"\"\\\nРазбор карточки {sku}\n{brand} <a href=\"{link}\">{name}</a>\nЦена: {price_display}\nРазмеры: {sizes_display}\nНаличие: {availability_display}\n\"\"\"\ndef format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:\n    if not sizes:\n        return \"—\"",
         "detail": "app.cardparser.bot.parser",
         "documentation": {}
     },

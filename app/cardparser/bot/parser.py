@@ -9,7 +9,7 @@ from telegram.constants import ChatType
 from telegram.ext import CommandHandler, MessageHandler, CallbackContext, filters
 
 from django.utils.timezone import now
-from django.db.models import Q
+from django.db.models import Q, Subquery, OuterRef
 from django.conf import settings
 
 from server.logger import logger
@@ -41,6 +41,13 @@ from cardparser.models import (
 wb_regexp = r"wildberries\.ru\/(catalog\/(\d*)|product\?card=(\d*))"
 ozon_regexp = r"ozon\.ru\/(t\/[^\s]*)\/?"
 combined_regexp = f"({wb_regexp}|{ozon_regexp})"
+default_caption_template = """\
+Разбор карточки {sku}
+{brand} <a href="{link}">{name}</a>
+Цена: {price_display}
+Размеры: {sizes_display}
+Наличие: {availability_display}
+"""
 
 
 def format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:
@@ -458,13 +465,7 @@ class ParserBot(AbstractBot):
         pictures = []
         default_template = await ProductTemplate.aget_default_template()
         if not default_template:
-            default_template = """\
-Разбор карточки {sku}
-{brand} <a href="{link}">{name}</a>
-Цена: {price_display}
-Размеры: {sizes_display}
-Наличие: {availability_display}
-"""
+            default_template = default_caption_template
 
         settings = await BotSettings.get_active()
         chat_instance = await context.bot.get_chat(settings.marketing_group_id)
@@ -751,11 +752,36 @@ class ParserBot(AbstractBot):
         try:
             user = await TgUser.objects.aget(tg_id=update.message.from_user.id)
 
+            # Получаем шаблон и ссылку на чат поддержки один раз
+            default_template = await ProductTemplate.aget_default_template()
+            if not default_template:
+                default_template = default_caption_template
+
+            marketing_chat_link = None
+            settings = await BotSettings.get_active()
+            if settings and settings.marketing_group_id:
+                try:
+                    chat_instance = await context.bot.get_chat(
+                        settings.marketing_group_id
+                    )
+                    marketing_chat_link = chat_instance.link
+                except Exception as e:
+                    logger.warning(f"Не удалось получить ссылку на чат поддержки: {e}")
+
             # Извлекаем последние 10 товаров, отсортированных по дате (sent_at)
+            latest_id_per_product = (
+                TgUserProduct.objects.filter(
+                    tg_user=user, product_id=OuterRef("product_id")
+                )
+                .order_by("-sent_at")
+                .values("id")[:1]
+            )
             user_products = []
             async for item in (
-                TgUserProduct.objects.filter(tg_user=user)
-                .select_related("product")
+                TgUserProduct.objects.filter(
+                    tg_user=user, id__in=Subquery(latest_id_per_product)
+                )
+                .select_related("product__brand", "product__category")
                 .order_by("-sent_at")[:10]
             ):
                 user_products.append(item)
@@ -766,19 +792,61 @@ class ParserBot(AbstractBot):
 
             # Формируем список товаров для отправки в media_group
             media_group = []
+
             for user_product in user_products:
                 product = user_product.product
-                logger.info(product)
-                # Создаем объект InputMediaPhoto для каждого товара
+
+                # 🔗 Получаем изображение (с подгрузкой, если нужно)
+                product_image = await product.images.afirst()
+                if not product_image:
+                    logger.warning(
+                        f"У товара {product.id} нет изображения, пропускаем."
+                    )
+                    continue
+
+                # 🖋️ Генерируем актуальную подпись через нашу функцию
+                try:
+                    caption = await self.render_product_caption(
+                        product=product,
+                        template=default_template,
+                        bot_context=context,
+                        marketing_chat_link=marketing_chat_link,
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Ошибка генерации подписи для товара {product.id}: {e}"
+                    )
+                    caption = "Описание недоступно"
+
+                # 📸 Определяем тип медиа
+                media_value = (
+                    product_image.url
+                    if product_image.image_type == "link"
+                    else product_image.file_id
+                )
+
+                if not media_value:
+                    logger.warning(
+                        f"У товара {product.id} нет валидного media, пропускаем."
+                    )
+                    continue
+
+                # ➕ Добавляем в медиа-группу
                 media_group.append(
                     InputMediaPhoto(
-                        media=product.photo_id,  # Используем photo_id
-                        caption=product.caption,  # Подпись к фото
-                        parse_mode="HTML",  # Форматирование с HTML, если нужно
+                        media=media_value,
+                        caption=caption,
+                        parse_mode="HTML",
                     )
                 )
 
-            # Отправляем media_group с изображениями и подписями
+            if not media_group:
+                await update.message.reply_text(
+                    "Нет товаров с изображениями для отображения."
+                )
+                return
+
+            # 📤 Отправляем группу
             await update.message.reply_media_group(
                 media=media_group, reply_to_message_id=update.message.message_id
             )
@@ -787,59 +855,107 @@ class ParserBot(AbstractBot):
 
     async def handle_search_command(self, update: Update, context: CallbackContext):
         try:
-            # Получаем текст запроса из команды
-            query = update.message.text.split(maxsplit=1)[
-                1
-            ].strip()  # /search ЗАПРОС -> ЗАПРОС
-            query = query[:50]
-            if not query:
-                await update.message.reply_text(
-                    "Пожалуйста, укажите запрос для поиска."
-                )
+            # Получаем текст запроса
+            parts = update.message.text.split(maxsplit=1)
+            if len(parts) < 2:
+                await update.message.reply_text("Пожалуйста, укажите запрос для поиска.")
                 return
 
-            # Ищем в базе данных записи, где caption содержит запрос
-            results = ParseProduct.objects.filter(
-                Q(caption__icontains=query)  # Поиск по подстроке (без учета регистра)
-            ).order_by("-created_at")[
-                :10
-            ]  # Берем последние 10 записей
+            query = parts[1].strip()[:50]
+            if not query:
+                await update.message.reply_text("Пожалуйста, укажите запрос для поиска.")
+                return
+
+            # Получаем шаблон и ссылку на чат поддержки один раз
+            default_template = await ProductTemplate.aget_default_template()
+            if not default_template:
+                default_template = default_caption_template
+
+            marketing_chat_link = None
+            settings = await BotSettings.get_active()
+            if settings and settings.marketing_group_id:
+                try:
+                    chat_instance = await context.bot.get_chat(settings.marketing_group_id)
+                    marketing_chat_link = chat_instance.link
+                except Exception as e:
+                    logger.warning(f"Не удалось получить ссылку на чат поддержки: {e}")
+
+            # --- 🔍 Поиск по name, brand.name, category.name ---
+            results = (
+                ParseProduct.objects.filter(
+                    Q(name__icontains=query)
+                    | Q(brand__name__icontains=query)
+                    | Q(category__name__icontains=query)
+                )
+                .select_related("brand", "category")  # предзагружаем связи
+                .order_by("-created_at")[:10]         # последние 10
+            )
 
             user_products = []
-            async for item in results:
-                user_products.append(item)
+            async for product in results:
+                user_products.append(product)
 
             if not user_products:
                 await update.message.reply_text(
-                    f"По запросу '{(query)}' ничего не найдено."
+                    f"По запросу '{query}' ничего не найдено."
                 )
                 return
 
-            # Формируем сообщение с результатами
+            # --- 🖼️ Формируем медиа-группу ---
             media_group = []
-            for user_product in user_products:
-                product = user_product
 
-                # Создаем объект InputMediaPhoto для каждого товара
+            for product in user_products:
+                # Получаем изображение
+                product_image = await product.images.afirst()
+                if not product_image:
+                    logger.warning(f"У товара {product.id} нет изображения, пропускаем.")
+                    continue
+
+                # Генерируем подпись
+                try:
+                    caption = await self.render_product_caption(
+                        product=product,
+                        template=default_template,
+                        bot_context=context,
+                        marketing_chat_link=marketing_chat_link,
+                    )
+                except Exception as e:
+                    logger.error(f"Ошибка генерации подписи для товара {product.id}: {e}")
+                    caption = "Описание недоступно"
+
+                # Определяем медиа
+                media_value = (
+                    product_image.url
+                    if product_image.image_type == "link"
+                    else product_image.file_id
+                )
+                if not media_value:
+                    logger.warning(f"У товара {product.id} нет валидного media, пропускаем.")
+                    continue
+
+                # Добавляем в группу
                 media_group.append(
                     InputMediaPhoto(
-                        media=product.photo_id,  # Используем photo_id
-                        caption=product.caption,  # Подпись к фото
-                        parse_mode="HTML",  # Форматирование с HTML, если нужно
+                        media=media_value,
+                        caption=caption,
+                        parse_mode="HTML",
                     )
                 )
 
-            # Отправляем media_group с изображениями и подписями
+            if not media_group:
+                await update.message.reply_text("Нет товаров с изображениями для отображения.")
+                return
+
+            # --- 📤 Отправляем ---
             await update.message.reply_media_group(
-                media=media_group, reply_to_message_id=update.message.message_id
+                media=media_group,
+                reply_to_message_id=update.message.message_id
             )
 
         except IndexError:
-            # Если запрос не указан
             await update.message.reply_text("Пожалуйста, укажите запрос для поиска.")
         except Exception as e:
-            # Обработка ошибок
-            logger.error(f"Ошибка при выполнении команды /search: {e}", exc_info=True)
+            logger.error("Ошибка при выполнении команды /search", exc_info=True)
             await update.message.reply_text(
                 "Произошла ошибка при выполнении поиска. Пожалуйста, попробуйте снова."
             )

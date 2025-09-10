@@ -363,6 +363,7 @@ class ParserBot(AbstractBot):
         await product.arefresh_from_db(
             from_queryset=ParseProduct.objects.select_related("brand", "category")
         )
+        await product_image.arefresh_from_db()
 
         return product, product_image
 

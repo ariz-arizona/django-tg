@@ -173,7 +173,6 @@ class ParserBot(AbstractBot):
 
                         sizes.append(obj)
 
-
                     caption_data = {
                         "sku": sku,
                         "name": name,
@@ -203,6 +202,244 @@ class ParserBot(AbstractBot):
                     logger.error(e, exc_info=True)
                     return None
 
+    async def get_or_update_product_data(
+        self,
+        p: dict,
+        product_type: str,
+        user: "TgUser",
+        item_id: str,
+        context: CallbackContext = None,  # опционально, если понадобится позже
+    ) -> tuple["ParseProduct", bool]:
+        """
+        Создаёт или обновляет товар, бренд, категорию, изображение и связь с пользователем.
+        Возвращает кортеж: (product, created)
+        """
+
+        # --- 1. Очистка дубликатов по product_id ---
+        existing_products = ParseProduct.objects.filter(product_id=item_id).order_by(
+            "-created_at"
+        )
+        existing_count = await existing_products.acount()
+        if existing_count > 1:
+            async for product in existing_products[1:]:
+                await ParseProduct.objects.filter(id=product.id).adelete()
+
+        # --- 2. Получение/создание бренда ---
+        brand_obj = None
+        brand_data = p.get("brand")
+        if brand_data:
+            brand_id = brand_data.get("id")
+            brand_name = brand_data.get("name")
+            if brand_id and brand_name:
+                try:
+                    brand_obj, _ = await Brand.objects.aupdate_or_create(
+                        brand_id=str(brand_id),
+                        product_type=product_type,
+                        defaults={"name": brand_name},
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Ошибка при создании бренда {brand_name} ({brand_id}): {e}"
+                    )
+
+        # --- 3. Получение/создание категории ---
+        category_obj = None
+        category_data = p.get("category")
+        if category_data:
+            category_id = category_data.get("id")
+            category_name = category_data.get("name")
+            if category_id and category_name:
+                try:
+                    category_obj, _ = await Category.objects.aupdate_or_create(
+                        subject_id=int(category_id),
+                        product_type=product_type,
+                        defaults={"name": category_name},
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Ошибка при создании категории {category_name} ({category_id}): {e}"
+                    )
+
+        # --- 4. Получение/создание товара ---
+        sku = p.get("sku") or item_id
+        name = p.get("name", "Без названия")
+
+        # --- 4.1. Обновление sku ozon ---
+        if product_type == "ozon":
+            try:
+                # Ищем товар по старому item_id (если он ещё не был обновлён)
+                old_ozon_product = await ParseProduct.objects.aget(
+                    product_type=product_type, product_id=item_id
+                )
+                # Если нашли — обновляем его product_id на sku
+                if old_ozon_product.product_id != sku:
+                    old_ozon_product.product_id = sku
+                    await old_ozon_product.asave(update_fields=["product_id"])
+                    logger.info(f"Ozon: обновлён product_id с {item_id} на {sku}")
+            except ParseProduct.DoesNotExist:
+                # Ничего страшного — просто такого товара ещё не было
+                pass
+            except Exception as e:
+                logger.error(f"Ошибка при обновлении Ozon product_id: {e}")
+
+        product, product_created = await ParseProduct.objects.aupdate_or_create(
+            product_id=sku,
+            name=name,
+            defaults={
+                "brand": brand_obj,
+                "category": category_obj,
+                "caption_data": p["caption_data"],
+                "product_type": product_type,
+            },
+        )
+
+        # --- 5. Обновление, если данные изменились ---
+        need_update = False
+
+        # Обновляем caption_data, если изменился
+        if product.caption_data != p["caption_data"]:
+            product.caption_data = p["caption_data"]
+            need_update = True
+
+        # Обновляем бренд, если изменился
+        if brand_obj and product.brand_id != brand_obj.id:
+            product.brand = brand_obj
+            need_update = True
+
+        # Обновляем категорию, если изменилась
+        if category_obj and product.category_id != category_obj.id:
+            product.category = category_obj
+            need_update = True
+
+        if need_update:
+            # Важно: обновляем ВСЕ изменённые поля
+            update_fields = ["brand", "category", "caption_data"]
+            if not product_created:
+                await product.asave(update_fields=update_fields)
+            else:
+                # При создании сохранять не нужно — уже сохранён
+                pass
+
+        # --- 6. Работа с изображением ---
+        image_qs = product.images.all()
+        product_image = await image_qs.afirst()
+
+        media = p["media"]
+        media_type = {"image_type": "", "file_id": None, "url": None}
+
+        if media.lower().startswith(("http://", "https://")):
+            media_type["image_type"] = "link"
+            media_type["url"] = media
+        else:
+            media_type["image_type"] = "telegram"
+            media_type["file_id"] = media
+
+        if product_image is None:
+            # Создаём новое изображение
+            await ProductImage.objects.acreate(product=product, **media_type)
+        else:
+            # Обновляем, если что-то изменилось
+            if (
+                product_image.image_type != media_type["image_type"]
+                or (product_image.file_id or "") != (media_type["file_id"] or "")
+                or (product_image.url or "") != (media_type["url"] or "")
+            ):
+                product_image.image_type = media_type["image_type"]
+                product_image.file_id = media_type["file_id"]
+                product_image.url = media_type["url"]
+                await product_image.asave()
+
+        # --- 7. Создание связи пользователь-товар ---
+        await TgUserProduct.objects.acreate(tg_user=user, product=product)
+
+        # --- 8. обновление товара из базы ---
+        await product.arefresh_from_db(
+            from_queryset=ParseProduct.objects.select_related("brand", "category")
+        )
+
+        return product, product_image
+
+    async def render_product_caption(
+        self,
+        product: "ParseProduct",
+        template: str,
+        bot_context: CallbackContext = None,
+        marketing_chat_link: str = None,
+    ) -> str:
+        hash_prefix = "bot_"
+        caption_data = product.caption_data or {}
+
+        # Базовые поля
+        template_context = {
+            "sku": caption_data.get("sku", "N/A"),
+            "brand": caption_data.get("brand", "Неизвестный бренд"),
+            "name": caption_data.get("name", "Без названия"),
+            "link": caption_data.get("link", "#"),
+            "hash_type": f"#{hash_prefix}{product.product_type}",
+            "hash_category": "",
+            "hash_brand": "",
+        }
+
+        # Хэштеги категории и бренда (если есть в caption_data или связях)
+        if product.category and product.category.name:
+            clean_name = re.sub(r"\W+", "_", product.category.name.lower())
+            template_context["hash_category"] = f"#{hash_prefix}{clean_name}"
+
+        if product.brand and product.brand.name:
+            clean_name = re.sub(r"\W+", "_", product.brand.name.lower())
+            template_context["hash_brand"] = f"#{hash_prefix}{clean_name}"
+
+        # Промо-ссылки
+        promo_parts = []
+        if (
+            bot_context
+            and bot_context.bot
+            and bot_context.bot.username
+            and bot_context.bot.link
+        ):
+            promo_parts.append(
+                f"🤖 <a href='{bot_context.bot.link}'>@{bot_context.bot.username}</a>"
+            )
+
+        if marketing_chat_link:
+            promo_parts.append(
+                f"💬 <a href='{marketing_chat_link}'>Группа поддержки</a>"
+            )
+
+        template_context["promo"] = " | ".join(promo_parts) if promo_parts else ""
+
+        # Цены и размеры
+        sizes = caption_data.get("sizes", [])
+        active_prices = [
+            s.get("price")
+            for s in sizes
+            if s.get("price") is not None and s.get("price") > 0
+        ]
+        show_common_price = len(set(active_prices)) == 1 if active_prices else False
+
+        if active_prices:
+            min_price = min(active_prices)
+            max_price = max(active_prices)
+            if show_common_price:
+                template_context["price_display"] = (
+                    f"{min_price:,.0f}".replace(",", " ") + " ₽"
+                )
+            else:
+                template_context["price_display"] = (
+                    f"{min_price:,.0f} – {max_price:,.0f}".replace(",", " ") + " ₽"
+                )
+        else:
+            template_context["price_display"] = "—"
+
+        template_context["sizes_display"] = format_sizes_for_template(
+            sizes, show_common_price
+        )
+        template_context["availability_display"] = (
+            "✅ В наличии" if caption_data.get("availability") else "❌ Нет в наличии"
+        )
+
+        return render_template(template, template_context)
+
     async def handle_links(
         self, items, product_type, parse_func, update: Update, context: CallbackContext
     ):
@@ -229,213 +466,49 @@ class ParserBot(AbstractBot):
 Наличие: {availability_display}
 """
 
+        settings = await BotSettings.get_active()
+        chat_instance = await context.bot.get_chat(settings.marketing_group_id)
         for i in items:
             p = await parse_func(i, context)
-            if p and p["media"]:
-                hash_prefix = "bot_"
-                caption_data = p["caption_data"]
-                template_context = {
-                    "sku": caption_data.get("sku", "N/A"),
-                    "sizes": caption_data.get("sizes", "-"),
-                    "brand": caption_data.get("brand", "Неизвестный бренд"),
-                    "name": caption_data.get("name", "Без названия"),
-                    "link": caption_data.get("link", "#"),
-                    "hash_type": "#" + hash_prefix + product_type,
-                    "hash_category": "",
-                    "hash_brand": "",
-                }
-
-                if "category" in p:
-                    template_context["hash_category"] = (
-                        "#"
-                        + hash_prefix
-                        + re.sub(r"\W+", "_", p["category"]["name"].lower())
-                    )
-
-                if "brand" in p:
-                    template_context["hash_brand"] = (
-                        "#"
-                        + hash_prefix
-                        + re.sub(r"\W+", "_", p["brand"]["name"].lower())
-                    )
-
-                promo_parts = []
-                promo_parts.append(
-                    f"🤖 <a href='{context.bot.link}'>@{context.bot.username}</a>"
+            try:
+                product, product_image = await self.get_or_update_product_data(
+                    p,
+                    product_type,
+                    user,
+                    i,
+                    context,
                 )
-
-                settings = await BotSettings.get_active()
-                chat_instance = await context.bot.get_chat(settings.marketing_group_id)
-                if chat_instance.link:
-                    promo_parts.append(
-                        f"💬 <a href='{chat_instance.link}'>Группа поддержки</a>"
-                    )
-
-                template_context["promo"] = " | ".join(promo_parts)
-
-                sizes = caption_data.get("sizes", [])
-
-                active_prices = [
-                    p.get("price")
-                    for p in caption_data.get("sizes", [])
-                    if p.get("price") is not None and p.get("price") > 0
-                ]
-                show_common_price = (
-                    len(set(active_prices)) == 1 if active_prices else False
+                rendered_caption = await self.render_product_caption(
+                    product,
+                    default_template,
+                    context,
+                    chat_instance.link,
                 )
-                if active_prices:
-                    min_price = min(active_prices)
-                    max_price = max(active_prices)
-                    if show_common_price:
-                        template_context["price_display"] = (
-                            f"{min_price:,.0f}".replace(",", " ") + " ₽"
-                        )
-                    else:
-                        template_context["price_display"] = (
-                            f"{min_price:,.0f} – {max_price:,.0f}".replace(",", " ")
-                            + " ₽"
-                        )
-                else:
-                    template_context["price_display"] = "—"
-
-                template_context["sizes_display"] = format_sizes_for_template(
-                    sizes, show_common_price
-                )
-                template_context["availability_display"] = (
-                    "✅ В наличии"
-                    if caption_data["availability"]
-                    else "❌ Нет в наличии"
-                )
-
-                rendered_caption = render_template(default_template, template_context)
 
                 pictures.append(
                     {
-                        "media": p["media"],
+                        "media": (
+                            product_image.url
+                            if product_image.image_type == "link"
+                            else product_image.file_id
+                        ),
                         "caption": rendered_caption,
                         "parse_mode": p["parse_mode"],
                     }
                 )
-                # Проверяем, есть ли уже записи с таким product_id
-                existing_products = ParseProduct.objects.filter(product_id=i).order_by(
-                    "-created_at"
-                )
-
-                if (await existing_products.acount()) > 1:
-                    # Если найдено более одной записи, удаляем все, кроме самой новой
-                    async for product in existing_products[1:]:
-                        await ParseProduct.objects.filter(id=product.id).adelete()
-
-                brand_obj = None
-                brand_data = p.get("brand")
-                if brand_data:
-                    brand_id = brand_data.get("id")
-                    brand_name = brand_data.get("name")
-                    if brand_id and brand_name:
-                        try:
-                            brand_obj, created = await Brand.objects.aupdate_or_create(
-                                brand_id=str(brand_id),
-                                product_type=product_type,
-                                defaults={"name": brand_name},
-                            )
-                        except Exception as e:
-                            logger.error(
-                                f"Ошибка при создании бренда {brand_name} ({brand_id}): {e}"
-                            )
-
-                category_obj = None
-                category_data = p.get("category")
-                if category_data:
-                    category_id = category_data.get("id")
-                    category_name = category_data.get("name")
-
-                    if category_id and category_name:
-                        try:
-                            category_obj, created = (
-                                await Category.objects.aupdate_or_create(
-                                    subject_id=int(category_id),
-                                    product_type=product_type,
-                                    defaults={
-                                        "name": category_name
-                                    },  # только при создании
-                                )
-                            )
-                        except Exception as e:
-                            logger.error(
-                                logger.error(
-                                    f"Ошибка при создании категории {category_name} ({category_id}): {e}"
-                                )
-                            )
-
-                product, product_created = await ParseProduct.objects.aupdate_or_create(
-                    product_id=p.get("sku") or i,
-                    name=p["name"],
-                    defaults={
-                        "brand": brand_obj,
-                        "category": category_obj,
-                        "caption_data": p["caption_data"],
-                        "product_type": product_type,
-                    },
-                )
-
-                need_update = False
-
-                if product.caption_data != p["caption_data"]:
-                    product.caption_data = p["caption_data"]
-                    need_update = True
-
-                if brand_obj and product.brand_id != brand_obj.id:
-                    product.brand = brand_obj
-                    need_update = True
-
-                if category_obj and product.category_id != category_obj.id:
-                    product.category = category_obj
-                    need_update = True
-
-                if need_update:
-                    await product.asave(update_fields=["brand", "category"])
-
-                image_qs = product.images.all()
-                if await image_qs.aexists():
-                    # Берём первое (или можно выбрать по порядку, если будет сортировка)
-                    product_image = await image_qs.afirst()
-                else:
-                    product_image = None
-
-                media = p["media"]
-                media_type = {"image_type": "", "file_id": None, "url": None}
-                if media.lower().startswith(("http://", "https://")):
-                    media_type["image_type"] = "link"
-                    media_type["url"] = media
-                else:
-                    media_type["image_type"] = "telegram"
-                    media_type["file_id"] = media
-
-                if product_image is None:
-                    # Создаём новое
-                    product_image = await ProductImage.objects.acreate(
-                        product=product, **media_type
-                    )
-                elif (
-                    product_image.image_type != media_type["image_type"]
-                    or (product_image.file_id or "") != (media_type["file_id"] or "")
-                    or (product_image.url or "") != (media_type["url"] or "")
-                ):
-                    product_image.image_type = media_type["image_type"]
-                    product_image.file_id = media_type["file_id"]
-                    product_image.url = media_type["url"]
-                    await product_image.asave()
-
-                await TgUserProduct.objects.acreate(tg_user=user, product=product)
+            except Exception as e:
+                logger.error(f"Ошибка при обработке товара {i}: {e}", exc_info=True)
+                continue  # Продолжаем, даже если один товар сломался
 
         for i in range(0, len(pictures), 10):
             group = pictures[i : i + 10]
             media_group = [
                 InputMediaPhoto(**photo) for photo in group if photo is not None
             ]
-            await update.message.reply_media_group(
-                media=media_group, reply_to_message_id=update.message.message_id
-            )
+            if len(media_group):
+                await update.message.reply_media_group(
+                    media=media_group, reply_to_message_id=update.message.message_id
+                )
 
     async def handle_links_based_on_message(
         self, update: Update, context: CallbackContext

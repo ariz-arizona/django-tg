@@ -759,6 +759,22 @@
         "documentation": {}
     },
     {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "models",
         "importPath": "django.db",
         "description": "django.db",
@@ -1868,6 +1884,15 @@
         "documentation": {}
     },
     {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.cardparser.migrations.0007_parseproduct_caption_data_alter_parseproduct_caption",
+        "description": "app.cardparser.migrations.0007_parseproduct_caption_data_alter_parseproduct_caption",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('cardparser', '0006_alter_producttemplate_template_and_more'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='parseproduct',\n            name='caption_data',\n            field=models.JSONField(blank=True, default=dict, verbose_name='Данные для формирования подписи'),\n        ),",
+        "detail": "app.cardparser.migrations.0007_parseproduct_caption_data_alter_parseproduct_caption",
+        "documentation": {}
+    },
+    {
         "label": "get_category_and_its_top_products",
         "kind": 2,
         "importPath": "app.cardparser.services.marketing_queryset",
@@ -1935,7 +1960,7 @@
         "kind": 6,
         "importPath": "app.cardparser.admin",
         "description": "app.cardparser.admin",
-        "peekOfCode": "class ParseProductAdmin(admin.ModelAdmin):\n    list_display = (\n        \"product_id\",\n        \"product_type\",\n        \"name\",\n        \"brand__name\",\n        \"category__name\",\n        \"created_at\",\n        \"updated_at\",\n    )",
+        "peekOfCode": "class ParseProductAdmin(admin.ModelAdmin):\n    list_display = (\n        \"product_id\",\n        \"product_type\",\n        \"name\",\n        \"brand__name\",\n        \"category__name\",\n        \"display_caption_data\",\n        \"created_at\",\n        \"updated_at\",",
         "detail": "app.cardparser.admin",
         "documentation": {}
     },
@@ -1980,7 +2005,7 @@
         "kind": 6,
         "importPath": "app.cardparser.admin",
         "description": "app.cardparser.admin",
-        "peekOfCode": "class EventCaptionAdmin(admin.ModelAdmin):\n    # Поля, которые видно в списке\n    list_display = (\n        'get_event_type_display_name',\n        'short_text',\n        'short_caption',\n        'is_active',\n        'updated_at'\n    )\n    # Поля, которые можно редактировать прямо в списке",
+        "peekOfCode": "class EventCaptionAdmin(admin.ModelAdmin):\n    # Поля, которые видно в списке\n    list_display = (\n        \"get_event_type_display_name\",\n        \"short_text\",\n        \"short_caption\",\n        \"is_active\",\n        \"updated_at\",\n    )\n    # Поля, которые можно редактировать прямо в списке",
         "detail": "app.cardparser.admin",
         "documentation": {}
     },
@@ -1989,7 +2014,7 @@
         "kind": 6,
         "importPath": "app.cardparser.admin",
         "description": "app.cardparser.admin",
-        "peekOfCode": "class ProductTemplateAdmin(admin.ModelAdmin):\n    list_display = [\"name\", \"is_default\", \"created_at\", \"updated_at\"]\n    list_filter = [\"is_default\"]\n    search_fields = [\"name\"]\n    ordering = [\"name\"]\n    fieldsets = (\n        (None, {\n            \"fields\": (\"name\", \"is_default\", \"template\"),\n            \"description\": (\n                \"<p><strong>Плейсхолдеры:</strong> {brand}, {name}, {price_display}, \"",
+        "peekOfCode": "class ProductTemplateAdmin(admin.ModelAdmin):\n    list_display = [\"name\", \"is_default\", \"created_at\", \"updated_at\"]\n    list_filter = [\"is_default\"]\n    search_fields = [\"name\"]\n    ordering = [\"name\"]\n    fieldsets = (\n        (\n            None,\n            {\n                \"fields\": (\"name\", \"is_default\", \"template\"),",
         "detail": "app.cardparser.admin",
         "documentation": {}
     },
@@ -2025,7 +2050,7 @@
         "kind": 6,
         "importPath": "app.cardparser.models",
         "description": "app.cardparser.models",
-        "peekOfCode": "class ParseProduct(models.Model):\n    \"\"\"Модель для хранения данных о продукте.\"\"\"\n    product_id = models.CharField(max_length=255, verbose_name=\"ID товара\")\n    caption = models.TextField(verbose_name=\"Подпись к фото\")\n    name = models.CharField(\n        max_length=255,\n        blank=True,\n        null=True,\n        verbose_name=\"Название товара\",\n        help_text=\"Официальное название товара (опционально)\",",
+        "peekOfCode": "class ParseProduct(models.Model):\n    \"\"\"Модель для хранения данных о продукте.\"\"\"\n    product_id = models.CharField(max_length=255, verbose_name=\"ID товара\")\n    caption = models.TextField(verbose_name=\"Подпись к фото\", null=True)\n    caption_data = models.JSONField(\n        verbose_name=\"Данные для формирования подписи\", default=dict, blank=True\n    )\n    name = models.CharField(\n        max_length=255,\n        blank=True,",
         "detail": "app.cardparser.models",
         "documentation": {}
     },

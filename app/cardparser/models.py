@@ -57,7 +57,10 @@ class ParseProduct(models.Model):
     """Модель для хранения данных о продукте."""
 
     product_id = models.CharField(max_length=255, verbose_name="ID товара")
-    caption = models.TextField(verbose_name="Подпись к фото")
+    caption = models.TextField(verbose_name="Подпись к фото", null=True)
+    caption_data = models.JSONField(
+        verbose_name="Данные для формирования подписи", default=dict, blank=True
+    )
     name = models.CharField(
         max_length=255,
         blank=True,
@@ -88,7 +91,7 @@ class ParseProduct(models.Model):
     )
 
     def __str__(self):
-        return f"{self.get_product_type_display()} - {self.caption[:30]}"
+        return f"{self.get_product_type_display()} - {self.name}"
 
     class Meta:
         verbose_name = f"{bot_prefix}: Продукт"
@@ -338,7 +341,7 @@ class ProductTemplate(models.Model):
     is_default = models.BooleanField(
         default=False,
         verbose_name="Шаблон по умолчанию",
-        help_text="Будет использоваться, если в коде не указано конкретное имя шаблона. Только один шаблон может быть 'по умолчанию'."
+        help_text="Будет использоваться, если в коде не указано конкретное имя шаблона. Только один шаблон может быть 'по умолчанию'.",
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Создан")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Обновлён")
@@ -349,15 +352,15 @@ class ProductTemplate(models.Model):
         ordering = ["name"]
         constraints = [
             models.UniqueConstraint(
-                fields=['is_default'],
+                fields=["is_default"],
                 condition=models.Q(is_default=True),
-                name='unique_default_template'
+                name="unique_default_template",
             )
         ]
 
     def __str__(self):
         return self.name
-    
+
     @classmethod
     async def aget_default_template(cls) -> str:
         """

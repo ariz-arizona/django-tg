@@ -134,8 +134,6 @@ class ParserBot(AbstractBot):
     async def wb(self, card_id, context: CallbackContext):
         card_url = f"https://card.wb.ru/cards/v4/detail?curr=rub&dest=-1059500,-72639,-3826860,-5551776&nm={card_id}"
 
-        txt = []
-
         async with aiohttp.ClientSession() as session:
             # Загружаем данные карточки
             async with session.get(card_url) as response:
@@ -175,21 +173,6 @@ class ParserBot(AbstractBot):
 
                         sizes.append(obj)
 
-                    # Формируем текст
-                    txt.append(f"Разбор карточки WB <code>{sku}</code>")
-                    txt.append(f'{brand} <a href="{link}">{name}</a>')
-                    show_common_price = True
-                    txt.append("Размеры и цена:")
-                    txt.append(
-                        ", ".join(
-                            (
-                                f"{'✅' if size['available'] else '❌'} "
-                                f"<b>{size['name']}</b>"
-                                f"{' '.join(['', '—',str(size['price']),'₽']) if not show_common_price and hasattr(size, 'price') else ''}"
-                            )
-                            for size in sizes
-                        )
-                    )
 
                     caption_data = {
                         "sku": sku,
@@ -202,8 +185,8 @@ class ParserBot(AbstractBot):
                         caption_data["brand"] = brand
 
                     return {
+                        "sku": sku,
                         "media": image_url,
-                        "caption": "\n".join(txt),
                         "parse_mode": "HTML",
                         "name": product.get("name"),
                         "caption_data": caption_data,
@@ -385,17 +368,22 @@ class ParserBot(AbstractBot):
                             )
 
                 product, product_created = await ParseProduct.objects.aupdate_or_create(
-                    product_id=i,
+                    product_id=p.get("sku") or i,
                     name=p["name"],
                     defaults={
                         "brand": brand_obj,
                         "category": category_obj,
-                        "caption": p["caption"],
+                        "caption_data": p["caption_data"],
                         "product_type": product_type,
                     },
                 )
 
                 need_update = False
+
+                if product.caption_data != p["caption_data"]:
+                    product.caption_data = p["caption_data"]
+                    need_update = True
+
                 if brand_obj and product.brand_id != brand_obj.id:
                     product.brand = brand_obj
                     need_update = True
@@ -527,12 +515,10 @@ class ParserBot(AbstractBot):
 
             widget_states = r.get("widgetStates", {})
             page_info = r.get("pageInfo", {})
-            txt = []
             img = None
             sku = None
             product_name = None
             price = None
-            brand_name = None
             availability = True
             sizes = []
 
@@ -562,12 +548,6 @@ class ParserBot(AbstractBot):
                 brand_name = brand.get("name", "")
 
             if error or user_adult_modal:
-                txt.append(r["seo"]["title"])
-                txt.append(r["seo"]["link"][0]["href"].replace("api.ozon", "ozon"))
-                txt.append("")
-                txt.append(
-                    f"<strong>{error.get('title', user_adult_modal.get('subtitle', {}).get('text', ''))}</strong>"
-                )
                 seo_img = next(
                     (
                         meta["content"]
@@ -578,41 +558,10 @@ class ParserBot(AbstractBot):
                 )
                 img = seo_img
             elif out_of_stock:
-                txt.append(f"Разбор карточки OZON <code>{out_of_stock['sku']}</code>")
-                txt.append(
-                    f"\n{out_of_stock['sellerName']} <a href='https://ozon.ru/{out_of_stock['productLink']}'>{out_of_stock['skuName']}</a>"
-                )
-                txt.append(f"\nЦена: {out_of_stock['price']}")
-                txt.append(f"\nНаличие: ❌")
                 img = out_of_stock.get("coverImage")
             elif price or sale:
-                txt.append(
-                    f"Разбор карточки OZON <code>{gallery.get('sku', '') or heading.get('id', '')}</code>"
-                )
-                txt.append(
-                    f"{brand_name}<a href='https://ozon.ru{page_info.get('url', ozon_id)}'>{heading.get('title', '')}</a>"
-                )
-                if price.get("price"):
-                    txt.append(
-                        f"Цена: {price['price']} {f'''<s>{price.get('originalPrice')}</s>''' if price.get('originalPrice') else ''}"
-                    )
-                elif add_to_cart.get("price"):
-                    txt.append(f"Цена: {add_to_cart['price']}")
-                if price.get("isAvailable"):
-                    txt.append(f"Наличие: {'✅' if price['isAvailable'] else '❌'}")
-                elif sale.get("offer", {}).get("isAvailable"):
-                    txt.append(
-                        f"Наличие: {'✅' if sale['offer']['isAvailable'] else '❌'}"
-                    )
                 img = gallery.get("coverImage") or heading.get("coverImage")
             elif fulltext_results_header:
-                txt.append(
-                    fulltext_results_header["header"]["text"]
-                    .replace("**", "<strong>")
-                    .replace("[", "<a href='https://www.ozon.ru")
-                    .replace("]", "'>")
-                    .replace(")", "</a>")
-                )
                 img = next(
                     (
                         item["image"]["link"]
@@ -688,10 +637,10 @@ class ParserBot(AbstractBot):
                 caption_data["brand"] = brand["content"]["title"]["text"][0]["content"]
 
             result = {
+                "sku": sku,
                 "name": product_name,
                 "media": img,
                 "caption_data": caption_data,
-                "caption": "\n".join(txt),
                 "parse_mode": "HTML",
             }
 
@@ -934,7 +883,7 @@ class ParserBot(AbstractBot):
                 try:
                     product = await ParseProduct.objects.aget(id=item["id"])
                     image = await ProductImage.objects.filter(product=product).afirst()
-                    
+
                     if image.image_type == "telegram" and image.file_id:
                         media = image.file_id
                     elif image.image_type == "link" and image.url:

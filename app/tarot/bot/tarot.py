@@ -754,11 +754,29 @@ class TarotBot(AbstractBot):
                 async for item in all_meanings
             ]
             meanings_list.append(("base", "Базовый"))
+            meanings_list.sort(key=lambda x: x[1])
+            current_idx = next(
+                (
+                    i
+                    for i, (cat_id, _) in enumerate(meanings_list)
+                    if str(cat_id) == str(meaning_type)
+                ),
+                -1,
+            )
+            if current_idx == -1:
+                logger.warning(
+                    f"Категория '{meaning_type}' не найдена. Используем первую."
+                )
+                current_idx = 0
+                meaning_type = meanings_list[0][0]
 
-            meanings_list = [x for x in meanings_list if str(x[0]) != str(meaning_type)]
-            if not meanings_list:
-                logger.warning(f"Для карты {card_id} не найдено значений.")
-                return None  # или вернуть InlineKeyboardMarkup([]), если нужна пустая клавиатура
+            # 🔁 Зацикленная навигация: граничные случаи ОБРАБОТАНЫ автоматически через %
+            total = len(meanings_list)
+            prev_idx = (current_idx - 1) % total  # если 0 → станет последний
+            next_idx = (current_idx + 1) % total  # если последний → станет 0
+
+            meaning_prev = meanings_list[prev_idx]  # (id, name)
+            meaning_next = meanings_list[next_idx]
 
             logger.info(f"Найдено {len(meanings_list)} значений для карты {card_id}")
 
@@ -784,20 +802,17 @@ class TarotBot(AbstractBot):
                 keyboard.append(paged_row)
 
             # Группируем кнопки по 2 в массив массивов
-            grouped_buttons = [
-                meanings_list[i : i + 2] for i in range(0, len(meanings_list), 2)
+            row = [
+                InlineKeyboardButton(
+                    text=meaning_prev[1],
+                    callback_data=f"meaning_{meaning_prev[0]}_{card_id}_1",
+                ),
+                InlineKeyboardButton(
+                    text=meaning_next[1],
+                    callback_data=f"meaning_{meaning_next[0]}_{card_id}_1",
+                ),
             ]
-
-            # Итерация по сгруппированным данным
-            for group in grouped_buttons:
-                row = [
-                    InlineKeyboardButton(
-                        text=item[1],
-                        callback_data=f"meaning_{item[0]}_{card_id}_1",
-                    )
-                    for item in group
-                ]
-                keyboard.append(row)
+            keyboard.append(row)
 
             return InlineKeyboardMarkup(keyboard)
 
@@ -810,12 +825,20 @@ class TarotBot(AbstractBot):
         # Разделяем текст на части
         text_parts = self.split_text(text)
         total_pages = len(text_parts)
+        base_card = await TarotCard.objects.aget(card_id=card_id)
         keyboard = await self.create_pagination_keyboard(
             "base", card_id, 1, total_pages
         )
         # Отправляем первую страницу
         await update.effective_message.reply_text(
-            text=text_parts[0], reply_markup=keyboard
+            text=(
+                f"<strong>{base_card.name}</strong>\n"
+                f"Базовый\n"
+                f"стр 1/{len(text_parts)}\n"
+                "\n"
+                f"{text_parts[0]}"
+            ),
+            reply_markup=keyboard,
         )
 
     # Обработчик для навигации по страницам
@@ -850,6 +873,7 @@ class TarotBot(AbstractBot):
             text=(
                 f"<strong>{base_card.name}</strong>\n"
                 f"{'Базовый' if meaning_type == 'base' else extended_card.category_base}\n"
+                f"стр {page}/{len(text_parts)}\n"
                 "\n"
                 f"{text_parts[page - 1]}"
             ),
@@ -1177,26 +1201,13 @@ class TarotBot(AbstractBot):
                 pos_2 = rune.straight_pos_2
                 pos_3 = rune.straight_pos_3
             elif inverted == True:
-                keys = (
-                    rune.inverted_keys
-                    or f"для прямой руны: {rune.straight_keys}"
-                )
+                keys = rune.inverted_keys or f"для прямой руны: {rune.straight_keys}"
                 meaning = (
-                    rune.inverted_meaning
-                    or f"для прямой руны: {rune.straight_meaning}"
+                    rune.inverted_meaning or f"для прямой руны: {rune.straight_meaning}"
                 )
-                pos_1 = (
-                    rune.inverted_pos_1
-                    or f"для прямой руны: {rune.straight_pos_1}"
-                )
-                pos_2 = (
-                    rune.inverted_pos_2
-                    or f"для прямой руны: {rune.straight_pos_2}"
-                )
-                pos_3 = (
-                    rune.inverted_pos_3
-                    or f"для прямой руны: {rune.straight_pos_3}"
-                )
+                pos_1 = rune.inverted_pos_1 or f"для прямой руны: {rune.straight_pos_1}"
+                pos_2 = rune.inverted_pos_2 or f"для прямой руны: {rune.straight_pos_2}"
+                pos_3 = rune.inverted_pos_3 or f"для прямой руны: {rune.straight_pos_3}"
 
             if position == 1:
                 position_text = pos_1

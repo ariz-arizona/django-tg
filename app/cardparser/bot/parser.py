@@ -512,9 +512,15 @@ class ParserBot(AbstractBot):
                 InputMediaPhoto(**photo) for photo in group if photo is not None
             ]
             if len(media_group):
-                await update.message.reply_media_group(
-                    media=media_group, reply_to_message_id=update.message.message_id
-                )
+                try:
+                    await update.message.reply_media_group(
+                        media=media_group, reply_to_message_id=update.message.message_id
+                    )
+                except Exception as e:
+                    try:
+                        await update.message.reply_media_group(media=media_group)
+                    except Exception as e:
+                        logger.error('Ошибка отправки медиагруппы', exc_info=True)
 
     async def handle_links_based_on_message(
         self, update: Update, context: CallbackContext

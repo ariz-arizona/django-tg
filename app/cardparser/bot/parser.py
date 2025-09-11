@@ -457,7 +457,7 @@ class ParserBot(AbstractBot):
     ):
         # Получаем или создаем пользователя
         user, created = await TgUser.objects.aget_or_create(
-            tg_id=update.message.from_user.id,
+            tg_id=update.effective_user.id,
             defaults={
                 "username": update.message.from_user.username,
                 "first_name": update.message.from_user.first_name,
@@ -755,7 +755,7 @@ class ParserBot(AbstractBot):
     async def handle_last_products(self, update: Update, context: CallbackContext):
         # Получаем пользователя по tg_id
         try:
-            user = await TgUser.objects.aget(tg_id=update.message.from_user.id)
+            user = await TgUser.objects.aget(tg_id=update.effective_user.id)
 
             # Получаем шаблон и ссылку на чат поддержки один раз
             default_template = await ProductTemplate.aget_default_template()
@@ -1078,7 +1078,9 @@ class ParserBot(AbstractBot):
             media_group = []
             for item in items:
                 try:
-                    product = await ParseProduct.objects.prefetch_related('brand', 'category').aget(id=item["id"])
+                    product = await ParseProduct.objects.prefetch_related(
+                        "brand", "category"
+                    ).aget(id=item["id"])
                     image = await ProductImage.objects.filter(product=product).afirst()
 
                     if not image.media_data:

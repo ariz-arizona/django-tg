@@ -718,19 +718,31 @@ class TarotBot(AbstractBot):
             await query.edit_message_text("Ошибка при отправке карты.")
 
     def split_text(self, text, chunk_size=1024):
-        words = text.split()  # Разбиваем текст на слова
+        lines = text.split('\n')  # Разделяем по переводам строк — сохраняем каждую строку как есть
         chunks = []
         current_chunk = ""
 
-        for word in words:
-            # Проверяем, не превысит ли добавление слова лимит chunk_size
-            if len(current_chunk) + len(word) + 1 > chunk_size:  # +1 для пробела
-                chunks.append(current_chunk)
-                current_chunk = word  # Начинаем новый кусок с текущего слова
-            else:
-                current_chunk = f"{current_chunk} {word}".strip()  # Добавляем слово
+        for line in lines:
+            # Длина строки + длина текущего куска + 1 символ на '\n' (если кусок не пустой)
+            needed_length = len(line)
+            if current_chunk:  # Если уже что-то есть — добавим '\n' перед новой строкой
+                needed_length += 1
 
-        if current_chunk:  # Добавляем последний кусок, если он есть
+            # Проверяем, поместится ли строка в текущий кусок
+            if len(current_chunk) + needed_length > chunk_size:
+                # Если нет — сохраняем текущий кусок и начинаем новый с этой строки
+                if current_chunk:
+                    chunks.append(current_chunk)
+                current_chunk = line
+            else:
+                # Если да — добавляем строку с переводом строки
+                if current_chunk:
+                    current_chunk += "\n" + line
+                else:
+                    current_chunk = line
+
+        # Не забываем добавить последний кусок
+        if current_chunk:
             chunks.append(current_chunk)
 
         return chunks
@@ -839,6 +851,7 @@ class TarotBot(AbstractBot):
                 f"{text_parts[0]}"
             ),
             reply_markup=keyboard,
+            parse_mode="HTML",
         )
 
     # Обработчик для навигации по страницам

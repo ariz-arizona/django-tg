@@ -281,7 +281,7 @@ class ParserBot(AbstractBot):
                     old_ozon_product.product_id = sku
                     await old_ozon_product.asave(update_fields=["product_id"])
                     logger.info(f"Ozon: обновлён product_id с {item_id} на {sku}")
-                    
+
                     # logger.info(await ParseProduct.objects.filter(product_id=sku).acount())
             except ParseProduct.DoesNotExist:
                 # Ничего страшного — просто такого товара ещё не было
@@ -302,7 +302,7 @@ class ParserBot(AbstractBot):
 
         # --- 5. Обновление, если данные изменились ---
         need_update = False
-        
+
         # logger.info('UPDATE!!!!')
 
         # Обновляем caption_data, если изменился
@@ -345,7 +345,9 @@ class ParserBot(AbstractBot):
 
         if product_image is None:
             # Создаём новое изображение
-            product_image = await ProductImage.objects.acreate(product=product, **media_type)
+            product_image = await ProductImage.objects.acreate(
+                product=product, **media_type
+            )
         else:
             # Обновляем, если что-то изменилось
             if (
@@ -1048,8 +1050,17 @@ class ParserBot(AbstractBot):
                 logger.info("Нет шаблона сообщений.")
                 return
 
+            if settings.marketing_group_id:
+                try:
+                    chat_instance = await context.bot.get_chat(
+                        settings.marketing_group_id
+                    )
+                    marketing_chat_link = chat_instance.link
+                except Exception as e:
+                    logger.warning(f"Не удалось получить ссылку на чат поддержки: {e}")
+
             # Формируем сообщение
-            message = msg_obj["text"]
+            message = msg_obj.text
             for i, item in enumerate(items, start=1):
                 name = item["name"]
                 brand = item["brand"]
@@ -1066,45 +1077,27 @@ class ParserBot(AbstractBot):
             # Формируем медиагруппу
             media_group = []
             for item in items:
-                name = item["name"]
-                brand = item["brand"]
-                platform = item["product_type"]
-                count = item["request_count"]
-                caption_text = item["caption"].strip()
-
-                # Полная подпись к фото
-                full_caption = render_template(
-                    msg_obj["caption"],
-                    {
-                        "name": name,
-                        "caption_text": caption_text,
-                        "brand": brand,
-                        "platform": platform,
-                        "count": count,
-                    },
-                )
-
-                # Получаем товар и его фото
                 try:
-                    product = await ParseProduct.objects.aget(id=item["id"])
+                    product = await ParseProduct.objects.prefetch_related('brand', 'category').aget(id=item["id"])
                     image = await ProductImage.objects.filter(product=product).afirst()
 
-                    if image.image_type == "telegram" and image.file_id:
-                        media = image.file_id
-                    elif image.image_type == "link" and image.url:
-                        media = image.url
-                    else:
-                        # Пропускаем, если нет данных
+                    if not image.media_data:
                         continue
 
-                    if media:
-                        media_group.append(
-                            InputMediaPhoto(
-                                media=media,
-                                caption=full_caption,
-                                parse_mode="HTML",
-                            )
+                    caption = await self.render_product_caption(
+                        product=product,
+                        template=msg_obj.product_template or default_caption_template,
+                        bot_context=context,
+                        marketing_chat_link=marketing_chat_link,
+                    )
+
+                    media_group.append(
+                        InputMediaPhoto(
+                            media=image.media_data,
+                            caption=caption,
+                            parse_mode="HTML",
                         )
+                    )
                 except ParseProduct.DoesNotExist:
                     continue
 

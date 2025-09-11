@@ -146,6 +146,19 @@ class ProductImage(models.Model):
             return f"📷 {self.file_id[:20]}... (Telegram)"
         return f"🔗 {self.url[:30]}... (Link)"
 
+    @property
+    def media_data(self):
+        """
+        Возвращает file_id (если тип 'telegram') или url (если тип 'link').
+        Если данных нет — возвращает None.
+        Удобно для использования в боте: один интерфейс для обоих типов.
+        """
+        if self.image_type == "telegram" and self.file_id:
+            return self.file_id
+        elif self.image_type == "link" and self.url:
+            return self.url
+        return None
+
 
 class TgUserProduct(models.Model):
     """Модель для связи пользователя с продуктом."""
@@ -278,11 +291,14 @@ class EventCaption(models.Model):
         blank=True,
         null=True,
     )
-    caption = models.TextField(
-        verbose_name="Подпись к фото",
-        help_text="Текст, который будет на каждом фото (например, в медиагруппе). Можно использовать HTML.",
-        blank=True,
+    product_template = models.ForeignKey(
+        "ProductTemplate",
+        on_delete=models.SET_NULL,
         null=True,
+        blank=True,
+        verbose_name="Шаблон для подписи к фото",
+        help_text="Шаблон, который будет использоваться для формирования подписи под каждым фото (например, в медиагруппе).",
+        related_name="event_captions",
     )
     is_active = models.BooleanField(default=True, verbose_name="Активна")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Обновлено")
@@ -311,13 +327,10 @@ class EventCaption(models.Model):
             event_type = event_type.value
 
         try:
-            obj = await cls.objects.aget(event_type=event_type, is_active=True)
-            return {
-                "text": obj.text.strip().replace("\\n", "\n") if obj.text else None,
-                "caption": (
-                    obj.caption.strip().replace("\\n", "\n") if obj.caption else None
-                ),
-            }
+            obj = await cls.objects.select_related("product_template").aget(
+                event_type=event_type, is_active=True
+            )
+            return obj
         except cls.DoesNotExist:
             return None
 

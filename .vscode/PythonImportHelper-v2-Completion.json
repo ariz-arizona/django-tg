@@ -2063,7 +2063,7 @@
         "kind": 6,
         "importPath": "app.cardparser.admin",
         "description": "app.cardparser.admin",
-        "peekOfCode": "class EventCaptionAdmin(admin.ModelAdmin):\n    # Поля, которые видно в списке\n    list_display = (\n        \"get_event_type_display_name\",\n        \"short_text\",\n        \"short_caption\",\n        \"is_active\",\n        \"updated_at\",\n    )\n    # Поля, которые можно редактировать прямо в списке",
+        "peekOfCode": "class EventCaptionAdmin(admin.ModelAdmin):\n    # Поля, которые видно в списке\n    list_display = (\n        \"get_event_type_display_name\",\n        \"short_text\",\n        \"product_template\",\n        \"is_active\",\n        \"updated_at\",\n    )\n    # Поля, которые можно редактировать прямо в списке",
         "detail": "app.cardparser.admin",
         "documentation": {}
     },

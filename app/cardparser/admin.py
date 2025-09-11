@@ -294,7 +294,7 @@ class EventCaptionAdmin(admin.ModelAdmin):
     list_display = (
         "get_event_type_display_name",
         "short_text",
-        "short_caption",
+        "product_template",
         "is_active",
         "updated_at",
     )
@@ -306,7 +306,7 @@ class EventCaptionAdmin(admin.ModelAdmin):
     list_filter = ("event_type", "is_active")
 
     # Поиск по тексту подписи
-    search_fields = ("caption",)
+    search_fields = ("text", "product_template",)
 
     # Сортировка: сначала по типу, потом активные сверху
     ordering = ("event_type", "-is_active")
@@ -332,17 +332,6 @@ class EventCaptionAdmin(admin.ModelAdmin):
         )
 
     short_text.short_description = "Текст выдачи"
-
-    def short_caption(self, obj):
-        if not obj.caption:
-            return "-"
-        return (
-            (obj.caption.strip()[:60] + "...")
-            if len(obj.caption.strip()) > 60
-            else obj.caption.strip()
-        )
-
-    short_caption.short_description = "Подпись к фото"
 
 
 @admin.register(ProductTemplate)

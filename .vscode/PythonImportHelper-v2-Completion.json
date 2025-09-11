@@ -824,6 +824,22 @@
         "documentation": {}
     },
     {
+        "label": "migrations",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "django.db",
+        "description": "django.db",
+        "isExtraImport": true,
+        "detail": "django.db",
+        "documentation": {}
+    },
+    {
         "label": "models",
         "importPath": "django.db",
         "description": "django.db",
@@ -1948,6 +1964,15 @@
         "description": "app.cardparser.migrations.0007_parseproduct_caption_data_alter_parseproduct_caption",
         "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('cardparser', '0006_alter_producttemplate_template_and_more'),\n    ]\n    operations = [\n        migrations.AddField(\n            model_name='parseproduct',\n            name='caption_data',\n            field=models.JSONField(blank=True, default=dict, verbose_name='Данные для формирования подписи'),\n        ),",
         "detail": "app.cardparser.migrations.0007_parseproduct_caption_data_alter_parseproduct_caption",
+        "documentation": {}
+    },
+    {
+        "label": "Migration",
+        "kind": 6,
+        "importPath": "app.cardparser.migrations.0008_remove_eventcaption_caption_and_more",
+        "description": "app.cardparser.migrations.0008_remove_eventcaption_caption_and_more",
+        "peekOfCode": "class Migration(migrations.Migration):\n    dependencies = [\n        ('cardparser', '0007_parseproduct_caption_data_alter_parseproduct_caption'),\n    ]\n    operations = [\n        migrations.RemoveField(\n            model_name='eventcaption',\n            name='caption',\n        ),\n        migrations.AddField(",
+        "detail": "app.cardparser.migrations.0008_remove_eventcaption_caption_and_more",
         "documentation": {}
     },
     {

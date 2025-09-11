@@ -99,7 +99,7 @@ class ParseProductAdmin(admin.ModelAdmin):
         try:
             formatted = json.dumps(obj.caption_data, indent=2, ensure_ascii=False)
             return format_html(
-                '<pre style="white-space: pre-wrap; max-width: 600px;">{}</pre>',
+                '<pre style="white-space: pre-wrap; max-width: 400px; max-height: 100px;">{}</pre>',
                 formatted,
             )
         except Exception:

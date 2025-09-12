@@ -473,7 +473,11 @@ class ParserBot(AbstractBot):
             default_template = default_caption_template
 
         settings = await BotSettings.get_active()
-        chat_instance = await context.bot.get_chat(settings.marketing_group_id)
+        chat_instance = None
+        try:
+            chat_instance = await context.bot.get_chat(settings.marketing_group_id)
+        except:
+            logger.info('Не найден маркетинговый чат')
         for i in items:
             p = await parse_func(i, context)
             try:
@@ -488,7 +492,7 @@ class ParserBot(AbstractBot):
                     product,
                     default_template,
                     context,
-                    chat_instance.link,
+                    None is not chat_instance else chat_instance.link,
                 )
 
                 pictures.append(

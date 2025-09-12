@@ -36,7 +36,10 @@ def webhook(request, token):
                 message_content = message.get("message", {})
                 from_user = message_content.get("from", {})
                 text_or_caption = (
-                    message_content.get("text") or message_content.get("caption") or ""
+                    message_content.get("text")
+                    or message_content.get("caption")
+                    or message.get("callback_query", {}).get("data")
+                    or ""
                 )
                 logger.info(
                     (

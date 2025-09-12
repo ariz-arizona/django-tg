@@ -96,7 +96,7 @@ class TarotBot(AbstractBot):
                 self.handle_desc_button, pattern=r"^desc_(\d+(?:#\d+)*)$"
             ),
             CallbackQueryHandler(
-                self.handle_pagination, pattern=r"^meaning_[a-z0-9]+_\d+_\d+$"
+                self.handle_pagination, pattern=r"^meaning_[a-z0-9]+_\d+_[0-9#]+_\d+$"
             ),
             MessageHandler(
                 filters.COMMAND
@@ -718,7 +718,9 @@ class TarotBot(AbstractBot):
             await query.edit_message_text("Ошибка при отправке карты.")
 
     def split_text(self, text, chunk_size=1024):
-        lines = text.split('\n')  # Разделяем по переводам строк — сохраняем каждую строку как есть
+        lines = text.split(
+            "\n"
+        )  # Разделяем по переводам строк — сохраняем каждую строку как есть
         chunks = []
         current_chunk = ""
 
@@ -748,12 +750,33 @@ class TarotBot(AbstractBot):
         return chunks
 
     async def create_pagination_keyboard(
-        self, meaning_type, card_id, current_page, total_pages
+        self,
+        meaning_type,
+        current_card,
+        total_cards,
+        current_page,
+        total_pages,
     ):
         try:
+            current_card = int(current_card)
+            card_id = total_cards[current_card]
             logger.info(
                 f"Создание клавиатуры для card_id={card_id}, тип {meaning_type}, страница {current_page} из {total_pages}"
             )
+
+            keyboard = []
+            base_context = {"meaning": meaning_type, "card": current_card, "page": 1}
+
+            # Кнопки навигации
+            paged_row = []
+            if current_page > 1:
+                paged_row.append(
+                    ["← Назад", {**base_context, "page": current_page - 1}]
+                )
+            if current_page < total_pages:
+                paged_row.append(
+                    ["Вперед →", {**base_context, "page": current_page + 1}]
+                )
 
             # Загружаем значения с prefetch_related
             all_meanings = ExtendedMeaning.objects.prefetch_related(
@@ -783,48 +806,64 @@ class TarotBot(AbstractBot):
                 meaning_type = meanings_list[0][0]
 
             # 🔁 Зацикленная навигация: граничные случаи ОБРАБОТАНЫ автоматически через %
-            total = len(meanings_list)
-            prev_idx = (current_idx - 1) % total  # если 0 → станет последний
-            next_idx = (current_idx + 1) % total  # если последний → станет 0
+            prev_idx = (current_idx - 1) % len(meanings_list)
+            next_idx = (current_idx + 1) % len(meanings_list)
 
             meaning_prev = meanings_list[prev_idx]  # (id, name)
             meaning_next = meanings_list[next_idx]
 
-            logger.info(f"Найдено {len(meanings_list)} значений для карты {card_id}")
-
-            keyboard = []
-
-            # Кнопки навигации
-            paged_row = []
-            if current_page > 1:
-                paged_row.append(
-                    InlineKeyboardButton(
-                        "⬅️ Назад",
-                        callback_data=f"meaning_{meaning_type}_{card_id}_{current_page - 1}",
-                    )
-                )
-            if current_page < total_pages:
-                paged_row.append(
-                    InlineKeyboardButton(
-                        "Вперед ➡️",
-                        callback_data=f"meaning_{meaning_type}_{card_id}_{current_page + 1}",
-                    )
-                )
-            if paged_row:
-                keyboard.append(paged_row)
-
-            # Группируем кнопки по 2 в массив массивов
-            row = [
-                InlineKeyboardButton(
-                    text=meaning_prev[1],
-                    callback_data=f"meaning_{meaning_prev[0]}_{card_id}_1",
-                ),
-                InlineKeyboardButton(
-                    text=meaning_next[1],
-                    callback_data=f"meaning_{meaning_next[0]}_{card_id}_1",
-                ),
+            meaning_row = [
+                [meaning_prev[1], {**base_context, "meaning": meaning_prev[0]}],
+                [meaning_next[1], {**base_context, "meaning": meaning_next[0]}],
             ]
-            keyboard.append(row)
+
+            cards_row = []
+            if len(total_cards) > 1:
+                card_prev = current_card - 1 if current_card > 0 else None
+                card_next = (
+                    current_card + 1 if current_card < len(total_cards) - 1 else None
+                )
+
+                if card_prev:
+                    prev_card_id = total_cards[card_prev]
+                    prev_card = await TarotCard.objects.aget(card_id=prev_card_id)
+                    cards_row.append(
+                        [
+                            f"← {prev_card.name}",
+                            {**base_context, "meaning": "base", "card": card_prev},
+                        ]
+                    )
+
+                if card_next:
+                    next_card_id = total_cards[card_next]
+                    next_card = await TarotCard.objects.aget(card_id=next_card_id)
+                    cards_row.append(
+                        [
+                            f"{next_card.name} →",
+                            {**base_context, "meaning": "base", "card": card_next},
+                        ]
+                    )
+
+            for row in [paged_row, meaning_row, cards_row]:
+                if not row:
+                    continue
+                keyboard.append(
+                    [
+                        InlineKeyboardButton(
+                            text=item[0],
+                            callback_data="_".join(
+                                [
+                                    "meaning",
+                                    str(item[1].get("meaning", meaning_type)),
+                                    str(item[1].get("card", current_card)),
+                                    "#".join(map(str, total_cards)),
+                                    str(item[1].get("page", 1)),
+                                ]
+                            ),
+                        )
+                        for item in row
+                    ]
+                )
 
             return InlineKeyboardMarkup(keyboard)
 
@@ -833,13 +872,22 @@ class TarotBot(AbstractBot):
             return None  # Возвращаем None, если произошла критическая ошибка
 
     # Функция для отправки текста с пагинацией
-    async def send_paginated_text(self, update: Update, card_id, text):
+    async def send_paginated_text(self, update: Update, cards, card_index, text):
         # Разделяем текст на части
+        card_id = cards[card_index]
+
         text_parts = self.split_text(text)
         total_pages = len(text_parts)
+        current_page = 1
+
         base_card = await TarotCard.objects.aget(card_id=card_id)
+
         keyboard = await self.create_pagination_keyboard(
-            "base", card_id, 1, total_pages
+            "base",
+            card_index,
+            cards,
+            current_page,
+            total_pages,
         )
         # Отправляем первую страницу
         await update.effective_message.reply_text(
@@ -860,10 +908,14 @@ class TarotBot(AbstractBot):
         await query.answer()
 
         # Извлекаем данные из callback_data
-        _, meaning_type, card_id, page = query.data.split("_")
+        _, meaning_type, card_index, cards, page = query.data.split("_")
         page = int(page)
+        card_index = int(card_index)
+        cards = [int(i) for i in cards.split("#")]
+        card_id = cards[card_index]
 
         base_card = await TarotCard.objects.aget(card_id=card_id)
+        
         if meaning_type != "base":
             extended_cards = ExtendedMeaning.objects.all().prefetch_related(
                 "tarot_card", "category_base"
@@ -878,7 +930,7 @@ class TarotBot(AbstractBot):
 
         text_parts = self.split_text(text)
         keyboard = await self.create_pagination_keyboard(
-            meaning_type, card_id, page, len(text_parts)
+            meaning_type, card_index, cards, page, len(text_parts)
         )
 
         # Обновляем сообщение с новой страницей
@@ -901,11 +953,9 @@ class TarotBot(AbstractBot):
         _, cards = query.data.split("_")
         cards = cards.split("#")
 
-        for c in cards:
-            card = await TarotCard.objects.aget(card_id=c)
-            text = card.name + "\n" + card.meaning
-            await self.send_paginated_text(update, card.card_id, text)
-            time.sleep(0.3)
+        card = await TarotCard.objects.aget(card_id=cards[0])
+        text = card.name + "\n" + card.meaning
+        await self.send_paginated_text(update, [int(x) for x in cards], 0, text)
 
     async def load_page(self, url):
         async with aiohttp.ClientSession() as session:

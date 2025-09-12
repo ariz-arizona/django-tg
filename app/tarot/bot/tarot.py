@@ -718,36 +718,57 @@ class TarotBot(AbstractBot):
             await query.edit_message_text("Ошибка при отправке карты.")
 
     def split_text(self, text, chunk_size=1024):
-        lines = text.split(
-            "\n"
-        )  # Разделяем по переводам строк — сохраняем каждую строку как есть
+        # Шаг 1: разбиваем по строкам (как у тебя)
+        lines = text.split("\n")
         chunks = []
         current_chunk = ""
 
         for line in lines:
-            # Длина строки + длина текущего куска + 1 символ на '\n' (если кусок не пустой)
             needed_length = len(line)
-            if current_chunk:  # Если уже что-то есть — добавим '\n' перед новой строкой
-                needed_length += 1
+            if current_chunk:
+                needed_length += 1  # символ '\n'
 
-            # Проверяем, поместится ли строка в текущий кусок
             if len(current_chunk) + needed_length > chunk_size:
-                # Если нет — сохраняем текущий кусок и начинаем новый с этой строки
                 if current_chunk:
                     chunks.append(current_chunk)
                 current_chunk = line
             else:
-                # Если да — добавляем строку с переводом строки
                 if current_chunk:
                     current_chunk += "\n" + line
                 else:
                     current_chunk = line
 
-        # Не забываем добавить последний кусок
         if current_chunk:
             chunks.append(current_chunk)
 
-        return chunks
+        # Шаг 2: теперь разбиваем каждый чанк, если он > chunk_size, по словам (~1024)
+        final_chunks = []
+
+        for chunk in chunks:
+            if len(chunk) <= chunk_size:
+                final_chunks.append(chunk)
+            else:
+                # Разбиваем большой чанк по словам, стараясь не превышать chunk_size
+                words = chunk.split(' ')
+                temp_chunk = ""
+                for word in words:
+                    # Проверяем, поместится ли слово в текущий подчанк
+                    test_chunk = temp_chunk + (" " if temp_chunk else "") + word
+                    if len(test_chunk) <= chunk_size:
+                        temp_chunk = test_chunk
+                    else:
+                        # Слово не помещается — сохраняем текущий подчанк и начинаем новый
+                        if temp_chunk:
+                            final_chunks.append(temp_chunk)
+                        temp_chunk = word  # начинаем с текущего слова
+                # Добавляем последний подчанк
+                if temp_chunk:
+                    final_chunks.append(temp_chunk)
+
+        # Шаг 3: массив уже плоский — ничего дополнительно "выравнивать" не нужно,
+        # потому что мы добавляли строки напрямую в final_chunks
+
+        return final_chunks
 
     async def create_pagination_keyboard(
         self,

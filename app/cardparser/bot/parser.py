@@ -571,8 +571,6 @@ class ParserBot(AbstractBot):
         parser_url = f"{parser_url_ozon}/v1"
 
         # Отправляем запрос на парсер
-        logger.info(url)
-        logger.info(parser_url)
         payload = {"cmd": "request.get", "maxTimeout": 120000, "url": url}
         response = requests.post(
             parser_url,
@@ -721,7 +719,7 @@ class ParserBot(AbstractBot):
                 "availability": availability,
             }
 
-            if brand:
+            if brand and 'title' in brand.get('content', {}):
                 caption_data["brand"] = brand["content"]["title"]["text"][0]["content"]
 
             result = {
@@ -732,7 +730,7 @@ class ParserBot(AbstractBot):
                 "parse_mode": "HTML",
             }
 
-            if brand:
+            if brand and 'title' in brand.get('content', {}):
                 try:
                     result["brand"] = {
                         "id": brand["link"].split("/")[1],

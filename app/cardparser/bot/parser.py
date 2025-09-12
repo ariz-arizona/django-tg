@@ -571,11 +571,14 @@ class ParserBot(AbstractBot):
         parser_url = f"{parser_url_ozon}/v1"
 
         # Отправляем запрос на парсер
-        payload = {"cmd": "request.get", "maxTimeout": 60000, "url": url}
+        logger.info(url)
+        logger.info(parser_url)
+        payload = {"cmd": "request.get", "maxTimeout": 120000, "url": url}
         response = requests.post(
             parser_url,
             headers={"Content-Type": "application/json"},
             data=json.dumps(payload),
+            timeout=120,
         )
         ozon_api = response.json()
         try:
@@ -1066,15 +1069,7 @@ class ParserBot(AbstractBot):
                     logger.warning(f"Не удалось получить ссылку на чат поддержки: {e}")
 
             # Формируем сообщение
-            message = msg_obj.text
-            for i, item in enumerate(items, start=1):
-                name = item["name"]
-                brand = item["brand"]
-                platform = item["product_type"]
-                count = item["request_count"]
-                message += (
-                    f"{i}. <b>{name}</b> ({brand}, {platform}) — {count} запросов\n"
-                )
+            message = msg_obj.text.strip().replace("\\n", "\n")
 
             # Отправляем в маркетинговую группу
             await context.bot.send_message(

@@ -492,7 +492,7 @@ class ParserBot(AbstractBot):
                     product,
                     default_template,
                     context,
-                    (None is not chat_instance else chat_instance.link),
+                    (None if not chat_instance else chat_instance.link),
                 )
 
                 pictures.append(

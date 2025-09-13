@@ -1116,6 +1116,7 @@ class ParserBot(AbstractBot):
             # Отправляем в маркетинговую группу
             if media_group:
                 try:
+                    logger.info(media_group)
                     await context.bot.send_media_group(
                         chat_id=target_chat_id, media=media_group
                     )

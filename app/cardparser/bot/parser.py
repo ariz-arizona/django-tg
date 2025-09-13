@@ -999,6 +999,9 @@ class ParserBot(AbstractBot):
         items = await sync_to_async(get_category_and_its_top_products)(
             hours=24, limit=5, exclude_category_ids=exclude_cat_ids
         )
+        if "top_products" not in items:
+            logger.info('no topcategory products')
+            return
         event_type = EventCaption.EventType.TOP_CATEGORY
         await self.send_to_marketing_group(
             items["top_products"],
@@ -1015,6 +1018,9 @@ class ParserBot(AbstractBot):
         items = await sync_to_async(get_brand_and_its_top_products)(
             hours=24, limit=5, exclude_category_ids=exclude_cat_ids
         )
+        if "top_products" not in items:
+            logger.info('no topbrand products')
+            return
         event_type = EventCaption.EventType.TOP_BRAND
         await self.send_to_marketing_group(
             items["top_products"],
@@ -1074,6 +1080,7 @@ class ParserBot(AbstractBot):
             message = msg_obj.text.strip().replace("\\n", "\n")
 
             # Отправляем в маркетинговую группу
+            logger.info(f'attempt to send msg to {target_chat_id}')
             await context.bot.send_message(
                 chat_id=target_chat_id, text=message, parse_mode="HTML"
             )

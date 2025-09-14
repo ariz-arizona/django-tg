@@ -83,7 +83,7 @@ def format_sizes_for_template(
 
         parts.append(f"{emoji} {name}{price_part}")
         
-    note = "больше размеров в источнике" if was_filtered_or_truncated else None
+    note = "больше размеров в источнике" if was_filtered_or_truncated else ''
 
     return ", ".join([*parts, note])
 

@@ -1854,7 +1854,7 @@
         "kind": 2,
         "importPath": "app.cardparser.bot.parser",
         "description": "app.cardparser.bot.parser",
-        "peekOfCode": "def format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:\n    if not sizes:\n        return \"—\"\n    parts = []\n    for size in sizes:\n        emoji = \"✅\" if size.get(\"available\") else \"❌\"\n        name = f\"<b>{size.get('name', '?')}</b>\"  # ← ДОБАВЛЕНО <b>...</b>\n        price_part = \"\"\n        if not show_common_price and \"price\" in size and size[\"price\"] > 0:\n            # Форматируем цену с пробелами: 3268 → \"3 268\"",
+        "peekOfCode": "def format_sizes_for_template(\n    sizes: list, show_common_price: bool = False, limit=10\n) -> str:\n    was_filtered_or_truncated = False\n    original_len = len(sizes)\n    if original_len > limit:\n        # Фильтруем только доступные\n        sizes = [s for s in sizes if s.get(\"available\", False)]\n        if len(sizes) != original_len:\n            was_filtered_or_truncated = True",
         "detail": "app.cardparser.bot.parser",
         "documentation": {}
     },
@@ -1881,7 +1881,7 @@
         "kind": 5,
         "importPath": "app.cardparser.bot.parser",
         "description": "app.cardparser.bot.parser",
-        "peekOfCode": "ozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\ndefault_caption_template = \"\"\"\\\nРазбор карточки {sku}\n{brand} <a href=\"{link}\">{name}</a>\nЦена: {price_display}\nРазмеры: {sizes_display}\nНаличие: {availability_display}\n\"\"\"\ndef format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:",
+        "peekOfCode": "ozon_regexp = r\"ozon\\.ru\\/(t\\/[^\\s]*)\\/?\"\ncombined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\ndefault_caption_template = \"\"\"\\\nРазбор карточки {sku}\n{brand} <a href=\"{link}\">{name}</a>\nЦена: {price_display}\nРазмеры: {sizes_display}\nНаличие: {availability_display}\n\"\"\"\ndef format_sizes_for_template(",
         "detail": "app.cardparser.bot.parser",
         "documentation": {}
     },
@@ -1890,7 +1890,7 @@
         "kind": 5,
         "importPath": "app.cardparser.bot.parser",
         "description": "app.cardparser.bot.parser",
-        "peekOfCode": "combined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\ndefault_caption_template = \"\"\"\\\nРазбор карточки {sku}\n{brand} <a href=\"{link}\">{name}</a>\nЦена: {price_display}\nРазмеры: {sizes_display}\nНаличие: {availability_display}\n\"\"\"\ndef format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:\n    if not sizes:",
+        "peekOfCode": "combined_regexp = f\"({wb_regexp}|{ozon_regexp})\"\ndefault_caption_template = \"\"\"\\\nРазбор карточки {sku}\n{brand} <a href=\"{link}\">{name}</a>\nЦена: {price_display}\nРазмеры: {sizes_display}\nНаличие: {availability_display}\n\"\"\"\ndef format_sizes_for_template(\n    sizes: list, show_common_price: bool = False, limit=10",
         "detail": "app.cardparser.bot.parser",
         "documentation": {}
     },
@@ -1899,7 +1899,7 @@
         "kind": 5,
         "importPath": "app.cardparser.bot.parser",
         "description": "app.cardparser.bot.parser",
-        "peekOfCode": "default_caption_template = \"\"\"\\\nРазбор карточки {sku}\n{brand} <a href=\"{link}\">{name}</a>\nЦена: {price_display}\nРазмеры: {sizes_display}\nНаличие: {availability_display}\n\"\"\"\ndef format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:\n    if not sizes:\n        return \"—\"",
+        "peekOfCode": "default_caption_template = \"\"\"\\\nРазбор карточки {sku}\n{brand} <a href=\"{link}\">{name}</a>\nЦена: {price_display}\nРазмеры: {sizes_display}\nНаличие: {availability_display}\n\"\"\"\ndef format_sizes_for_template(\n    sizes: list, show_common_price: bool = False, limit=10\n) -> str:",
         "detail": "app.cardparser.bot.parser",
         "documentation": {}
     },

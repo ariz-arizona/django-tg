@@ -33,7 +33,7 @@ def webhook(request, token):
             redis_client.rpush(f"bot_messages_queue_{token}", json_str)
             try:
                 message = json.loads(json_str)
-                message_content = message.get("message", {})
+                message_content = message.get("message") or message.get("edited_message") or {}
                 from_user = message_content.get("from", {})
                 text_or_caption = (
                     message_content.get("text")

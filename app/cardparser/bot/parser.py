@@ -50,7 +50,23 @@ default_caption_template = """\
 """
 
 
-def format_sizes_for_template(sizes: list, show_common_price: bool = False) -> str:
+def format_sizes_for_template(
+    sizes: list, show_common_price: bool = False, limit=10
+) -> str:
+    was_filtered_or_truncated = False
+
+    original_len = len(sizes)
+    if original_len > limit:
+        # Фильтруем только доступные
+        sizes = [s for s in sizes if s.get("available", False)]
+        if len(sizes) != original_len:
+            was_filtered_or_truncated = True
+
+    # Если после фильтрации всё ещё больше 10 — берём первые 10
+    if len(sizes) > limit:
+        sizes = sizes[:limit]
+        was_filtered_or_truncated = True
+
     if not sizes:
         return "—"
 
@@ -66,8 +82,10 @@ def format_sizes_for_template(sizes: list, show_common_price: bool = False) -> s
             price_part = f" — {formatted_price} ₽"
 
         parts.append(f"{emoji} {name}{price_part}")
+        
+    note = "больше размеров в источнике" if was_filtered_or_truncated else None
 
-    return ", ".join(parts)
+    return ", ".join([*parts, note])
 
 
 def parse_price_string(price_str: str) -> float:
@@ -477,7 +495,7 @@ class ParserBot(AbstractBot):
         try:
             chat_instance = await context.bot.get_chat(settings.marketing_group_id)
         except:
-            logger.info('Не найден маркетинговый чат')
+            logger.info("Не найден маркетинговый чат")
         for i in items:
             p = await parse_func(i, context)
             try:
@@ -524,7 +542,8 @@ class ParserBot(AbstractBot):
                     try:
                         await update.message.reply_media_group(media=media_group)
                     except Exception as e:
-                        logger.error('Ошибка отправки медиагруппы', exc_info=True)
+                        logger.info(media_group)
+                        logger.error("Ошибка отправки медиагруппы", exc_info=True)
 
     async def handle_links_based_on_message(
         self, update: Update, context: CallbackContext
@@ -723,7 +742,7 @@ class ParserBot(AbstractBot):
                 "availability": availability,
             }
 
-            if brand and 'title' in brand.get('content', {}):
+            if brand and "title" in brand.get("content", {}):
                 caption_data["brand"] = brand["content"]["title"]["text"][0]["content"]
 
             result = {
@@ -734,7 +753,7 @@ class ParserBot(AbstractBot):
                 "parse_mode": "HTML",
             }
 
-            if brand and 'title' in brand.get('content', {}):
+            if brand and "title" in brand.get("content", {}):
                 try:
                     result["brand"] = {
                         "id": brand["link"].split("/")[1],
@@ -1000,7 +1019,7 @@ class ParserBot(AbstractBot):
             hours=24, limit=5, exclude_category_ids=exclude_cat_ids
         )
         if "top_products" not in items:
-            logger.info('no topcategory products')
+            logger.info("no topcategory products")
             return
         event_type = EventCaption.EventType.TOP_CATEGORY
         await self.send_to_marketing_group(
@@ -1019,7 +1038,7 @@ class ParserBot(AbstractBot):
             hours=24, limit=5, exclude_category_ids=exclude_cat_ids
         )
         if "top_products" not in items:
-            logger.info('no topbrand products')
+            logger.info("no topbrand products")
             return
         event_type = EventCaption.EventType.TOP_BRAND
         await self.send_to_marketing_group(
@@ -1080,7 +1099,7 @@ class ParserBot(AbstractBot):
             message = msg_obj.text.strip().replace("\\n", "\n")
 
             # Отправляем в маркетинговую группу
-            logger.info(f'attempt to send msg to {target_chat_id}')
+            logger.info(f"attempt to send msg to {target_chat_id}")
             await context.bot.send_message(
                 chat_id=target_chat_id, text=message, parse_mode="HTML"
             )

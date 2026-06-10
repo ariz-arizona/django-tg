@@ -11,6 +11,7 @@ from .models import (
     OraculumItem,
     OraculumDeck,
     Rune,
+    BotFile,
 )
 
 
@@ -57,11 +58,16 @@ class CardAdmin(admin.ModelAdmin):
     Админка для модели Card.
     """
 
-    list_display = ("deck", "tarot_card", "img_id")  # Поля, отображаемые в списке
+    list_display = ("tarot_card", "deck", "get_file_id")  # Поля, отображаемые в списке
     search_fields = ("deck__name", "tarot_card__name")  # Поля для поиска
     list_filter = ("deck", "tarot_card")  # Фильтры в правой панели
+    autocomplete_fields = ("deck", "tarot_card",)
+    inlines = [TarotFileCacheInline,]
+
+    def get_file_id(self, obj):
+        return obj.img_id if obj.img_id else "—"
+    get_file_id.short_description = "Telegram File ID"
     
-    inlines = [TarotFileCacheInline]
 
 
 @admin.register(TarotUserReading)
@@ -145,3 +151,16 @@ class RuneAdmin(admin.ModelAdmin):
         ),
     )
 
+@admin.register(BotFile)
+class BotFileAdmin(admin.ModelAdmin):
+    # Отображаемые колонки в списке
+    list_display = ('bot', 'file_id')
+    
+    # Позволяет фильтровать файлы по боту в правой колонке
+    list_filter = ('bot',)
+    
+    # Поиск по file_id (полезно, если их много)
+    search_fields = ('file_id',)
+    
+    # Удобно, если нужно быстро найти файл конкретного бота
+    autocomplete_fields = ('bot',)

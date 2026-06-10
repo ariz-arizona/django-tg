@@ -75,7 +75,18 @@ class TarotDeck(models.Model):
         verbose_name = f"{bot_prefix}: Колода"
         verbose_name_plural = f"{bot_prefix}: Колоды"
 
-
+class BotFile(models.Model):
+    bot = models.ForeignKey(
+        'tg_bot.Bot', 
+        on_delete=models.CASCADE, 
+        verbose_name="Бот"
+    )
+    file_id = models.CharField(max_length=255, verbose_name="Telegram File ID")
+    
+    class Meta:
+        verbose_name = "Файл бота"
+        unique_together = ("bot", "file_id")
+        
 class TarotCardItem(models.Model):
     """
     Модель для хранения информации о карте в колоде.
@@ -90,7 +101,23 @@ class TarotCardItem(models.Model):
         related_name="deck_cards",
         verbose_name="Карта Таро",
     )
-    img_id = models.CharField(max_length=255, verbose_name="ID изображения")
+    file_info = models.ForeignKey(
+        BotFile, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        verbose_name="Файл в Telegram"
+    )
+    
+    @property
+    def img_id(self):
+        """
+        Обратная совместимость: возвращает file_id из первого связанного BotFile,
+        если он существует.
+        """
+        if self.file_info:
+            return self.file_info.file_id
+        return None
 
     def __str__(self):
         return f"{self.tarot_card.name} в колоде {self.deck.name}"
@@ -190,10 +217,12 @@ class OraculumItem(models.Model):
         verbose_name="Колода",
         help_text="Колода, к которой относится карта.",
     )
-    img_id = models.CharField(
-        max_length=255,
-        verbose_name="ID файла",
-        help_text="Идентификатор файла (например, изображения карты).",
+    file_info = models.ForeignKey(
+        BotFile, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        verbose_name="Файл в Telegram"
     )
     name = models.CharField(
         max_length=255,
@@ -218,6 +247,16 @@ class OraculumItem(models.Model):
         verbose_name="Перевернутое значение",
         help_text="Значение карты в перевернутом положении.",
     )
+    
+    @property
+    def img_id(self):
+        """
+        Обратная совместимость: возвращает file_id из первого связанного BotFile,
+        если он существует.
+        """
+        if self.file_info:
+            return self.file_info.file_id
+        return None
 
     def __str__(self):
         return f"{self.name} (из колоды: {self.deck.name})"

@@ -2,6 +2,7 @@ import asyncio
 from django.core.management.base import BaseCommand
 from asgiref.sync import sync_to_async
 from server.logger import logger
+from django.conf import settings
 
 class Command(BaseCommand):
     help = "Запуск процесса для всех ботов"
@@ -14,9 +15,21 @@ class Command(BaseCommand):
 
         # 1. Получаем список ботов СИНХРОННО (до запуска asyncio.run)
         # Делаем list(), чтобы запрос в базу выполнился прямо здесь
-        bots = list(Bot.objects.all())
+        bots = list(Bot.objects.filter(is_enabled=True))
 
         async def main():
+            # 1. Проверка настроек
+            if not settings.TG_WEBHOOK_HOST_RAW:
+                logger.error("Переменная TG_WEBHOOK_HOST_RAW не задана.")
+                await asyncio.Future()
+                return
+
+            # 2. Получаем список ботов и сразу проверяем их наличие
+            if not bots:
+                logger.warning("Боты не найдены в базе данных.")
+                await asyncio.Future()
+                return
+
             tasks = []
             for bot in bots:
                 logger.info(f"Подготовка задачи для бота: {bot.name} (ID {bot.id})")

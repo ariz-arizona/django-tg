@@ -31,8 +31,10 @@ SECRET_KEY = "django-insecure-vhpeg0+^tpklr65dn3l4(s*3xvn@2l7r(*w@lfyufj%yy7i0p=
 DEBUG = True
 
 TG_WEBHOOK_HOST_RAW = urlparse(os.environ.get("TG_WEBHOOK_HOST")).netloc
+NGINX_PORT = os.environ.get("NGINX_PORT", 80)
 ALLOWED_HOSTS = [
     "localhost",
+    f"localhost:{NGINX_PORT}",
     TG_WEBHOOK_HOST_RAW,
 ]
 
@@ -41,7 +43,10 @@ PICTURE_CHAT = os.environ.get("PICTURE_CHAT")
 PARSER_URL = os.environ.get("PARSER")
 TG_DEBUG = (os.environ.get("TG_DEBUG") or "false").lower() == "true"
 
-CSRF_TRUSTED_ORIGINS = (TG_WEBHOOK_HOST,)
+CSRF_TRUSTED_ORIGINS = (
+    TG_WEBHOOK_HOST,
+    f"http://localhost:{NGINX_PORT}",
+)
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ORIGIN_WHITELIST = [
     TG_WEBHOOK_HOST,

@@ -1,15 +1,20 @@
 services:
   web:
+    volumes:
+      - ./app:/app           # Монтируем содержимое папки ./app в /app внутри контейнера
+      - ./.env:/app/.env     # Если нужно примонтировать .env отдельно
+      - static_volume:/app/static
+    command: poetry run python manage.py runserver 0.0.0.0:8000
     ports:
       - "${WEB_PORT:-8000}:8000"
 
   redis:
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${OUTER_REDIS_PORT:-6379}:6379"
 
   db:
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${OUTER_POSTGRES_PORT:-5432}:5432"
 
   dozzle:
     ports:

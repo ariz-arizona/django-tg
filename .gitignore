@@ -91,3 +91,5 @@ db.sqlite3
 backup*
 .vscode/PythonImportHelper-v2-Completion.json
 postgres_data/
+app/celerybeat-schedule
+app/celery-schedule

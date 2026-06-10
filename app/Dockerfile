@@ -3,9 +3,11 @@ FROM python:3.10-slim
 
 # Устанавливаем зависимости системы
 RUN apt-get update && apt-get install -y \
-    libpq-dev gcc curl --no-install-recommends && \
+    libpq-dev gcc curl \
+    libjpeg-dev zlib1g-dev libpng-dev libfreetype6-dev libwebp-dev \
+    --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
-
+    
 # Устанавливаем Poetry
 ENV POETRY_VERSION=1.6.1
 RUN curl -sSL https://install.python-poetry.org | python3 -

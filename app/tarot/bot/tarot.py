@@ -1,10 +1,13 @@
 import re
 import traceback
-import time
+import os
 from typing import List, Optional, Dict
+from PIL import Image, ImageDraw, ImageFont
 
 import aiohttp
 import random
+import asyncio
+from io import BytesIO
 from bs4 import BeautifulSoup
 
 from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
@@ -16,12 +19,14 @@ from telegram.ext import (
     filters,
 )
 
-from django.utils.timezone import now
+from django.utils import timezone
+from django.utils.timezone import now, timedelta
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.files.base import ContentFile
 
 from tg_bot.bot.abstract import AbstractBot
 from tg_bot.models import (
-    TgUser,
+    TgUser, Bot
 )
 from tarot.models import (
     TarotDeck,
@@ -32,9 +37,12 @@ from tarot.models import (
     OraculumDeck,
     OraculumItem,
     Rune,
+    TarotFileCache,
 )
 from server.logger import logger
 from django.conf import settings
+
+from tarot.utils import download_image_aiohttp
 
 reading_ids = {}
 user_exclude_cards = {}
@@ -107,6 +115,13 @@ class TarotBot(AbstractBot):
             ),
             CallbackQueryHandler(
                 self.handle_moreoracle_button, pattern=r"^moreoracle_\d+_.+$"
+            ),
+            MessageHandler(
+                filters.COMMAND
+                & filters.TEXT
+                & filters.ChatType.PRIVATE
+                & filters.Regex(r"^\/spread"),
+                self.handle_spread_with_keyword,
             ),
         ]
 
@@ -230,14 +245,14 @@ class TarotBot(AbstractBot):
 
             # 8. Формируем результат
             combined = manual_cards + random_cards
-            
+
             result = []
-    
+
             # Обычный цикл for, который отлично работает с await
             for card in combined[:counter]:
                 # Получаем img_id через ваш асинхронный метод
                 img_id = await card.aget_file_id(self.app_bot_id)
-                
+
                 result.append({
                     "card_instance": card,
                     "card_id": card.tarot_card.card_id,
@@ -245,9 +260,9 @@ class TarotBot(AbstractBot):
                     "name": card.tarot_card.name,
                     "flipped": random.choice([True, False]),
                 })
-                
+
             return result
-        
+
         except ObjectDoesNotExist as e:
             raise ValueError("Карта не найдена") from e
         except Exception as e:
@@ -285,11 +300,11 @@ class TarotBot(AbstractBot):
             ]
 
             result = []
-            
+
             for card in random_cards:
                 # Используем тот же асинхронный метод из миксина
                 img_id = await card.aget_file_id(self.app_bot_id)
-                
+
                 result.append({
                     "card_instance": card,
                     "card_id": card.id,
@@ -297,7 +312,7 @@ class TarotBot(AbstractBot):
                     "name": card.name,
                     "flipped": random.choice([True, False]),
                 })
-                
+
             return result
 
         except ObjectDoesNotExist as e:
@@ -940,7 +955,7 @@ class TarotBot(AbstractBot):
         card_id = cards[card_index]
 
         base_card = await TarotCard.objects.aget(card_id=card_id)
-        
+
         if meaning_type != "base":
             extended_cards = ExtendedMeaning.objects.all().prefetch_related(
                 "tarot_card", "category_base"
@@ -1422,6 +1437,289 @@ class TarotBot(AbstractBot):
                 "Произошла ошибка. Пожалуйста, попробуйте снова."
             )
 
+    async def handle_spread_with_keyword(self, update: Update, context: CallbackContext):
+        try:
+            msg_text = update.message.text
+            logger.info(f"Обработка команды /spread с текстом: {msg_text[:100]}")
+
+            # tg_id = update.effective_user.id
+            # tg_user, created = TgUser.objects.get_or_create(
+            #     tg_id=tg_id,
+            #     defaults={
+            #         'username': update.effective_user.username,
+            #         'first_name': update.effective_user.first_name,
+            #         'last_name': update.effective_user.last_name,
+            #         'language_code': update.effective_user.language_code,
+            #     }
+            # )
+            # # Проверяем ограничения
+            # now = timezone.now()
+            # last_24h = now - timedelta(hours=24)
+            # two_hours_ago = now - timedelta(hours=2)
+
+            # # Считаем гадания за последние 24 часа
+            # readings_last_24h = TarotUserReading.objects.filter(
+            #     user=tg_user,
+            #     date__gte=last_24h
+            # ).count()
+
+            # # Проверяем последнее гадание
+            # last_reading = TarotUserReading.objects.filter(
+            #     user=tg_user
+            # ).order_by('-date').first()
+
+            # # Ограничение 1: больше 24 гаданий за сутки
+            # if readings_last_24h >= 24:
+            #     await update.message.reply_text(
+            #         "Пока не больше 24 гаданий за сутки "
+            #         "Пожалуйста, попробуйте позже.\n"
+            #     )
+            #     return
+
+            # # Ограничение 2: последнее гадание было менее 2 часов назад
+            # if last_reading and last_reading.date > two_hours_ago:
+            #     remaining = last_reading.date + timedelta(hours=2) - now
+            #     wait_hours = remaining.seconds // 3600
+            #     wait_minutes = (remaining.seconds % 3600) // 60
+
+            #     await update.message.reply_text(
+            #         "Пока одно гадание в два часа "
+            #         "Пожалуйста, попробуйте позже.\n"
+            #     )
+            #     return
+
+            # Если все проверки пройдены
+            tech_msg = await update.message.reply_text("Выбор карт")
+            options: Dict[str, any] = {}
+
+            options["counter"] = 3
+
+            # Парсинг колоды (deck ЧИСЛО)
+            deck_found = re.search(r"deck\s+(\d+)", msg_text)
+            options["deck"] = int(deck_found.group(1)) if deck_found else None
+            logger.info(f"Парсинг колоды: deck={options.get('deck')}")
+
+            deck = await self.get_deck(options.get("deck"))
+            logger.info(f"Используемая колода: {deck.id if deck else 'не указана'}")
+
+            # Парсинг переворота карты (flip)
+            options["flip"] = bool(re.search(r"flip", msg_text))
+            logger.info(f"Парсинг переворота карты: flip={options.get('flip')}")
+
+            temp: str = re.sub(r"deck\s+\d+|card\d+|flip", "", msg_text).strip()
+            temp = re.sub(r"^\/spread\s*", "", temp)  # убираем саму команду
+            options["keyword"] = temp if temp else None
+            logger.info(f"Парсинг ключевого слова: keyword={options.get('keyword')}")
+
+            cards = await self.get_cards(
+                deck_id=deck.id if deck else None,
+                counter=options["counter"],
+                card_ids=None,  # Можно передать список конкретных карт
+                major=False,
+                exclude_cards=None,
+            )
+
+            cards_description = []
+            for card_data in cards:
+                parts = [card_data["name"]]
+                if card_data["flipped"]:
+                    parts.append("*перевернуто*")
+                cards_description.append(" ".join(parts))
+                
+            logger.info(f"Получено карт: {len(cards)}")
+            reading = await self.save_reading(
+                update.effective_user,
+                update.effective_message.message_id,
+                f"ТАРО РАСКЛАД: {deck.name} "
+                + ", ".join(
+                    [await self.format_card_name(c, options["flip"]) for c in cards]
+                ),
+            )
+
+            description_text = f"Расклад  из колоды {deck.name}:\n" + "\n".join(
+                f"{' ' * 4}{desc}" for desc in cards_description
+            )
+
+            for card_data in cards:
+                card_item = card_data["card_instance"]
+                file_path = await self.ensure_card_cache(card_item, context.bot)
+
+                if file_path:
+                    # Можно скачать файл или сохранить путь для отправки
+                    card_data["file_path"] = file_path
+                    logger.info(f"Готов к отправке файл для карты {card_item.id}: {file_path}")
+                else:
+                    logger.warning(f"Не удалось получить кэш для карты {card_item.id}")
+
+            await tech_msg.edit_text(
+                "Загрузка и отрисовка",
+            )
+            spread_image = await self.download_and_create_spread_image(cards, options)
+
+            if spread_image:
+                # Отправляем изображение пользователю
+                await tech_msg.edit_media(
+                    media=InputMediaPhoto(media=spread_image, caption=description_text, parse_mode='MarkdownV2'),
+                )
+            else:
+                await tech_msg.edit_text("❌ Не удалось создать изображение расклада")
+                await update.message.reply_text(description_text)
+
+        except Exception as e:
+            logger.error(f"Ошибка при обработке команды /spread: {e}", exc_info=True)
+            await update.message.reply_text(
+                "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
+            )
+
+    async def ensure_card_cache(self, card_item: TarotCardItem, bot) -> Optional[str]:
+        """
+        Проверяет наличие актуального кэша для карты.
+        Если кэша нет или он истёк - перезапрашивает file_id и сохраняет.
+        Возвращает file_path для скачивания или None в случае ошибки.
+        """
+        try:
+            # Пытаемся получить существующий кэш
+            cache = await TarotFileCache.objects.filter(card_item=card_item).afirst()
+
+            # Проверяем, актуален ли кэш
+            if cache and not cache.is_expired():
+                logger.info(f"Кэш актуален для карты {card_item.id}: {cache.file_path}")
+                return cache.file_path
+
+            # Кэша нет или он истёк - получаем свежий file_id
+            logger.info(f"Запрашиваем новый file_path для карты {card_item.id}")
+
+            # Получаем file_id через метод из BotFileMixin
+            file_id = await card_item.aget_file_id(self.app_bot_id)
+
+            if not file_id:
+                logger.error(f"Не удалось получить file_id для карты {card_item.id}")
+                return None
+
+            # Получаем информацию о файле от Telegram API
+            try:
+                file_obj = await bot.get_file(file_id)
+                file_path = file_obj.file_path
+            except Exception as e:
+                logger.error(f"Ошибка получения file_path из Telegram: {e}")
+                return None
+
+            # Обновляем или создаём кэш
+            expires_at = timezone.now() + timezone.timedelta(hours=1)  # Ссылка живёт 1 час
+
+            if cache:
+                # Обновляем существующий кэш
+                cache.file_path = file_path
+                cache.expires_at = expires_at
+                await cache.asave()
+                logger.info(f"Обновлён кэш для карты {card_item.id}: {file_path}")
+            else:
+                # Создаём новый кэш
+                cache = TarotFileCache(
+                    card_item=card_item,
+                    file_path=file_path,
+                    expires_at=expires_at
+                )
+                await cache.asave()
+                logger.info(f"Создан новый кэш для карты {card_item.id}: {file_path}")
+
+            return file_path
+
+        except Exception as e:
+            logger.error(f"Ошибка в ensure_card_cache для карты {card_item.id}: {e}")
+            return None
+
+    async def download_and_create_spread_image(self, cards_data: List[dict], options: Dict[str, any]) -> Optional[BytesIO]:
+        """
+        Скачивает карты и создаёт изображение расклада.
+        
+        cards_data: список словарей с ключами 'card_instance', 'file_path', 'flipped', 'name'
+        options: параметры расклада (keyword и т.д.)
+        
+        Возвращает BytesIO с изображением или None в случае ошибки.
+        """
+        try:
+            # Загружаем все изображения карт
+            card_images = []
+            for idx, card_data in enumerate(cards_data):
+                file_path = card_data.get('file_path')
+                if not file_path:
+                    logger.warning(f"Нет file_path для карты {idx}")
+                    continue
+
+                # Получаем URL для скачивания
+                file_url = file_path
+
+                # Скачиваем изображение
+                async with aiohttp.ClientSession() as session:
+                    img_data = await download_image_aiohttp(file_url)
+                    if img_data:
+                        img = Image.open(BytesIO(img_data))
+
+                        # Уменьшаем до 600px ширины (сохраняя пропорции)
+                        if img.width > 600:
+                            ratio = 600 / img.width
+                            new_height = int(img.height * ratio)
+                            img = img.resize((600, new_height), Image.Resampling.LANCZOS)
+
+                        # Если карта перевёрнута - поворачиваем на 180 градусов
+                        if card_data.get('flipped', False):
+                            img = img.rotate(180, expand=True)
+
+                        card_images.append({
+                            'image': img,
+                            'name': card_data.get('name', f'Card {idx+1}'),
+                            'original_height': img.height,
+                            'original_width': img.width
+                        })
+
+            if not card_images:
+                logger.error("Не удалось загрузить ни одной карты")
+                return None
+
+            # Параметры отступов
+            spacing = 30  # Отступ между картами и вертикальные отступы
+
+            # Рассчитываем необходимый размер холста
+            total_width = sum(img['original_width'] for img in card_images) + spacing * (len(card_images) - 1)
+            max_height = max(img['original_height'] for img in card_images)
+
+            # Добавляем вертикальные отступы сверху и снизу (каждый равен spacing)
+            # Плюс место для заголовка
+            canvas_height = (spacing * 2) + max_height
+
+            # Ширина холста - ширина всех карт с отступами плюс отступы по бокам (тоже spacing)
+            canvas_width = total_width + (spacing * 2)
+
+            logger.info(f"Рассчитан размер холста: {canvas_width}x{canvas_height}")
+
+            # Создаём холст с рассчитанным размером
+            canvas = Image.new('RGB', (canvas_width, canvas_height), color='white')
+            draw = ImageDraw.Draw(canvas)
+
+            # Вертикальное позиционирование: отступ сверху = spacing + высота заголовка
+            y_position = spacing
+
+            # Горизонтальное позиционирование: отступ слева = spacing
+            current_x = spacing
+
+            # Собираем изображения на холст
+            for img_data in card_images:
+                canvas.paste(img_data['image'], (current_x, y_position))
+                current_x += img_data['original_width'] + spacing
+
+            logger.info(f"Создано изображение расклада с {len(card_images)} картами")
+
+            # Сохраняем результат в BytesIO
+            result = BytesIO()
+            canvas.save(result, format='PNG')
+            result.seek(0)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Ошибка создания изображения расклада: {e}")
+            return None
     async def handle_photo_msg(self, update: Update, context: CallbackContext):
         logger.info(update)
 

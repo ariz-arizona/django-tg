@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.contenttypes.admin import GenericTabularInline
 
 from .models import (
     TarotCard,
@@ -14,6 +15,11 @@ from .models import (
     BotFile,
 )
 
+
+class BotFileInline(GenericTabularInline):
+    model = BotFile
+    extra = 1  # Количество пустых полей для добавления
+    autocomplete_fields = ("bot",)
 
 
 @admin.register(TarotCard)
@@ -44,13 +50,19 @@ class TarotDeckAdmin(admin.ModelAdmin):
     search_fields = ("name",)  # Поля для поиска
     list_filter = ("name",)  # Фильтры в правой панели
 
+
 class TarotFileCacheInline(admin.TabularInline):
     """
     Инлайн для отображения кэша пути файла внутри модели Card.
     """
+
     model = TarotFileCache
     extra = 0  # Не показывать пустые формы для новых записей
-    readonly_fields = ("file_path", "expires_at") # Делаем поля доступными только для чтения
+    readonly_fields = (
+        "file_path",
+        "expires_at",
+    )  # Делаем поля доступными только для чтения
+
 
 @admin.register(TarotCardItem)
 class CardAdmin(admin.ModelAdmin):
@@ -58,16 +70,17 @@ class CardAdmin(admin.ModelAdmin):
     Админка для модели Card.
     """
 
-    list_display = ("tarot_card", "deck", "get_file_id")  # Поля, отображаемые в списке
+    list_display = ("tarot_card", "deck",)  # Поля, отображаемые в списке
     search_fields = ("deck__name", "tarot_card__name")  # Поля для поиска
     list_filter = ("deck", "tarot_card")  # Фильтры в правой панели
-    autocomplete_fields = ("deck", "tarot_card",)
-    inlines = [TarotFileCacheInline,]
-
-    def get_file_id(self, obj):
-        return obj.img_id if obj.img_id else "—"
-    get_file_id.short_description = "Telegram File ID"
-    
+    autocomplete_fields = (
+        "deck",
+        "tarot_card",
+    )
+    inlines = [
+        TarotFileCacheInline,
+        BotFileInline,
+    ]
 
 
 @admin.register(TarotUserReading)
@@ -110,6 +123,9 @@ class OraculumItemAdmin(admin.ModelAdmin):
     list_display = ("name", "deck", "description")
     search_fields = ("name", "description", "deck__name")
     list_filter = ("deck",)
+    inlines = [
+        BotFileInline,
+    ]
 
 
 @admin.register(Rune)
@@ -151,16 +167,14 @@ class RuneAdmin(admin.ModelAdmin):
         ),
     )
 
+
 @admin.register(BotFile)
 class BotFileAdmin(admin.ModelAdmin):
-    # Отображаемые колонки в списке
-    list_display = ('bot', 'file_id')
-    
-    # Позволяет фильтровать файлы по боту в правой колонке
-    list_filter = ('bot',)
-    
-    # Поиск по file_id (полезно, если их много)
-    search_fields = ('file_id',)
-    
-    # Удобно, если нужно быстро найти файл конкретного бота
-    autocomplete_fields = ('bot',)
+    list_display = (
+        "content_object",
+        "bot",
+        "file_id",
+    )  
+    list_filter = ("bot", "content_type")
+    search_fields = ("file_id",)
+    autocomplete_fields = ("bot",)

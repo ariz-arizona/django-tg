@@ -24,7 +24,7 @@ redis_client = redis.StrictRedis(
 
 
 # Асинхронная обработка бота
-async def run_bot(token, handlersClass):
+async def run_bot(token, app_bot_id, handlersClass):
     # Динамически создаем класс по имени
     bot_class = globals().get(handlersClass)
     if not bot_class:
@@ -36,6 +36,9 @@ async def run_bot(token, handlersClass):
 
     app = ApplicationBuilder().token(token).build()
     await app.initialize()
+    
+    bot_instance.app_bot_id = app_bot_id
+    logger.info(f"Инициализирован бот с ID: {bot_instance.app_bot_id}")
 
     for handler in handlers:
         app.add_handler(handler)

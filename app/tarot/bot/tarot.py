@@ -230,8 +230,7 @@ class TarotBot(AbstractBot):
 
             # 8. Формируем результат
             combined = manual_cards + random_cards
-            # logger.info(type(combined[0]))
-            # logger.info(await combined[0])
+            
             return [
                 {
                     "card_instance": card,
@@ -379,7 +378,6 @@ class TarotBot(AbstractBot):
 
         # Парсинг параметров
         options: Dict[str, any] = {}
-
         try:
             # Парсинг количества карт (counter)
             counter_found = re.search(r"(card)\d", msg_text)

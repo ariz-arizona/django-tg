@@ -1,5 +1,3 @@
-version: '3.8'
-
 x-labels: &app_labels
   labels:
     project_name: ${PROJECT_NAME:-djangotg}
@@ -26,7 +24,7 @@ services:
 
   bot_processor:
     <<: *common_settings
-    container_name: ${PROJECT_NAME}_bot_worker
+    container_name: ${PROJECT_NAME}_bot_processor
     command: poetry run python manage.py start_bot_processing
     restart: always
 

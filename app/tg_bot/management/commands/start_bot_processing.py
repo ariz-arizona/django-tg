@@ -34,7 +34,7 @@ class Command(BaseCommand):
             for bot in bots:
                 logger.info(f"Подготовка задачи для бота: {bot.name} (ID {bot.id})")
                 # 2. Создаем список задач
-                tasks.append(run_bot(bot.token, bot.bot_type))
+                tasks.append(run_bot(bot.token, bot.id, bot.bot_type, ))
             
             # 3. Запускаем всё параллельно и ждем вечно
             if tasks:

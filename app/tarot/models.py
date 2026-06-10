@@ -1,7 +1,10 @@
 from django.db import models
 
-from django.db import models
 from django.utils import timezone
+
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericRelation
 
 from tg_bot.models import TgUser
 
@@ -76,6 +79,11 @@ class TarotDeck(models.Model):
         verbose_name_plural = f"{bot_prefix}: Колоды"
 
 class BotFile(models.Model):
+    # Поля для Generic Relation
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+    
     bot = models.ForeignKey(
         'tg_bot.Bot', 
         on_delete=models.CASCADE, 
@@ -84,7 +92,8 @@ class BotFile(models.Model):
     file_id = models.CharField(max_length=255, verbose_name="Telegram File ID")
     
     class Meta:
-        verbose_name = "Файл бота"
+        verbose_name = "TG file ID для ботов"
+        verbose_name_plural = "TG file IDs для ботов"
         unique_together = ("bot", "file_id")
         
 class TarotCardItem(models.Model):
@@ -101,24 +110,7 @@ class TarotCardItem(models.Model):
         related_name="deck_cards",
         verbose_name="Карта Таро",
     )
-    file_info = models.ForeignKey(
-        BotFile, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        verbose_name="Файл в Telegram"
-    )
-    
-    @property
-    def img_id(self):
-        """
-        Обратная совместимость: возвращает file_id из первого связанного BotFile,
-        если он существует.
-        """
-        if self.file_info:
-            return self.file_info.file_id
-        return None
-
+    files = GenericRelation(BotFile, related_query_name='tarot_cards')
     def __str__(self):
         return f"{self.tarot_card.name} в колоде {self.deck.name}"
 
@@ -217,13 +209,7 @@ class OraculumItem(models.Model):
         verbose_name="Колода",
         help_text="Колода, к которой относится карта.",
     )
-    file_info = models.ForeignKey(
-        BotFile, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        verbose_name="Файл в Telegram"
-    )
+    files = GenericRelation(BotFile, related_query_name='oraculum_cards')
     name = models.CharField(
         max_length=255,
         verbose_name="Название карты",
@@ -247,16 +233,6 @@ class OraculumItem(models.Model):
         verbose_name="Перевернутое значение",
         help_text="Значение карты в перевернутом положении.",
     )
-    
-    @property
-    def img_id(self):
-        """
-        Обратная совместимость: возвращает file_id из первого связанного BotFile,
-        если он существует.
-        """
-        if self.file_info:
-            return self.file_info.file_id
-        return None
 
     def __str__(self):
         return f"{self.name} (из колоды: {self.deck.name})"

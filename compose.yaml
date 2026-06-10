@@ -21,6 +21,11 @@ services:
     container_name: ${PROJECT_NAME}_django_app
     command: gunicorn server.wsgi:application --bind 0.0.0.0:8000
 
+  bot_processor:
+    <<: *common_settings
+    container_name: ${PROJECT_NAME}_bot_worker
+    command: poetry run python manage.py start_bot_processing
+    restart: always
 
   celery:
     <<: *common_settings

@@ -19,13 +19,13 @@ class TgBotConfig(AppConfig):
             # Проверяем RUN_MAIN для основного процесса
             if os.environ.get('RUN_MAIN', None) == 'true':
                 logger.info("Инициализация приложения TgBot (основной процесс runserver).")
-                self.start_bot_processing()
+                #self.start_bot_processing()
             else:
                 logger.info("Пропуск инициализации, так как это дочерний процесс runserver.")
         else:
             if 'celery' not in sys.argv:
                 logger.info("Инициализация приложения TgBot (не runserver).")
-                self.start_bot_processing()
+                #self.start_bot_processing()
 
     def start_bot_processing(self):
         try:

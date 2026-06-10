@@ -175,7 +175,7 @@ class TarotBot(AbstractBot):
                 filters["tarot_card__is_major"] = major
 
             base_query = TarotCardItem.objects.filter(**filters).prefetch_related(
-                "tarot_card"
+                "tarot_card", "files"
             )
 
             # 3. Обработка ручного выбора карт
@@ -231,17 +231,23 @@ class TarotBot(AbstractBot):
             # 8. Формируем результат
             combined = manual_cards + random_cards
             
-            return [
-                {
+            result = []
+    
+            # Обычный цикл for, который отлично работает с await
+            for card in combined[:counter]:
+                # Получаем img_id через ваш асинхронный метод
+                img_id = await card.aget_file_id(self.app_bot_id)
+                
+                result.append({
                     "card_instance": card,
                     "card_id": card.tarot_card.card_id,
-                    "img_id": card.img_id,
+                    "img_id": img_id,
                     "name": card.tarot_card.name,
                     "flipped": random.choice([True, False]),
-                }
-                for card in combined[:counter]
-            ]
-
+                })
+                
+            return result
+        
         except ObjectDoesNotExist as e:
             raise ValueError("Карта не найдена") from e
         except Exception as e:
@@ -254,7 +260,7 @@ class TarotBot(AbstractBot):
                 raise ValueError(f"Колода {deck_id} не найдена")
 
             # 2. Базовый запрос карт колоды
-            base_query = OraculumItem.objects.filter(deck_id=deck_id)
+            base_query = OraculumItem.objects.filter(deck_id=deck_id).prefetch_related("files")
 
             # 3. Исключение указанных карт
             if exclude_cards:
@@ -278,17 +284,21 @@ class TarotBot(AbstractBot):
                 await base_query.aget(id=cid) for cid in random_ids
             ]
 
-            # 7. Формирование результата
-            return [
-                {
+            result = []
+            
+            for card in random_cards:
+                # Используем тот же асинхронный метод из миксина
+                img_id = await card.aget_file_id(self.app_bot_id)
+                
+                result.append({
                     "card_instance": card,
                     "card_id": card.id,
-                    "img_id": card.img_id,
+                    "img_id": img_id,
                     "name": card.name,
-                    "flipped": random.choice([True, False]),  # Переворот карты
-                }
-                for card in random_cards
-            ]
+                    "flipped": random.choice([True, False]),
+                })
+                
+            return result
 
         except ObjectDoesNotExist as e:
             raise ValueError("Карта не найдена") from e
@@ -324,11 +334,7 @@ class TarotBot(AbstractBot):
         await update.effective_message.reply_media_group(
             [
                 InputMediaPhoto(
-                    (
-                        "https://placecats.com/300/200"
-                        if settings.TG_DEBUG
-                        else c["img_id"]
-                    ),
+                    (c["img_id"]),
                     await self.format_card_name(c, flip),
                 )
                 for c in cards
@@ -1365,11 +1371,7 @@ class TarotBot(AbstractBot):
 
             # Отправляем изображение и описание карты
             await update.message.reply_photo(
-                photo=(
-                    "https://placecats.com/300/200"
-                    if settings.TG_DEBUG
-                    else card["img_id"]
-                ),
+                photo=(card["img_id"]),
                 caption=card_text,
                 reply_markup=keyboard,
                 parse_mode="HTML",
@@ -1408,11 +1410,7 @@ class TarotBot(AbstractBot):
             # Обновляем сообщение с новой картой
             await query.edit_message_media(
                 InputMediaPhoto(
-                    media=(
-                        "https://placecats.com/300/200"
-                        if settings.TG_DEBUG
-                        else card["img_id"]
-                    ),
+                    media=(card["img_id"]),
                     caption=card_text,
                     parse_mode="HTML",
                 ),

@@ -96,7 +96,15 @@ class BotFile(models.Model):
         verbose_name_plural = "TG file IDs для ботов"
         unique_together = ("bot", "file_id")
         
-class TarotCardItem(models.Model):
+class BotFileMixin:
+    """Миксин для асинхронного получения файла бота"""
+    
+    async def aget_file_id(self, bot_id, default="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/960px-Cat03.jpg"):
+        # self.files — это GenericRelation, работает как менеджер
+        file_obj = await self.files.filter(bot_id=bot_id).afirst()
+        return file_obj.file_id if file_obj else default
+    
+class TarotCardItem(models.Model, BotFileMixin):
     """
     Модель для хранения информации о карте в колоде.
     """
@@ -201,7 +209,7 @@ class OraculumDeck(models.Model):
         verbose_name_plural = f"{bot_prefix}: Колоды оракула"
 
 
-class OraculumItem(models.Model):
+class OraculumItem(models.Model, BotFileMixin):
     deck = models.ForeignKey(
         OraculumDeck,
         on_delete=models.CASCADE,

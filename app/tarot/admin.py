@@ -5,6 +5,7 @@ from .models import (
     ExtendedMeaning,
     TarotDeck,
     TarotCardItem,
+    TarotFileCache,
     TarotMeaningCategory,
     TarotUserReading,
     OraculumItem,
@@ -42,6 +43,13 @@ class TarotDeckAdmin(admin.ModelAdmin):
     search_fields = ("name",)  # Поля для поиска
     list_filter = ("name",)  # Фильтры в правой панели
 
+class TarotFileCacheInline(admin.TabularInline):
+    """
+    Инлайн для отображения кэша пути файла внутри модели Card.
+    """
+    model = TarotFileCache
+    extra = 0  # Не показывать пустые формы для новых записей
+    readonly_fields = ("file_path", "expires_at") # Делаем поля доступными только для чтения
 
 @admin.register(TarotCardItem)
 class CardAdmin(admin.ModelAdmin):
@@ -52,6 +60,8 @@ class CardAdmin(admin.ModelAdmin):
     list_display = ("deck", "tarot_card", "img_id")  # Поля, отображаемые в списке
     search_fields = ("deck__name", "tarot_card__name")  # Поля для поиска
     list_filter = ("deck", "tarot_card")  # Фильтры в правой панели
+    
+    inlines = [TarotFileCacheInline]
 
 
 @admin.register(TarotUserReading)

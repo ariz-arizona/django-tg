@@ -100,7 +100,34 @@ class TarotCardItem(models.Model):
         verbose_name_plural = f"{bot_prefix}: Карты в колодах"
         unique_together = ("deck", "tarot_card")
 
+class TarotFileCache(models.Model):
+    """
+    Модель для кэширования временных путей скачивания по file_id.
+    """
+    card_item = models.OneToOneField(
+        TarotCardItem,
+        on_delete=models.CASCADE,
+        related_name="file_cache",
+        verbose_name="Карта в колоде"
+    )
+    
+    # Временный путь для скачивания (относительный путь от API Telegram)
+    file_path = models.CharField(max_length=512, verbose_name="Временный file_path")
+    
+    # Время истечения ссылки (обычно 1 час, ставим запас)
+    expires_at = models.DateTimeField(verbose_name="Истекает в")
 
+    def is_expired(self):
+        # Добавляем 5-минутный буфер, чтобы не попасть на истекшую ссылку в процессе скачивания
+        return timezone.now() >= (self.expires_at - timezone.timedelta(minutes=5))
+
+    def __str__(self):
+        return f"Cache for {self.file_id[:10]}"
+
+    class Meta:
+        verbose_name = f"{bot_prefix}: Кэш путей файлов"
+        verbose_name_plural = f"{bot_prefix}: Кэши путей файлов"
+        
 class TarotUserReading(models.Model):
     user = models.ForeignKey(
         "tg_bot.TgUser",  # Укажите имя модели, если TgUser определена в другом месте

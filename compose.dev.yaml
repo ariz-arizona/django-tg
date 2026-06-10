@@ -1,0 +1,16 @@
+services:
+  web:
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+
+  redis:
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+  db:
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  dozzle:
+    ports:
+      - "${DOZZLE_PORT:-8001}:8080"

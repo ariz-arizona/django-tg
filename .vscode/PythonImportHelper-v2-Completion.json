@@ -2736,7 +2736,16 @@
         "kind": 6,
         "importPath": "app.tarot.admin",
         "description": "app.tarot.admin",
-        "peekOfCode": "class TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"\n    list_display = (\"name\", \"link\")  # Поля, отображаемые в списке\n    search_fields = (\"name\",)  # Поля для поиска\n    list_filter = (\"name\",)  # Фильтры в правой панели\n@admin.register(TarotCardItem)\nclass CardAdmin(admin.ModelAdmin):\n    \"\"\"",
+        "peekOfCode": "class TarotDeckAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели TarotDeck.\n    \"\"\"\n    list_display = (\"name\", \"link\")  # Поля, отображаемые в списке\n    search_fields = (\"name\",)  # Поля для поиска\n    list_filter = (\"name\",)  # Фильтры в правой панели\nclass TarotFileCacheInline(admin.TabularInline):\n    \"\"\"\n    Инлайн для отображения кэша пути файла внутри модели Card.",
+        "detail": "app.tarot.admin",
+        "documentation": {}
+    },
+    {
+        "label": "TarotFileCacheInline",
+        "kind": 6,
+        "importPath": "app.tarot.admin",
+        "description": "app.tarot.admin",
+        "peekOfCode": "class TarotFileCacheInline(admin.TabularInline):\n    \"\"\"\n    Инлайн для отображения кэша пути файла внутри модели Card.\n    \"\"\"\n    model = TarotFileCache\n    extra = 0  # Не показывать пустые формы для новых записей\n    readonly_fields = (\"file_path\", \"expires_at\") # Делаем поля доступными только для чтения\n@admin.register(TarotCardItem)\nclass CardAdmin(admin.ModelAdmin):\n    \"\"\"",
         "detail": "app.tarot.admin",
         "documentation": {}
     },
@@ -2745,7 +2754,7 @@
         "kind": 6,
         "importPath": "app.tarot.admin",
         "description": "app.tarot.admin",
-        "peekOfCode": "class CardAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели Card.\n    \"\"\"\n    list_display = (\"deck\", \"tarot_card\", \"img_id\")  # Поля, отображаемые в списке\n    search_fields = (\"deck__name\", \"tarot_card__name\")  # Поля для поиска\n    list_filter = (\"deck\", \"tarot_card\")  # Фильтры в правой панели\n@admin.register(TarotUserReading)\nclass TarotUserReadingAdmin(admin.ModelAdmin):\n    # Поля, которые будут отображаться в списке записей",
+        "peekOfCode": "class CardAdmin(admin.ModelAdmin):\n    \"\"\"\n    Админка для модели Card.\n    \"\"\"\n    list_display = (\"deck\", \"tarot_card\", \"img_id\")  # Поля, отображаемые в списке\n    search_fields = (\"deck__name\", \"tarot_card__name\")  # Поля для поиска\n    list_filter = (\"deck\", \"tarot_card\")  # Фильтры в правой панели\n    inlines = [TarotFileCacheInline]\n@admin.register(TarotUserReading)\nclass TarotUserReadingAdmin(admin.ModelAdmin):",
         "detail": "app.tarot.admin",
         "documentation": {}
     },
@@ -2836,6 +2845,15 @@
         "importPath": "app.tarot.models",
         "description": "app.tarot.models",
         "peekOfCode": "class TarotCardItem(models.Model):\n    \"\"\"\n    Модель для хранения информации о карте в колоде.\n    \"\"\"\n    deck = models.ForeignKey(\n        TarotDeck, on_delete=models.CASCADE, related_name=\"cards\", verbose_name=\"Колода\"\n    )\n    tarot_card = models.ForeignKey(\n        \"TarotCard\",\n        on_delete=models.CASCADE,",
+        "detail": "app.tarot.models",
+        "documentation": {}
+    },
+    {
+        "label": "TarotFileCache",
+        "kind": 6,
+        "importPath": "app.tarot.models",
+        "description": "app.tarot.models",
+        "peekOfCode": "class TarotFileCache(models.Model):\n    \"\"\"\n    Модель для кэширования временных путей скачивания по file_id.\n    \"\"\"\n    card_item = models.OneToOneField(\n        TarotCardItem,\n        on_delete=models.CASCADE,\n        related_name=\"file_cache\",\n        verbose_name=\"Карта в колоде\"\n    )",
         "detail": "app.tarot.models",
         "documentation": {}
     },

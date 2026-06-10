@@ -6,7 +6,7 @@ from .models import (
     ExtendedMeaning,
     TarotDeck,
     TarotCardItem,
-    TarotFileCache,
+    BotFileCache,
     TarotMeaningCategory,
     TarotUserReading,
     OraculumItem,
@@ -51,26 +51,16 @@ class TarotDeckAdmin(admin.ModelAdmin):
     list_filter = ("name",)  # Фильтры в правой панели
 
 
-class TarotFileCacheInline(admin.TabularInline):
-    """
-    Инлайн для отображения кэша пути файла внутри модели Card.
-    """
-
-    model = TarotFileCache
-    extra = 0  # Не показывать пустые формы для новых записей
-    readonly_fields = (
-        "file_path",
-        "expires_at",
-    )  # Делаем поля доступными только для чтения
-
-
 @admin.register(TarotCardItem)
 class CardAdmin(admin.ModelAdmin):
     """
     Админка для модели Card.
     """
 
-    list_display = ("tarot_card", "deck",)  # Поля, отображаемые в списке
+    list_display = (
+        "tarot_card",
+        "deck",
+    )  # Поля, отображаемые в списке
     search_fields = ("deck__name", "tarot_card__name")  # Поля для поиска
     list_filter = ("deck", "tarot_card")  # Фильтры в правой панели
     autocomplete_fields = (
@@ -78,7 +68,6 @@ class CardAdmin(admin.ModelAdmin):
         "tarot_card",
     )
     inlines = [
-        TarotFileCacheInline,
         BotFileInline,
     ]
 
@@ -168,13 +157,29 @@ class RuneAdmin(admin.ModelAdmin):
     )
 
 
+class BotFileCacheInline(admin.TabularInline):
+    """
+    Инлайн для отображения кэша пути файла.
+    """
+
+    model = BotFileCache
+    extra = 0  # Не показывать пустые формы для новых записей
+    readonly_fields = (
+        "file_path",
+        "expires_at",
+    )
+
+
 @admin.register(BotFile)
 class BotFileAdmin(admin.ModelAdmin):
     list_display = (
         "content_object",
         "bot",
         "file_id",
-    )  
+    )
     list_filter = ("bot", "content_type")
     search_fields = ("file_id",)
     autocomplete_fields = ("bot",)
+    inlines = [
+        BotFileCacheInline,
+    ]

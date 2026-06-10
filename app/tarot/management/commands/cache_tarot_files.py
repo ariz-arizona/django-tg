@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db import transaction
 from django.contrib.contenttypes.models import ContentType
 
-from tarot.models import TarotCardItem, BotFile, TarotFileCache, TarotDeck
+from tarot.models import TarotCardItem, BotFile, BotFileCache, TarotDeck
 from tg_bot.models import Bot
 
 
@@ -188,9 +188,10 @@ class Command(BaseCommand):
             self.stdout.write(f"  📎 Источник: {source_bot.name}")
             
             # Получаем file_path (с кешированием)
-            file_path = self.get_file_path_with_cache(card, file_obj.file_id, source_bot)
+            cache, _ = BotFileCache.objects.get_or_create(bot_file=file_obj)
+            file_link = cache.get_cache_link() 
             
-            if not file_path:
+            if not file_link:
                 error_count += 1
                 self.stdout.write(
                     self.style.ERROR(f"  ❌ Не удалось получить file_path")
@@ -203,7 +204,7 @@ class Command(BaseCommand):
             uploaded_file_id = self.upload_photo_to_target_bot(
                 source_bot=source_bot,
                 target_bot=target_bot,
-                file_path=file_path,
+                file_path=file_link,
                 chat_id=chat_id,
                 card=card
             )
@@ -231,6 +232,7 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.ERROR(f"  ❌ Не удалось загрузить фото")
                 )
+
             
             card_time = time.time() - card_start_time
             self.stdout.write(f"  ⏱️ Время: {card_time:.2f} сек")
@@ -261,65 +263,7 @@ class Command(BaseCommand):
                 f"⚡ Среднее время на карту: {total_time/total:.2f} сек"
             )
         )
-
-    def get_file_path_with_cache(self, card_item, file_id: str, source_bot: Bot) -> str:
-        """
-        Получает file_path с использованием кеша.
-        Если кеш есть и не истек - берем из кеша.
-        Если нет или истек - запрашиваем новый и сохраняем в кеш.
-        """
         
-        # Проверяем кеш
-        try:
-            cache = TarotFileCache.objects.get(card_item=card_item)
-            if not cache.is_expired():
-                self.stdout.write(f"  📦 Кеш действителен до {cache.expires_at.strftime('%H:%M:%S')}")
-                return cache.file_path
-            else:
-                self.stdout.write(f"  ⏰ Кеш истек, запрашиваем новый...")
-        except TarotFileCache.DoesNotExist:
-            self.stdout.write(f"  🆕 Кеша нет, запрашиваем...")
-        
-        # Запрашиваем свежий file_path
-        file_path = self.get_file_path_from_telegram(source_bot, file_id)
-        
-        if file_path:
-            with transaction.atomic():
-                cache, created = TarotFileCache.objects.update_or_create(
-                    card_item=card_item,
-                    defaults={
-                        "file_path": file_path,
-                        "expires_at": timezone.now() + timezone.timedelta(hours=1),
-                    }
-                )
-                if created:
-                    self.stdout.write(f"  ✨ Новый кеш создан")
-                else:
-                    self.stdout.write(f"  🔄 Кеш обновлен")
-                return file_path
-        
-        return None
-
-    def get_file_path_from_telegram(self, bot: Bot, file_id: str) -> str:
-        """Запрашивает у Telegram API временный путь к файлу"""
-        
-        get_file_url = f"https://api.telegram.org/bot{bot.token}/getFile"
-
-        try:
-            response = requests.post(get_file_url, json={"file_id": file_id}, timeout=30)
-            
-            if not response.ok:
-                return None
-
-            data = response.json()
-            if not data.get("ok"):
-                return None
-
-            return data["result"]["file_path"]
-
-        except Exception:
-            return None
-
     def upload_photo_to_target_bot(
         self, source_bot: Bot, target_bot: Bot, file_path: str, chat_id: str, card
     ) -> str:
@@ -330,13 +274,20 @@ class Command(BaseCommand):
             file_id загруженного файла или None при ошибке
         """
         
-        # Скачиваем файл от бота-источника
-        file_url = f"https://api.telegram.org/file/bot{source_bot.token}/{file_path}"
-        
         try:
-            response = requests.get(file_url, timeout=60)
+            self.stdout.write(f"  📥 Скачиваю файл: {file_path}...")
+            response = requests.get(file_path, timeout=60)
+            
             if not response.ok:
+                self.stdout.write(
+                    self.style.ERROR(f"  ❌ Ошибка скачивания: HTTP {response.status_code}")
+                )
+                self.stdout.write(
+                    self.style.ERROR(f"     Ответ: {response.text[:200]}")
+                )
                 return None
+            
+            self.stdout.write(f"  ✅ Файл скачан, размер: {len(response.content)} байт")
             
             # Загружаем в целевого бота
             files = {
@@ -344,6 +295,8 @@ class Command(BaseCommand):
             }
             
             send_photo_url = f"https://api.telegram.org/bot{target_bot.token}/sendPhoto"
+            self.stdout.write(f"  📤 Загружаю в целевого бота...")
+            
             upload_response = requests.post(
                 send_photo_url,
                 files=files,
@@ -353,11 +306,50 @@ class Command(BaseCommand):
             
             if upload_response.ok:
                 result = upload_response.json()
-                if result.get('ok') and 'photo' in result.get('result', {}):
-                    photo_sizes = result['result']['photo']
-                    return photo_sizes[-1]['file_id']
+                if result.get('ok'):
+                    if 'photo' in result.get('result', {}):
+                        photo_sizes = result['result']['photo']
+                        file_id = photo_sizes[-1]['file_id']
+                        self.stdout.write(f"  ✅ Фото загружено, file_id получен")
+                        return file_id
+                    else:
+                        self.stdout.write(
+                            self.style.ERROR(f"  ❌ В ответе нет photo: {result}")
+                        )
+                        return None
+                else:
+                    self.stdout.write(
+                        self.style.ERROR(f"  ❌ Telegram вернул ошибку: {result.get('description', 'Unknown error')}")
+                    )
+                    self.stdout.write(
+                        self.style.ERROR(f"     Код ошибки: {result.get('error_code', 'N/A')}")
+                    )
+                    return None
+            else:
+                self.stdout.write(
+                    self.style.ERROR(f"  ❌ Ошибка загрузки: HTTP {upload_response.status_code}")
+                )
+                self.stdout.write(
+                    self.style.ERROR(f"     Ответ: {upload_response.text[:200]}")
+                )
+                return None
             
+        except requests.exceptions.Timeout:
+            self.stdout.write(
+                self.style.ERROR(f"  ❌ Таймаут при запросе (60 секунд)")
+            )
             return None
-            
-        except Exception:
+        except requests.exceptions.ConnectionError as e:
+            self.stdout.write(
+                self.style.ERROR(f"  ❌ Ошибка соединения: {str(e)}")
+            )
+            return None
+        except Exception as e:
+            self.stdout.write(
+                self.style.ERROR(f"  ❌ Непредвиденная ошибка: {str(e)}")
+            )
+            import traceback
+            self.stdout.write(
+                self.style.ERROR(f"     {traceback.format_exc()}")
+            )
             return None

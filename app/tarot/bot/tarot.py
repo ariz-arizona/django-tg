@@ -37,7 +37,7 @@ from tarot.models import (
     OraculumDeck,
     OraculumItem,
     Rune,
-    TarotFileCache,
+    BotFileCache,
 )
 from server.logger import logger
 from django.conf import settings
@@ -121,7 +121,7 @@ class TarotBot(AbstractBot):
                 & filters.TEXT
                 & filters.ChatType.PRIVATE
                 & filters.Regex(r"^\/spread"),
-                self.handle_spread_with_keyword,
+                self.handle_spread,
             ),
         ]
 
@@ -1437,7 +1437,7 @@ class TarotBot(AbstractBot):
                 "Произошла ошибка. Пожалуйста, попробуйте снова."
             )
 
-    async def handle_spread_with_keyword(self, update: Update, context: CallbackContext):
+    async def handle_spread(self, update: Update, context: CallbackContext):
         try:
             msg_text = update.message.text
             logger.info(f"Обработка команды /spread с текстом: {msg_text[:100]}")
@@ -1523,7 +1523,7 @@ class TarotBot(AbstractBot):
             for card_data in cards:
                 parts = [card_data["name"]]
                 if card_data["flipped"]:
-                    parts.append("*перевернуто*")
+                    parts.append("<i>перевернуто</i>")
                 cards_description.append(" ".join(parts))
                 
             logger.info(f"Получено карт: {len(cards)}")
@@ -1542,14 +1542,19 @@ class TarotBot(AbstractBot):
 
             for card_data in cards:
                 card_item = card_data["card_instance"]
-                file_path = await self.ensure_card_cache(card_item, context.bot)
+                bot_file = await card_item.files.afirst()
+                if not bot_file:
+                    logger.warning(f"Нет исходного файла для карты {card_item.id}")
+                    continue
+                
+                file_link = await BotFileCache.acreate_and_get_link(bot_file=bot_file)
 
-                if file_path:
+                if file_link:
                     # Можно скачать файл или сохранить путь для отправки
-                    card_data["file_path"] = file_path
-                    logger.info(f"Готов к отправке файл для карты {card_item.id}: {file_path}")
+                    card_data["file_path"] = file_link
+                    logger.info(f"Готов к отправке файл для карты {card_item.id}: {file_link}")
                 else:
-                    logger.warning(f"Не удалось получить кэш для карты {card_item.id}")
+                    logger.warning(f"Не удалось создать кэш для карты {card_item.id}")
 
             await tech_msg.edit_text(
                 "Загрузка и отрисовка",
@@ -1559,7 +1564,7 @@ class TarotBot(AbstractBot):
             if spread_image:
                 # Отправляем изображение пользователю
                 await tech_msg.edit_media(
-                    media=InputMediaPhoto(media=spread_image, caption=description_text, parse_mode='MarkdownV2'),
+                    media=InputMediaPhoto(media=spread_image, caption=description_text, parse_mode='HTML'),
                 )
             else:
                 await tech_msg.edit_text("❌ Не удалось создать изображение расклада")
@@ -1570,64 +1575,6 @@ class TarotBot(AbstractBot):
             await update.message.reply_text(
                 "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
             )
-
-    async def ensure_card_cache(self, card_item: TarotCardItem, bot) -> Optional[str]:
-        """
-        Проверяет наличие актуального кэша для карты.
-        Если кэша нет или он истёк - перезапрашивает file_id и сохраняет.
-        Возвращает file_path для скачивания или None в случае ошибки.
-        """
-        try:
-            # Пытаемся получить существующий кэш
-            cache = await TarotFileCache.objects.filter(card_item=card_item).afirst()
-
-            # Проверяем, актуален ли кэш
-            if cache and not cache.is_expired():
-                logger.info(f"Кэш актуален для карты {card_item.id}: {cache.file_path}")
-                return cache.file_path
-
-            # Кэша нет или он истёк - получаем свежий file_id
-            logger.info(f"Запрашиваем новый file_path для карты {card_item.id}")
-
-            # Получаем file_id через метод из BotFileMixin
-            file_id = await card_item.aget_file_id(self.app_bot_id)
-
-            if not file_id:
-                logger.error(f"Не удалось получить file_id для карты {card_item.id}")
-                return None
-
-            # Получаем информацию о файле от Telegram API
-            try:
-                file_obj = await bot.get_file(file_id)
-                file_path = file_obj.file_path
-            except Exception as e:
-                logger.error(f"Ошибка получения file_path из Telegram: {e}")
-                return None
-
-            # Обновляем или создаём кэш
-            expires_at = timezone.now() + timezone.timedelta(hours=1)  # Ссылка живёт 1 час
-
-            if cache:
-                # Обновляем существующий кэш
-                cache.file_path = file_path
-                cache.expires_at = expires_at
-                await cache.asave()
-                logger.info(f"Обновлён кэш для карты {card_item.id}: {file_path}")
-            else:
-                # Создаём новый кэш
-                cache = TarotFileCache(
-                    card_item=card_item,
-                    file_path=file_path,
-                    expires_at=expires_at
-                )
-                await cache.asave()
-                logger.info(f"Создан новый кэш для карты {card_item.id}: {file_path}")
-
-            return file_path
-
-        except Exception as e:
-            logger.error(f"Ошибка в ensure_card_cache для карты {card_item.id}: {e}")
-            return None
 
     async def download_and_create_spread_image(self, cards_data: List[dict], options: Dict[str, any]) -> Optional[BytesIO]:
         """

@@ -6,7 +6,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericRelation
 
-from tg_bot.models import TgUser
+from tg_bot.models import TgUser, Bot
 from server.logger import logger
 
 bot_prefix = "Tarot"
@@ -176,6 +176,30 @@ class BotFileCache(models.Model):
         logger.error(f"Не удалось получить ссылку для bot_file_id={self.bot_file.id}, file_id={self.bot_file.file_id}")
         return None
     
+    @classmethod
+    async def acreate_and_get_link(cls, bot_file, **kwargs):
+        """Возвращает только ссылку"""
+        from django.core.exceptions import ObjectDoesNotExist
+        from django.db import IntegrityError
+        
+        try:
+            cache = await cls.objects.aget(bot_file=bot_file)
+            logger.info('get')
+            logger.info(cache.__dict__)
+            return await cache.aget_cache_link()
+        except ObjectDoesNotExist:
+            try:
+                cache = cls(bot_file=bot_file, **kwargs)
+                logger.info('create')
+                logger.info(cache.__dict__)
+                return await cache.aget_cache_link()
+            except IntegrityError:
+                try:
+                    cache = await cls.objects.aget(bot_file=bot_file)
+                    return await cache.aget_cache_link()
+                except ObjectDoesNotExist:
+                    return None
+
     async def aget_cache_link(self):
         """
         Асинхронно получает прямую ссылку на файл через Telegram Bot API.
@@ -184,19 +208,21 @@ class BotFileCache(models.Model):
         """
         import aiohttp
 
+        bot_file_instance = await BotFile.objects.aget(id=self.bot_file_id)
+        bot_instance = await Bot.objects.aget(id=bot_file_instance.bot_id)
+        bot_token = bot_instance.token
+        
         # Проверяем, не протухла ли текущая ссылка
-        if not self.is_expired():
+        if not self.is_expired() and self.file_path:
             # Если не протухла - возвращаем существующую ссылку
-            bot_token = self.bot_file.bot.token
             return f"https://api.telegram.org/file/bot{bot_token}/{self.file_path}"
 
         # Если протухла - получаем новую
-        bot_token = self.bot_file.bot.token
         url = f"https://api.telegram.org/bot{bot_token}/getFile"
 
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                url, data={"file_id": self.bot_file.file_id}
+                url, data={"file_id": bot_file_instance.file_id}
             ) as response:
                 if response.status == 200:
                     data = await response.json()

@@ -149,7 +149,7 @@ class TarotFileCache(models.Model):
         return timezone.now() >= (self.expires_at - timezone.timedelta(minutes=5))
 
     def __str__(self):
-        return f"Cache for {self.file_id[:10]}"
+        return f"Cache for {self.file_path[:10]}"
 
     class Meta:
         verbose_name = f"{bot_prefix}: Кэш путей файлов"

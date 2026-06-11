@@ -37,8 +37,8 @@ from tarot.models import (
     OraculumDeck,
     OraculumItem,
     Rune,
-    BotFileCache,
 )
+from tg_bot.models import BotFileCache
 from server.logger import logger
 from django.conf import settings
 

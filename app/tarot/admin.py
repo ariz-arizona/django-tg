@@ -1,26 +1,17 @@
 from django.contrib import admin
-from django.contrib.contenttypes.admin import GenericTabularInline
 
 from .models import (
     TarotCard,
     ExtendedMeaning,
     TarotDeck,
     TarotCardItem,
-    BotFileCache,
     TarotMeaningCategory,
     TarotUserReading,
     OraculumItem,
     OraculumDeck,
     Rune,
-    BotFile,
 )
-
-
-class BotFileInline(GenericTabularInline):
-    model = BotFile
-    extra = 1  # Количество пустых полей для добавления
-    autocomplete_fields = ("bot",)
-
+from tg_bot.admin import BotFileInline
 
 @admin.register(TarotCard)
 class TarotCardAdmin(admin.ModelAdmin):
@@ -155,31 +146,3 @@ class RuneAdmin(admin.ModelAdmin):
             },
         ),
     )
-
-
-class BotFileCacheInline(admin.TabularInline):
-    """
-    Инлайн для отображения кэша пути файла.
-    """
-
-    model = BotFileCache
-    extra = 0  # Не показывать пустые формы для новых записей
-    readonly_fields = (
-        "file_path",
-        "expires_at",
-    )
-
-
-@admin.register(BotFile)
-class BotFileAdmin(admin.ModelAdmin):
-    list_display = (
-        "content_object",
-        "bot",
-        "file_id",
-    )
-    list_filter = ("bot", "content_type")
-    search_fields = ("file_id",)
-    autocomplete_fields = ("bot",)
-    inlines = [
-        BotFileCacheInline,
-    ]

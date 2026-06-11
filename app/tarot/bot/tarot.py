@@ -1776,7 +1776,7 @@ class TarotBot(AbstractBot):
             ]
         ]
         await query.edit_message_text(
-            "Брать старшие арканы?", reply_markup=InlineKeyboardMarkup(kb)
+            "Брать только старшие арканы?", reply_markup=InlineKeyboardMarkup(kb)
         )
 
     async def _oh_finish(self, query, context):

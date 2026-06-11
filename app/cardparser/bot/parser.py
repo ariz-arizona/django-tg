@@ -3,6 +3,7 @@ import re
 import aiohttp
 import json
 import requests
+from curl_cffi.requests import AsyncSession
 from asgiref.sync import sync_to_async
 from telegram import Update, InputMediaPhoto, Chat
 from telegram.constants import ChatType
@@ -126,19 +127,23 @@ class ParserBot(AbstractBot):
         max_size = 51000  # Максимальный размер изображения
         image_size = None
         image_url = None
+        REQUEST_TIMEOUT = 10
 
         for image in ["1.webp", "1.jpg"]:
             try:
                 image_url = f"{Se.construct_host_v2(card_id, 'nm')}/images/big/{image}"
                 logger.info(f"Проверка URL: {image_url}")
 
-                async with session.head(image_url) as response:
-                    logger.debug(f"Ответ сервера: {response.status}")
+                response = await session.head(image_url, timeout=REQUEST_TIMEOUT)
 
-                    if response.status == 200:
-                        image_size = int(response.headers.get("content-length", 0))
-                        logger.info(f"Размер изображения: {image_size} байт")
-                        break
+                logger.debug(f"Ответ сервера: {response.status_code}")
+
+                # Обратите внимание: проверяем status_code, а не status
+                if response.status_code == 200:
+                    # Заголовки в curl_cffi доступны через словарь headers
+                    image_size = int(response.headers.get("content-length", 0))
+                    logger.info(f"Размер изображения: {image_size} байт")
+                    break
 
             except aiohttp.ClientError as e:
                 logger.error(f"Ошибка при запросе к {image_url}: {e}")
@@ -146,84 +151,97 @@ class ParserBot(AbstractBot):
                 logger.error(f"Неожиданная ошибка: {e}")
 
         if image_size and image_size > max_size:
-            async with session.get(image_url) as img_response:
+            # Убираем async with, используем просто await
+            img_response = await session.get(image_url, timeout=REQUEST_TIMEOUT)
+            
+            # В curl_cffi статус проверяем через status_code
+            if img_response.status_code == 200:
                 picture_chat_id = (await BotSettings.get_active()).picture_chat_id
-                image_data = await img_response.read()
+                
+                # В curl_cffi тело ответа лежит в атрибуте .content (это bytes)
+                image_data = img_response.content 
+                
                 sent_photo = await context.bot.send_photo(picture_chat_id, image_data)
                 image_url = sent_photo.photo[-1].file_id
-
+                
         return image_url
 
     async def wb(self, card_id, context: CallbackContext):
         card_url = f"https://card.wb.ru/cards/v4/detail?curr=rub&dest=-1059500,-72639,-3826860,-5551776&nm={card_id}"
-
-        async with aiohttp.ClientSession() as session:
+        
+        async with AsyncSession(impersonate="chrome120") as session:
             # Загружаем данные карточки
-            async with session.get(card_url) as response:
-                try:
-                    card = await response.json()
-                    product = card["products"][0]
-                    image_url = await self.wb_image_url_get(context, card_id, session)
-                    if not image_url:
-                        return None
-
-                    # Парсинг данных
-                    sku = card_id
-                    brand = product["brand"]
-                    link = f"https://wildberries.ru/catalog/{card_id}/detail.aspx"
-                    name = product["name"]
-
-                    sizes = []
-                    for size in product["sizes"]:
-                        size_name = size["name"]
-                        available = len(size["stocks"]) > 0
-                        obj = {
-                            "name": size_name,
-                            "available": available,
-                        }
-
-                        # Защита от отсутствия поля price
-                        price_data = size.get("price", None)
-                        if price_data:
-                            current_price = price_data.get("product")
-                            if current_price is None:
-                                current_price = price_data.get(
-                                    "basic", 0
-                                )  # fallback на basic
-
-                            price_rub = current_price / 100
-                            obj["price"] = price_rub
-
-                        sizes.append(obj)
-
-                    caption_data = {
-                        "sku": sku,
-                        "name": name,
-                        "link": link,
-                        "sizes": sizes,
-                        "availability": any(size["available"] for size in sizes),
-                    }
-                    if brand:
-                        caption_data["brand"] = brand
-
-                    return {
-                        "sku": sku,
-                        "media": image_url,
-                        "parse_mode": "HTML",
-                        "name": product.get("name"),
-                        "caption_data": caption_data,
-                        "brand": {
-                            "id": product.get("brandId"),
-                            "name": product.get("brand"),
-                        },
-                        "category": {
-                            "id": product.get("subjectId"),
-                            "name": product.get("entity"),
-                        },
-                    }
-                except Exception as e:
-                    logger.error(e, exc_info=True)
+            response = await session.get(card_url)
+            # Проверяем успешность запроса
+            if response.status_code != 200:
+                logger.info(f"Ошибка запроса: {response.status_code}")
+                logger.error(f"Ошибка {response.status_code}: {response.text}")
+                return None  # ОБЯЗАТЕЛЬНО выходим из функции, если данных нет
+            
+            try:
+                data = response.json()
+                product = data["products"][0]
+                image_url = await self.wb_image_url_get(context, card_id, session)
+                if not image_url:
                     return None
+
+                # Парсинг данных
+                sku = card_id
+                brand = product["brand"]
+                link = f"https://wildberries.ru/catalog/{card_id}/detail.aspx"
+                name = product["name"]
+
+                sizes = []
+                for size in product["sizes"]:
+                    size_name = size["name"]
+                    available = len(size["stocks"]) > 0
+                    obj = {
+                        "name": size_name,
+                        "available": available,
+                    }
+
+                    # Защита от отсутствия поля price
+                    price_data = size.get("price", None)
+                    if price_data:
+                        current_price = price_data.get("product")
+                        if current_price is None:
+                            current_price = price_data.get(
+                                "basic", 0
+                            )  # fallback на basic
+
+                        price_rub = current_price / 100
+                        obj["price"] = price_rub
+
+                    sizes.append(obj)
+
+                caption_data = {
+                    "sku": sku,
+                    "name": name,
+                    "link": link,
+                    "sizes": sizes,
+                    "availability": any(size["available"] for size in sizes),
+                }
+                if brand:
+                    caption_data["brand"] = brand
+
+                return {
+                    "sku": sku,
+                    "media": image_url,
+                    "parse_mode": "HTML",
+                    "name": product.get("name"),
+                    "caption_data": caption_data,
+                    "brand": {
+                        "id": product.get("brandId"),
+                        "name": product.get("brand"),
+                    },
+                    "category": {
+                        "id": product.get("subjectId"),
+                        "name": product.get("entity"),
+                    },
+                }
+            except Exception as e:
+                logger.error(e, exc_info=True)
+                return None
 
     async def get_or_update_product_data(
         self,
@@ -548,7 +566,6 @@ class ParserBot(AbstractBot):
     async def handle_links_based_on_message(
         self, update: Update, context: CallbackContext
     ):
-        logger.info(update)
         if not update.effective_message:
             return
         message_text = update.effective_message.caption or update.effective_message.text

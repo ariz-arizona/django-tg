@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db import transaction
 from django.contrib.contenttypes.models import ContentType
 
-from tarot.models import TarotCardItem, BotFile, BotFileCache, TarotDeck
+from tarot.models import TarotCardItem, BotFile, BotFileCache, TarotDeck, OraculumItem
 from tg_bot.models import Bot
 
 
@@ -61,6 +61,13 @@ class Command(BaseCommand):
             default=False,
             help="Принудительно обновить все файлы, даже если они уже есть",
         )
+        parser.add_argument(
+            "--key",
+            type=str,
+            default="tarot",
+            choices=["tarot", "oraculum"],
+            help="Тип карт: tarot (по умолчанию) или oraculum",
+        )
 
     def handle(self, *args, **options):
         target_bot_id = options["bot_id"]
@@ -71,6 +78,7 @@ class Command(BaseCommand):
         delay = options.get("delay", 2.0)
         chat_target = options.get("chat_target")
         force = options.get("force", False)
+        key = options.get("key", 'tarot')
 
         # Проверяем существование целевого бота
         try:
@@ -85,39 +93,46 @@ class Command(BaseCommand):
             f"Начинаем обработку для бота: {target_bot.name} (ID: {target_bot_id})"
         )
         
-        # Формируем queryset
-        cards_queryset = (
-            TarotCardItem.objects.select_related("tarot_card", "deck")
-            .prefetch_related("files")
-            .all()
-        )
-        
-        # Фильтр по ID колоды
-        if deck_id:
-            try:
-                deck = TarotDeck.objects.get(id=deck_id)
-                cards_queryset = cards_queryset.filter(deck=deck)
-                self.stdout.write(f"📚 Фильтр по ID колоды: {deck_id} ({deck.name})")
-            except TarotDeck.DoesNotExist:
-                self.stdout.write(
-                    self.style.ERROR(f"Колода с ID {deck_id} не найдена")
-                )
-                return
-        
-        # Фильтр по названию колоды
-        elif deck_name:
-            decks = TarotDeck.objects.filter(name__icontains=deck_name)
-            if not decks.exists():
-                self.stdout.write(
-                    self.style.ERROR(f"Колоды с названием '{deck_name}' не найдены")
-                )
-                return
+        if key == "oraculum":
+            cards_queryset = (
+                OraculumItem.objects.select_related("deck")
+                .prefetch_related("files")
+                .all()
+            )
+        if key == "tarot":
+            # Формируем queryset
+            cards_queryset = (
+                TarotCardItem.objects.select_related("tarot_card", "deck")
+                .prefetch_related("files")
+                .all()
+            )
             
-            cards_queryset = cards_queryset.filter(deck__in=decks)
-            self.stdout.write(f"📚 Фильтр по названию колоды: {deck_name}")
-            for deck in decks:
-                self.stdout.write(f"   - {deck.name} (ID: {deck.id})")
-        
+            # Фильтр по ID колоды
+            if deck_id:
+                try:
+                    deck = TarotDeck.objects.get(id=deck_id)
+                    cards_queryset = cards_queryset.filter(deck=deck)
+                    self.stdout.write(f"📚 Фильтр по ID колоды: {deck_id} ({deck.name})")
+                except TarotDeck.DoesNotExist:
+                    self.stdout.write(
+                        self.style.ERROR(f"Колода с ID {deck_id} не найдена")
+                    )
+                    return
+            
+            # Фильтр по названию колоды
+            elif deck_name:
+                decks = TarotDeck.objects.filter(name__icontains=deck_name)
+                if not decks.exists():
+                    self.stdout.write(
+                        self.style.ERROR(f"Колоды с названием '{deck_name}' не найдены")
+                    )
+                    return
+                
+                cards_queryset = cards_queryset.filter(deck__in=decks)
+                self.stdout.write(f"📚 Фильтр по названию колоды: {deck_name}")
+                for deck in decks:
+                    self.stdout.write(f"   - {deck.name} (ID: {deck.id})")
+            
         total_count = cards_queryset.count()
         
         if offset:

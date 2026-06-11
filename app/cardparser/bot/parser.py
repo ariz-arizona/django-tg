@@ -127,7 +127,7 @@ class ParserBot(AbstractBot):
         max_size = 51000  # Максимальный размер изображения
         image_size = None
         image_url = None
-        REQUEST_TIMEOUT = 10
+        REQUEST_TIMEOUT = 30
 
         for image in ["1.webp", "1.jpg"]:
             try:
@@ -168,10 +168,11 @@ class ParserBot(AbstractBot):
 
     async def wb(self, card_id, context: CallbackContext):
         card_url = f"https://card.wb.ru/cards/v4/detail?curr=rub&dest=-1059500,-72639,-3826860,-5551776&nm={card_id}"
+        REQUEST_TIMEOUT = 30
         
         async with AsyncSession(impersonate="chrome120") as session:
             # Загружаем данные карточки
-            response = await session.get(card_url)
+            response = await session.get(card_url, timeout=REQUEST_TIMEOUT)
             # Проверяем успешность запроса
             if response.status_code != 200:
                 logger.info(f"Ошибка запроса: {response.status_code}")
@@ -491,15 +492,16 @@ class ParserBot(AbstractBot):
     async def handle_links(
         self, items, product_type, parse_func, update: Update, context: CallbackContext
     ):
+        user_obj = update.effective_user
         # Получаем или создаем пользователя
         user, created = await TgUser.objects.aget_or_create(
             tg_id=update.effective_user.id,
             defaults={
-                "username": update.message.from_user.username,
-                "first_name": update.message.from_user.first_name,
-                "last_name": update.message.from_user.last_name,
-                "language_code": update.message.from_user.language_code,
-                "is_bot": update.message.from_user.is_bot,
+                "username": user_obj.username,
+                "first_name": user_obj.first_name,
+                "last_name": user_obj.last_name,
+                "language_code": user_obj.language_code,
+                "is_bot": user_obj.is_bot,
             },
         )
 

@@ -150,20 +150,21 @@ class ParserBot(AbstractBot):
             except Exception as e:
                 logger.error(f"Неожиданная ошибка: {e}")
 
-        if image_size and image_size > max_size:
-            # Убираем async with, используем просто await
-            img_response = await session.get(image_url, timeout=REQUEST_TIMEOUT)
+        # Убираем async with, используем просто await
+        img_response = await session.get(image_url, timeout=REQUEST_TIMEOUT)
+        
+        # В curl_cffi статус проверяем через status_code
+        if img_response.status_code == 200:
+            picture_chat_id = (await BotSettings.get_active()).picture_chat_id
             
-            # В curl_cffi статус проверяем через status_code
-            if img_response.status_code == 200:
-                picture_chat_id = (await BotSettings.get_active()).picture_chat_id
-                
-                # В curl_cffi тело ответа лежит в атрибуте .content (это bytes)
-                image_data = img_response.content 
-                
-                sent_photo = await context.bot.send_photo(picture_chat_id, image_data)
-                image_url = sent_photo.photo[-1].file_id
-                
+            # В curl_cffi тело ответа лежит в атрибуте .content (это bytes)
+            image_data = img_response.content 
+            
+            sent_photo = await context.bot.send_photo(picture_chat_id, image_data)
+            image_url = sent_photo.photo[-1].file_id
+        else:
+            image_url = None
+        logger.info(f"IMAGE URL {image_url}")
         return image_url
 
     async def wb(self, card_id, context: CallbackContext):
@@ -553,6 +554,7 @@ class ParserBot(AbstractBot):
             media_group = [
                 InputMediaPhoto(**photo) for photo in group if photo is not None
             ]
+            logger.info(media_group)
             if len(media_group):
                 try:
                     await update.message.reply_media_group(

@@ -22,9 +22,19 @@ services:
     container_name: ${PROJECT_NAME:-djangotg}_web
     command: gunicorn server.wsgi:application --bind 0.0.0.0:8000
 
-  bot_processor:
+  bot_processor_tarot:
     <<: *common_settings
-    container_name: ${PROJECT_NAME}_bot_processor
+    environment:
+      - INSTANCE_NAME=tarot
+    container_name: ${PROJECT_NAME}_bot_processor_tarot
+    command: poetry run python manage.py start_bot_processing
+    restart: always
+
+  bot_processor_cardparser:
+    <<: *common_settings
+    environment:
+      - INSTANCE_NAME=cardparser
+    container_name: ${PROJECT_NAME}bot_processor_cardparser
     command: poetry run python manage.py start_bot_processing
     restart: always
 

@@ -1,103 +1,92 @@
 # roster/management/commands/upload_card_images.py
 
-import asyncio
-from django.core.management.base import BaseCommand
-from tg_bot.models import Bot, BotFile
-from roster.models.team import Card
 import requests
+from django.contrib.contenttypes.models import ContentType
+from django.core.management.base import BaseCommand
+
+from roster.models.team import Card, Team
+from tg_bot.models import Bot, BotFile
 
 
-# Заглушка: имена файлов для всех карт из первой миграции
+# Открытые картинки карт
 CARD_IMAGES = {
     # Синяя команда
     "Циклоп": {
-        "image": "cyclops.jpg",
-        "hidden": "cyclops_hidden.jpg",
+        "image": "img/cyclops.jpg",
     },
     "Росомаха": {
-        "image": "wolverine.jpg",
-        "hidden": "wolverine_hidden.jpg",
+        "image": "img/wolverine.jpg",
     },
     "Шторм": {
-        "image": "storm.jpg",
-        "hidden": "storm_hidden.jpg",
+        "image": "img/storm.jpg",
     },
     "Зверь": {
-        "image": "beast.jpg",
-        "hidden": "beast_hidden.jpg",
+        "image": "img/beast.jpg",
     },
     "Джубили": {
-        "image": "jubilee.jpg",
-        "hidden": "jubilee_hidden.jpg",
+        "image": "img/jubilee.jpg",
     },
     # Фантастическая четвёрка
     "Мистер Фантастик": {
-        "image": "mr_fantastic.jpg",
-        "hidden": "mr_fantastic_hidden.jpg",
+        "image": "img/mr_fantastic.jpg",
     },
     "Невидимая Леди": {
-        "image": "invisible_woman.jpg",
-        "hidden": "invisible_woman_hidden.jpg",
+        "image": "img/invisible_woman.jpg",
     },
     "Человек-Факел": {
-        "image": "human_torch.jpg",
-        "hidden": "human_torch_hidden.jpg",
+        "image": "img/human_torch.jpg",
     },
     "Существо": {
-        "image": "the_thing.jpg",
-        "hidden": "the_thing_hidden.jpg",
+        "image": "img/the_thing.jpg",
     },
     "Франклин Ричардс": {
-        "image": "franklin_richards.jpg",
-        "hidden": "franklin_richards_hidden.jpg",
+        "image": "img/franklin_richards.jpg",
     },
     # Громовержцы*
     "Баки Барнс": {
-        "image": "bucky_barnes.jpg",
-        "hidden": "bucky_barnes_hidden.jpg",
+        "image": "img/bucky_barnes.png",
     },
     "Елена Белова": {
-        "image": "yelena_belova.jpg",
-        "hidden": "yelena_belova_hidden.jpg",
+        "image": "img/yelena_belova.jpg",
     },
     "Красный Страж": {
-        "image": "red_guardian.jpg",
-        "hidden": "red_guardian_hidden.jpg",
+        "image": "img/red_guardian.jpg",
     },
     "Джон Уокер": {
-        "image": "john_walker.jpg",
-        "hidden": "john_walker_hidden.jpg",
+        "image": "img/john_walker.jpg",
     },
     "Таскмастер": {
-        "image": "taskmaster.jpg",
-        "hidden": "taskmaster_hidden.jpg",
+        "image": "img/taskmaster.jpg",
     },
     # Могучие Мстители
     "Капитан Америка": {
-        "image": "captain_america.jpg",
-        "hidden": "captain_america_hidden.jpg",
+        "image": "img/captain_america.jpg",
     },
     "Железный Человек": {
-        "image": "iron_man.jpg",
-        "hidden": "iron_man_hidden.jpg",
+        "image": "img/iron_man.jpg",
     },
     "Тор": {
-        "image": "thor.jpg",
-        "hidden": "thor_hidden.jpg",
+        "image": "img/thor.webp",
     },
     "Халк": {
-        "image": "hulk.jpg",
-        "hidden": "hulk_hidden.jpg",
+        "image": "img/hulk.jpg",
     },
     "Чёрная Вдова": {
-        "image": "black_widow.jpg",
-        "hidden": "black_widow_hidden.jpg",
+        "image": "img/black_widow.jpg",
     },
+}
+
+# Картинки команд
+TEAM_IMAGES = {
+    "Синяя команда": "img/teams/blue_team.jpg",
+    "Фантастическая четвёрка": "img/teams/fantastic_four.jpg",
+    "Громовержцы*": "img/teams/thunderbolts.jpg",
+    "Могучие Мстители": "img/teams/mighty_avengers.jpg",
 }
 
 
 class Command(BaseCommand):
-    help = 'Загружает открытые и скрытые картинки карт через Telegram Bot API'
+    help = 'Загружает картинки карт и команд через Telegram Bot API'
 
     def add_arguments(self, parser):
         parser.add_argument('--bot-id', type=int, required=True, help='ID бота в базе')
@@ -115,13 +104,15 @@ class Command(BaseCommand):
             return
 
         token = bot.token
-        total = len(CARD_IMAGES)
-        success = 0
 
+        # --- Загрузка картинок карт ---
+        total_cards = len(CARD_IMAGES)
+        success_cards = 0
+
+        self.stdout.write(self.style.MIGRATE_HEADING('\n=== Загрузка картинок карт ==='))
         for card_name, filenames in CARD_IMAGES.items():
-            self.stdout.write(f'Обрабатываю: {card_name}...')
+            self.stdout.write(f'Обрабатываю карту: {card_name}...')
 
-            # Ищем карту
             try:
                 card = Card.objects.get(name__iexact=card_name)
             except Card.DoesNotExist:
@@ -131,48 +122,62 @@ class Command(BaseCommand):
                 self.stderr.write(self.style.WARNING(f'  Несколько карт: {card_name}'))
                 continue
 
-            # Открытая картинка
-            image_file_id = self.upload_file(token, chat_id, filenames['image'])
+            image_file_id = self.upload_photo(token, chat_id, filenames['image'])
             if image_file_id:
-                BotFile.objects.update_or_create(
-                    content_type=Card.get_content_type(),
-                    object_id=card.id,
+                card.image.update_or_create(
                     bot=bot,
-                    file_type='image',
                     defaults={'file_id': image_file_id},
                 )
                 self.stdout.write(self.style.SUCCESS(f'  ✅ image → {image_file_id}'))
-                success += 1
+                success_cards += 1
             else:
-                self.stderr.write(self.style.ERROR(f'  ❌ не загрузилось: {filenames["image"]}'))
+                self.stderr.write(self.style.ERROR(f'    ERROR'))
 
-            # Скрытая картинка
-            hidden_file_id = self.upload_file(token, chat_id, filenames['hidden'])
-            if hidden_file_id:
-                BotFile.objects.update_or_create(
-                    content_type=Card.get_content_type(),
-                    object_id=card.id,
+        # --- Загрузка картинок команд ---
+        total_teams = len(TEAM_IMAGES)
+        success_teams = 0
+
+        self.stdout.write(self.style.MIGRATE_HEADING('\n=== Загрузка картинок команд ==='))
+        for team_name, image_path in TEAM_IMAGES.items():
+            self.stdout.write(f'Обрабатываю команду: {team_name}...')
+
+            try:
+                team = Team.objects.get(name__iexact=team_name)
+            except Team.DoesNotExist:
+                self.stderr.write(self.style.WARNING(f'  Команда не найдена: {team_name}'))
+                continue
+            except Team.MultipleObjectsReturned:
+                self.stderr.write(self.style.WARNING(f'  Несколько команд: {team_name}'))
+                continue
+
+            image_file_id = self.upload_photo(token, chat_id, image_path)
+            if image_file_id:
+                team.files.update_or_create(
                     bot=bot,
-                    file_type='image_hidden',
-                    defaults={'file_id': hidden_file_id},
+                    defaults={'file_id': image_file_id},
                 )
-                self.stdout.write(self.style.SUCCESS(f'  ✅ image_hidden → {hidden_file_id}'))
-                success += 1
+                self.stdout.write(self.style.SUCCESS(f'  ✅ team image → {image_file_id}'))
+                success_teams += 1
             else:
-                self.stderr.write(self.style.ERROR(f'  ❌ не загрузилось: {filenames["hidden"]}'))
+                self.stderr.write(self.style.ERROR(f'    ERROR'))
 
-        self.stdout.write(self.style.SUCCESS(f'\nГотово! Загружено {success} из {total * 2} файлов.'))
+        # --- Итоги ---
+        self.stdout.write(self.style.SUCCESS(
+            f'\nГотово!'
+            f'\n  Карты: {success_cards} из {total_cards}'
+            f'\n  Команды: {success_teams} из {total_teams}'
+        ))
 
-    def upload_file(self, token: str, chat_id: str, file_path: str) -> str | None:
-        """Загружает файл через Telegram API и возвращает file_id самой большой версии."""
-        url = f'https://api.telegram.org/bot{token}/sendDocument'
+    def upload_photo(self, token: str, chat_id: str, file_path: str) -> str | None:
+        """Загружает фото через Telegram API и возвращает file_id самой большой версии."""
+        url = f'https://api.telegram.org/bot{token}/sendPhoto'
 
         try:
             with open(file_path, 'rb') as f:
                 response = requests.post(
                     url,
                     data={'chat_id': chat_id},
-                    files={'document': f},
+                    files={'photo': f},
                     timeout=30,
                 )
             data = response.json()
@@ -182,15 +187,14 @@ class Command(BaseCommand):
                 return None
 
             result = data['result']
-            document = result.get('document', {})
+            photo = result.get('photo', [])
 
-            # Берём самый большой размер из миниатюр
-            thumbs = document.get('thumbnails', document.get('thumbs', []))
-            if thumbs:
-                largest = max(thumbs, key=lambda t: t.get('file_size', 0))
+            if photo:
+                largest = max(photo, key=lambda p: p.get('file_size', 0))
                 return largest.get('file_id', '')
             else:
-                return document.get('file_id', '')
+                self.stderr.write('    Пустой массив photo в ответе API')
+                return None
 
         except Exception as e:
             self.stderr.write(f'    Ошибка: {e}')

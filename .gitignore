@@ -93,3 +93,4 @@ backup*
 postgres_data/
 app/celerybeat-schedule
 app/celery-schedule
+app/img

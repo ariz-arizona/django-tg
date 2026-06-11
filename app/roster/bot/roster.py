@@ -22,7 +22,7 @@ from tg_bot.models import TgUser, Bot, BotFile
 
 from roster.models.team import Season, Team, Card
 from roster.models.roll import UserRoll
-from roster.models.limit import RollLimit
+from roster.models.tech import RollLimit, BotText
 
 from server.logger import logger
 
@@ -67,9 +67,11 @@ class GachaBot(AbstractBot):
     async def get_active_season(self) -> Season | None:
         """Возвращает активный сезон или None."""
         try:
+            bot = await self.get_bot_instance()
             return await Season.objects.filter(
                 is_active=True,
                 end_date__gte=now(),
+                bot=bot
             ).afirst()
         except Exception:
             return None
@@ -85,15 +87,32 @@ class GachaBot(AbstractBot):
 
     async def handle_start(self, update: Update, context: CallbackContext):
         """Приветствие и краткая справка."""
-        user = update.effective_user
-        await self.get_or_create_user(user)
+        tg_user = update.effective_user
+        user = await self.get_or_create_user(tg_user)
+        bot = await self.get_bot_instance()
+        
+        # Получаем дневной лимит из базы (или 5 по умолчанию)
+        try:
+            daily_limit_obj = await RollLimit.objects.aget(bot=bot, limit_type="daily")
+            daily_limit = daily_limit_obj.value
+        except RollLimit.DoesNotExist:
+            daily_limit = 5
 
-        text = (
-            f"🦸 Привет, {user.first_name or 'герой'}!\n\n"
-            "Добро пожаловать в Marvel Gacha.\n\n"
-            "🎲 <b>/roll</b> — вытянуть случайную карту (3 попытки в день)\n"
-            "📊 <b>/me</b> — посмотреть свой прогресс за неделю\n\n"
-            "Собери всех героев до конца сезона!"
+        try:
+            text_obj = await BotText.objects.aget(bot=bot, text_type="start")
+            text = text_obj.text
+        except BotText.DoesNotExist:
+            text = (
+                "🦸 Привет, {first_name}!\n\n"
+                "Добро пожаловать в Marvel Gacha.\n\n"
+                "🎲 <b>/roll</b> — вытянуть случайную карту ({daily_limit} в день)\n"
+                "📊 <b>/me</b> — посмотреть свой прогресс за неделю\n\n"
+                "Собери всех героев до конца сезона!"
+            )
+
+        text = text.format(
+            first_name=user.first_name or 'герой',
+            daily_limit=daily_limit,
         )
         await update.message.reply_html(text)
 
@@ -128,7 +147,6 @@ class GachaBot(AbstractBot):
         async for limit in RollLimit.objects.filter(bot=bot):
             limits[limit.limit_type] = limit.value
             
-
         # Кулдаун (секунды между бросками) — через Redis
         cooldown_sec = limits.get("cooldown", 60)
         if redis_client.exists(redis_key):
@@ -236,12 +254,25 @@ class GachaBot(AbstractBot):
             callback_data = f"rollimg_{team.id}_" + "_".join(slots)
             keyboard.append([InlineKeyboardButton(team.name, callback_data=callback_data)])
 
-        text = (
-            f"🎲 Ты вытянул карту!\n\n"
-            f"{'⭐' * picked_card.stars} <b>{picked_card.name}</b>\n"
-            f"🛡 Команда: {picked_card.team.name}\n"
-            f"📝 {picked_card.description or 'Описание пока не добавлено.'}\n\n"
-            f"📊 Прогресс: {unique_collected}/{total_cards} уникальных карт"
+        try:
+            text_obj = await BotText.objects.aget(bot=bot, text_type="roll")
+            text = text_obj.text
+        except BotText.DoesNotExist:
+            text = (
+                "🎲 Ты вытянул карту!\n\n"
+                "{stars} <b>{name}</b>\n"
+                "🛡 Команда: {team}\n"
+                "📝 {description}\n\n"
+                "📊 Прогресс: {unique_collected}/{total_cards} уникальных карт"
+            )
+
+        text = text.format(
+            stars='⭐' * picked_card.stars,
+            name=picked_card.name,
+            team=picked_card.team.name,
+            description=picked_card.description or 'Описание пока не добавлено.',
+            unique_collected=unique_collected,
+            total_cards=total_cards,
         )
         
         file_id = await picked_card.aget_image_id(bot.id)
@@ -252,7 +283,7 @@ class GachaBot(AbstractBot):
             parse_mode=ParseMode.HTML
         )
 
-        redis_client.setex(redis_key, 60, card.id)
+        redis_client.setex(redis_key, cooldown_sec, card.id)
 
     async def handle_roll_album(self, update: Update, context: CallbackContext):
         """Показывает альбом команды, где открытые карты = image, скрытые = image_hidden."""
@@ -292,11 +323,21 @@ class GachaBot(AbstractBot):
             if is_collected:
                 file_id = await card.aget_image_id(bot.id)
             else:
-                file_id = await card.aget_image_hidden_id(bot.id)
+                file_id = await team.aget_file_id(bot.id)
                         
-            caption = (
-                f"{'⭐' * card.stars} <b>{card.name}</b>\n"
-                f"{'✅ Собрано' if is_collected else '❓ Не собрано'}"
+            try:
+                text_obj = await BotText.objects.aget(bot=bot, text_type="caption")
+                caption_template = text_obj.text
+            except BotText.DoesNotExist:
+                caption_template = (
+                    "{stars} <b>{name}</b>\n"
+                    "{collected_status}"
+                )
+
+            caption = caption_template.format(
+                stars='⭐' * card.stars,
+                name=card.name,
+                collected_status='✅ Собрано' if is_collected else '❓ Не собрано',
             )
 
             media_group.append(

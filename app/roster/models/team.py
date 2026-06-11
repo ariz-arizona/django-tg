@@ -2,13 +2,21 @@
 from django.db import models
 from django.contrib.contenttypes.fields import GenericRelation
 
-from tg_bot.models import BotFile, BotFileMixin
+from tg_bot.models import Bot, BotFile, BotFileMixin
 
 class Season(models.Model):
     name = models.CharField(max_length=100)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     is_active = models.BooleanField(default=True)
+    bot = models.ForeignKey(
+        Bot,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name='seasons',
+        verbose_name='Бот'
+    )
 
     class Meta:
         ordering = ['-start_date']
@@ -19,7 +27,7 @@ class Season(models.Model):
         return f"{self.name} ({'Активен' if self.is_active else 'Завершён'})"
 
 
-class Team(models.Model):
+class Team(models.Model, BotFileMixin):
     season = models.ForeignKey(
         Season,
         on_delete=models.CASCADE,
@@ -31,7 +39,8 @@ class Team(models.Model):
         default=1,
         verbose_name='Звёздность'
     )
-
+    files = GenericRelation(BotFile, verbose_name='Файлы команды')  
+    
     class Meta:
         ordering = ['-stars', 'name']
         verbose_name = 'Команда'
@@ -59,12 +68,7 @@ class Card(models.Model, BotFileMixin):
         related_query_name='card_image',
         verbose_name='Открытая картинка'
     )
-    image_hidden = GenericRelation(
-        BotFile,
-        related_query_name='card_image_hidden',
-        verbose_name='Скрытая картинка'
-    )
-    
+
     async def aget_image_id(self, bot_id):
         return await self.aget_file_id(bot_id, field_name="image")
 

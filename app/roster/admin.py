@@ -4,7 +4,7 @@ from django.contrib import admin
 from tg_bot.admin import BotFileInline
 from .models.team import Season, Team, Card
 from .models.roll import UserRoll
-from .models.limit import RollLimit
+from .models.tech import RollLimit
 
 
 class TeamInline(admin.TabularInline):

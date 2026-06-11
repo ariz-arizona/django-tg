@@ -118,14 +118,10 @@ class BotFileCache(models.Model):
         
         try:
             cache = await cls.objects.aget(bot_file=bot_file)
-            logger.info('get')
-            logger.info(cache.__dict__)
             return await cache.aget_cache_link()
         except ObjectDoesNotExist:
             try:
                 cache = cls(bot_file=bot_file, **kwargs)
-                logger.info('create')
-                logger.info(cache.__dict__)
                 return await cache.aget_cache_link()
             except IntegrityError:
                 try:

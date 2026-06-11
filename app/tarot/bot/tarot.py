@@ -1,12 +1,9 @@
 import re
 import traceback
-import os
 from typing import List, Optional, Dict
-from PIL import Image, ImageDraw, ImageFont
 
 import aiohttp
 import random
-import asyncio
 from io import BytesIO
 from bs4 import BeautifulSoup
 
@@ -19,10 +16,8 @@ from telegram.ext import (
     filters,
 )
 
-from django.utils import timezone
 from django.utils.timezone import now, timedelta
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.files.base import ContentFile
 
 from tg_bot.bot.abstract import AbstractBot
 from tg_bot.models import (
@@ -42,7 +37,7 @@ from tg_bot.models import BotFileCache
 from server.logger import logger
 from django.conf import settings
 
-from tarot.utils import download_image_aiohttp
+from tarot.utils.image_utils import create_spread_image
 
 reading_ids = {}
 user_exclude_cards = {}
@@ -175,6 +170,7 @@ class TarotBot(AbstractBot):
         counter: int = 1,
         card_ids: Optional[List[str]] = None,  # Используем card_id (str)
         major: bool = False,
+        flip: bool = False,
         exclude_cards: Optional[List[str]] = None,
     ) -> List[dict]:
         try:
@@ -231,9 +227,7 @@ class TarotBot(AbstractBot):
             available_ids = [cid for cid in all_card_ids if cid not in exclude_ids]
 
             if len(available_ids) < remaining:
-                raise ValueError(
-                    f"Недостаточно карт. Доступно: {len(available_ids)}, требуется: {remaining}"
-                )
+                return []
 
             # 6. Случайная выборка через Python
             random_ids = random.sample(available_ids, remaining) if remaining else []
@@ -258,7 +252,7 @@ class TarotBot(AbstractBot):
                     "card_id": card.tarot_card.card_id,
                     "img_id": img_id,
                     "name": card.tarot_card.name,
-                    "flipped": random.choice([True, False]),
+                    "flipped": random.choice([True, False]) if flip else False,
                 })
 
             return result
@@ -268,7 +262,7 @@ class TarotBot(AbstractBot):
         except Exception as e:
             raise RuntimeError(f"Ошибка: {str(e)}") from e
 
-    async def get_oraculum_cards(self, deck_id, counter, exclude_cards):
+    async def get_oraculum_cards(self, deck_id, counter, exclude_cards, flip):
         try:
             # 1. Проверка существования колоды
             if not await OraculumDeck.objects.filter(id=deck_id).aexists():
@@ -287,9 +281,7 @@ class TarotBot(AbstractBot):
             ]
 
             if len(all_card_ids) < counter:
-                raise ValueError(
-                    f"Недостаточно карт в колоде. Требуется: {counter}, доступно: {len(all_card_ids)}"
-                )
+                return []
 
             # 5. Выборка случайных ID карт
             random_ids: List[int] = random.sample(all_card_ids, counter)
@@ -310,7 +302,7 @@ class TarotBot(AbstractBot):
                     "card_id": card.id,
                     "img_id": img_id,
                     "name": card.name,
-                    "flipped": random.choice([True, False]),
+                    "flipped": random.choice([True, False]) if flip else False,
                 })
 
             return result
@@ -320,18 +312,18 @@ class TarotBot(AbstractBot):
         except Exception as e:
             raise RuntimeError(f"Ошибка: {str(e)}") from e
 
-    async def format_card_name(self, card, flip):
+    async def format_card_name(self, card):
         return "\n".join(
             [
                 str(item)
                 for item in [
                     card["name"],
-                    "Перевернуто" if flip and card["flipped"] else None,
+                    "Перевернуто" if card["flipped"] else None,
                     (
                         f'{card["card_instance"].description} '
                         + (
-                            card["card_instance"].inverted
-                            if flip and card["flipped"]
+                            ("Перевернуто: " + card["card_instance"].inverted)
+                            if (card["flipped"] and card["card_instance"].inverted)
                             else card["card_instance"].direct
                         )
                         if isinstance(card["card_instance"], OraculumItem)
@@ -342,15 +334,16 @@ class TarotBot(AbstractBot):
             ]
         )
 
-    async def send_card(self, update: Update, cards, meaning_cards, deck, major, flip):
+    async def send_card(self, update: Update, cards, meaning_cards, deck, flip, major):
         logger.info(
-            f"значение: {meaning_cards} колода: {deck} старшие: {major} {int(major)} перевернуто: {flip} {int(flip)}"
-        )
+            (f"Отправка значений  и клавиатуры: meaning_cards={meaning_cards}, deck={deck}, cards_count={len(cards)},"
+                f"flip={flip}, major={major}")
+            )
         await update.effective_message.reply_media_group(
             [
                 InputMediaPhoto(
                     (c["img_id"]),
-                    await self.format_card_name(c, flip),
+                    await self.format_card_name(c),
                 )
                 for c in cards
             ],
@@ -449,6 +442,7 @@ class TarotBot(AbstractBot):
                 options.get("counter", 1),
                 options.get("card_ids"),
                 options.get("major", False),
+                options.get('flip')
             )
             logger.info(f"Получено карт: {len(cards)}")
             reading = await self.save_reading(
@@ -456,7 +450,7 @@ class TarotBot(AbstractBot):
                 update.effective_message.message_id,
                 f"ТАРО: {deck.name} "
                 + ", ".join(
-                    [await self.format_card_name(c, options["flip"]) for c in cards]
+                    [await self.format_card_name(c) for c in cards]
                 ),
             )
 
@@ -469,8 +463,8 @@ class TarotBot(AbstractBot):
                 cards,
                 [c["card_id"] for c in cards],
                 deck,
-                options.get("major", False),
-                options.get("flip", False),
+                options["flip"],
+                options['major']
             )
             logger.info(
                 f"Карта отправлена: {[str(n.get(k)) for k in ['card_id', 'name'] for n in cards]}"
@@ -516,7 +510,10 @@ class TarotBot(AbstractBot):
 
             # Получение карт
             cards = await self.get_oraculum_cards(
-                deck.id if deck else None, options.get("counter", 1), []
+                deck.id if deck else None, 
+                options.get("counter", 1), 
+                [],
+                options['flip']
             )
             logger.info(f"Получено карт: {len(cards)}")
             reading = await self.save_reading(
@@ -524,7 +521,7 @@ class TarotBot(AbstractBot):
                 update.effective_message.message_id,
                 f"ОРАКУЛ: {deck.name} "
                 + ", ".join(
-                    [await self.format_card_name(c, options["flip"]) for c in cards]
+                    [await self.format_card_name(c) for c in cards]
                 ),
             )
 
@@ -537,8 +534,8 @@ class TarotBot(AbstractBot):
                 cards,
                 [],
                 deck,
-                options.get("major", False),
-                options.get("flip", False),
+                options["flip"],
+                False
             )
             logger.info(
                 f"Карта отправлена: {[str(n.get(k)) for k in ['card_id', 'name'] for n in cards]}"
@@ -582,10 +579,11 @@ class TarotBot(AbstractBot):
                 deck_id=int(deck_id),
                 counter=1,
                 exclude_cards=exclude_cards,
+                flip=flip
             )
             # logger.info(f"Выбраны новые карты: {new_card}")
             new_card_text = "\n".join(
-                [",".join([await self.format_card_name(c, flip) for c in new_card])]
+                [",".join([await self.format_card_name(c) for c in new_card])]
             )
 
         except Exception as e:
@@ -597,6 +595,7 @@ class TarotBot(AbstractBot):
         if not new_card:
             logger.info("Нет доступных карт для выбора.")
             await update.effective_message.reply_text("Нет доступных карт для выбора.")
+            await update.effective_message.edit_reply_markup(reply_markup=InlineKeyboardMarkup([]))
             return
 
         full_exclude = exclude_cards + [c["card_id"] for c in new_card]
@@ -656,7 +655,7 @@ class TarotBot(AbstractBot):
             logger.error(f"Ошибка при разборе query.data: {query.data}, ошибка: {e}")
             await query.edit_message_text("Ошибка обработки запроса.")
             return
-
+        logger.info(f"Выражение {query.data} разобрано на колода {deck_id}, major {major}, flip {flip}")
         logger.info(
             f"Запрошена ещё одна карта для колоды {deck_id}. Исключаемые карты: {exclude_cards}"
         )
@@ -670,16 +669,18 @@ class TarotBot(AbstractBot):
             return
 
         try:
+            logger.info(f"Получаем карты с major {major} flip {flip} excluded {exclude_cards}")
             new_card = await self.get_cards(
                 deck_id=int(deck_id),
                 counter=1,
                 card_ids=None,
                 exclude_cards=exclude_cards,
                 major=bool(major),
+                flip=bool(flip)
             )
-            # logger.info(f"Выбраны новые карты: {new_card}")
+            logger.info(f"Выбраны новые карты: {[c['name'] + ' ' + str(c['flipped']) for c in new_card]}")
             new_card_text = "\n".join(
-                [",".join([await self.format_card_name(c, flip) for c in new_card])]
+                [",".join([await self.format_card_name(c) for c in new_card])]
             )
 
         except Exception as e:
@@ -691,6 +692,7 @@ class TarotBot(AbstractBot):
         if not new_card:
             logger.info("Нет доступных карт для выбора.")
             await update.effective_message.reply_text("Нет доступных карт для выбора.")
+            await update.effective_message.edit_reply_markup(reply_markup=InlineKeyboardMarkup([]))
             return
 
         full_exclude = exclude_cards + [c["card_id"] for c in new_card]
@@ -726,8 +728,8 @@ class TarotBot(AbstractBot):
                 new_card,
                 [c["card_id"] for c in new_card],
                 deck,
-                bool(major),
                 bool(flip),
+                bool(major),
             )
             logger.info(
                 f"Карта отправлена: {[str(n.get(k)) for k in ['name'] for n in new_card]}"
@@ -1505,17 +1507,21 @@ class TarotBot(AbstractBot):
             # Парсинг переворота карты (flip)
             options["flip"] = bool(re.search(r"flip", msg_text))
             logger.info(f"Парсинг переворота карты: flip={options.get('flip')}")
+            
+            options["major"] = bool(re.search(r"major", msg_text))
+            logger.info(f"Парсинг старших арканов: major={options.get('major')}")
 
-            temp: str = re.sub(r"deck\s+\d+|card\d+|flip", "", msg_text).strip()
-            temp = re.sub(r"^\/spread\s*", "", temp)  # убираем саму команду
-            options["keyword"] = temp if temp else None
+            cleaned_text = re.sub(r"deck\s+\d+|card\d+|flip|major", "", msg_text).strip()
+            cleaned_text = re.sub(r"^\/spread\s*", "", cleaned_text)
+            options["keyword"] = cleaned_text if cleaned_text else None
             logger.info(f"Парсинг ключевого слова: keyword={options.get('keyword')}")
 
             cards = await self.get_cards(
                 deck_id=deck.id if deck else None,
                 counter=options["counter"],
                 card_ids=None,  # Можно передать список конкретных карт
-                major=False,
+                major=options["major"],
+                flip=options['flip'],
                 exclude_cards=None,
             )
 
@@ -1532,7 +1538,7 @@ class TarotBot(AbstractBot):
                 update.effective_message.message_id,
                 f"ТАРО РАСКЛАД: {deck.name} "
                 + ", ".join(
-                    [await self.format_card_name(c, options["flip"]) for c in cards]
+                    [await self.format_card_name(c) for c in cards]
                 ),
             )
 
@@ -1559,7 +1565,7 @@ class TarotBot(AbstractBot):
             await tech_msg.edit_text(
                 "Загрузка и отрисовка",
             )
-            spread_image = await self.download_and_create_spread_image(cards, options)
+            spread_image = await create_spread_image(cards, options)
 
             if spread_image:
                 # Отправляем изображение пользователю
@@ -1576,97 +1582,6 @@ class TarotBot(AbstractBot):
                 "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
             )
 
-    async def download_and_create_spread_image(self, cards_data: List[dict], options: Dict[str, any]) -> Optional[BytesIO]:
-        """
-        Скачивает карты и создаёт изображение расклада.
-        
-        cards_data: список словарей с ключами 'card_instance', 'file_path', 'flipped', 'name'
-        options: параметры расклада (keyword и т.д.)
-        
-        Возвращает BytesIO с изображением или None в случае ошибки.
-        """
-        try:
-            # Загружаем все изображения карт
-            card_images = []
-            for idx, card_data in enumerate(cards_data):
-                file_path = card_data.get('file_path')
-                if not file_path:
-                    logger.warning(f"Нет file_path для карты {idx}")
-                    continue
-
-                # Получаем URL для скачивания
-                file_url = file_path
-
-                # Скачиваем изображение
-                async with aiohttp.ClientSession() as session:
-                    img_data = await download_image_aiohttp(file_url)
-                    if img_data:
-                        img = Image.open(BytesIO(img_data))
-
-                        # Уменьшаем до 600px ширины (сохраняя пропорции)
-                        if img.width > 600:
-                            ratio = 600 / img.width
-                            new_height = int(img.height * ratio)
-                            img = img.resize((600, new_height), Image.Resampling.LANCZOS)
-
-                        # Если карта перевёрнута - поворачиваем на 180 градусов
-                        if card_data.get('flipped', False):
-                            img = img.rotate(180, expand=True)
-
-                        card_images.append({
-                            'image': img,
-                            'name': card_data.get('name', f'Card {idx+1}'),
-                            'original_height': img.height,
-                            'original_width': img.width
-                        })
-
-            if not card_images:
-                logger.error("Не удалось загрузить ни одной карты")
-                return None
-
-            # Параметры отступов
-            spacing = 30  # Отступ между картами и вертикальные отступы
-
-            # Рассчитываем необходимый размер холста
-            total_width = sum(img['original_width'] for img in card_images) + spacing * (len(card_images) - 1)
-            max_height = max(img['original_height'] for img in card_images)
-
-            # Добавляем вертикальные отступы сверху и снизу (каждый равен spacing)
-            # Плюс место для заголовка
-            canvas_height = (spacing * 2) + max_height
-
-            # Ширина холста - ширина всех карт с отступами плюс отступы по бокам (тоже spacing)
-            canvas_width = total_width + (spacing * 2)
-
-            logger.info(f"Рассчитан размер холста: {canvas_width}x{canvas_height}")
-
-            # Создаём холст с рассчитанным размером
-            canvas = Image.new('RGB', (canvas_width, canvas_height), color='white')
-            draw = ImageDraw.Draw(canvas)
-
-            # Вертикальное позиционирование: отступ сверху = spacing + высота заголовка
-            y_position = spacing
-
-            # Горизонтальное позиционирование: отступ слева = spacing
-            current_x = spacing
-
-            # Собираем изображения на холст
-            for img_data in card_images:
-                canvas.paste(img_data['image'], (current_x, y_position))
-                current_x += img_data['original_width'] + spacing
-
-            logger.info(f"Создано изображение расклада с {len(card_images)} картами")
-
-            # Сохраняем результат в BytesIO
-            result = BytesIO()
-            canvas.save(result, format='PNG')
-            result.seek(0)
-
-            return result
-
-        except Exception as e:
-            logger.error(f"Ошибка создания изображения расклада: {e}")
-            return None
     async def handle_photo_msg(self, update: Update, context: CallbackContext):
         logger.info(update)
 

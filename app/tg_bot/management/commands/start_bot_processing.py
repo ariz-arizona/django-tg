@@ -1,8 +1,12 @@
 import asyncio
-from django.core.management.base import BaseCommand
+import os
 from asgiref.sync import sync_to_async
-from server.logger import logger
+
+from django.core.management.base import BaseCommand
 from django.conf import settings
+from django.db import models
+
+from server.logger import logger
 
 class Command(BaseCommand):
     help = "Запуск процесса для всех ботов"
@@ -12,10 +16,16 @@ class Command(BaseCommand):
         from tg_bot.tasks import run_bot # Тот самый асинхронный метод с while True
 
         logger.info("Запуск обработки ботов напрямую...")
+        
+        instance_name = os.getenv("INSTANCE_NAME")
 
-        # 1. Получаем список ботов СИНХРОННО (до запуска asyncio.run)
-        # Делаем list(), чтобы запрос в базу выполнился прямо здесь
-        bots = list(Bot.objects.filter(is_enabled=True))
+        # Ищем ботов, назначенных на этот инстанс, 
+        # ИЛИ тех, у кого инстанс вообще не задан (если хотите иметь "дефолтный" воркер)
+        query = Bot.objects.filter(is_enabled=True)
+        if instance_name:
+            query = query.filter(models.Q(docker_instance_name=instance_name) | models.Q(docker_instance_name__isnull=True))
+        
+        bots = list(query)
 
         async def main():
             # 1. Проверка настроек

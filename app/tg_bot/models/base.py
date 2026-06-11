@@ -20,6 +20,13 @@ class Bot(models.Model):
     is_enabled = models.BooleanField(default=True, verbose_name="Включен")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    docker_instance_name = models.CharField(
+        max_length=100, 
+        null=True, 
+        blank=True, 
+        verbose_name="Имя докер-инстанса",
+        help_text="Укажите имя контейнера, который должен обрабатывать этого бота"
+    )
 
     def __str__(self):
         return self.name

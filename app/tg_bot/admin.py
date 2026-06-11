@@ -6,7 +6,7 @@ from .models import Bot, BotFile, BotFileCache, TgUser
 
 @admin.register(Bot)
 class BotAdmin(admin.ModelAdmin):
-    list_display = ("name", "token", "chat_id", "bot_type", "is_enabled")
+    list_display = ("name", "token", "chat_id", "bot_type", "is_enabled", "docker_instance_name")
     search_fields = ("name", "token", "chat_id")
     list_filter = ("bot_type", "created_at")
 

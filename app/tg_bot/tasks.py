@@ -13,6 +13,7 @@ from telegram import Update
 
 from cardparser.bot.parser import ParserBot
 from tarot.bot.tarot import TarotBot
+from roster.bot.roster import GachaBot
 
 from server.logger import logger
 

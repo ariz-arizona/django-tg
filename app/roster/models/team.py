@@ -1,6 +1,8 @@
 # roster/models.py
 from django.db import models
+from django.contrib.contenttypes.fields import GenericRelation
 
+from tg_bot.models import BotFile, BotFileMixin
 
 class Season(models.Model):
     name = models.CharField(max_length=100)
@@ -39,7 +41,7 @@ class Team(models.Model):
         return f"{'⭐' * self.stars} {self.name}"
 
 
-class Card(models.Model):
+class Card(models.Model, BotFileMixin):
     team = models.ForeignKey(
         Team,
         on_delete=models.CASCADE,
@@ -52,11 +54,22 @@ class Card(models.Model):
         verbose_name='Звёздность'
     )
     description = models.TextField(blank=True, verbose_name='Описание')
-    image = models.CharField(
-        max_length=255,
-        blank=True,
-        verbose_name='Картинка'
+    image = GenericRelation(
+        BotFile,
+        related_query_name='card_image',
+        verbose_name='Открытая картинка'
     )
+    image_hidden = GenericRelation(
+        BotFile,
+        related_query_name='card_image_hidden',
+        verbose_name='Скрытая картинка'
+    )
+    
+    async def aget_image_id(self, bot_id):
+        return await self.aget_file_id(bot_id, field_name="image")
+
+    async def aget_image_hidden_id(self, bot_id):
+        return await self.aget_file_id(bot_id, field_name="image_hidden")
 
     class Meta:
         ordering = ['-stars', 'name']

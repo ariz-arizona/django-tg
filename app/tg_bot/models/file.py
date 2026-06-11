@@ -1,3 +1,5 @@
+from asgiref.sync import sync_to_async
+
 from django.db import models
 
 from django.utils import timezone
@@ -32,11 +34,20 @@ class BotFileMixin:
     async def aget_file_id(
         self,
         bot_id,
+        field_name="files",
         default="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/960px-Cat03.jpg",
     ):
-        # self.files — это GenericRelation, работает как менеджер
-        file_obj = await self.files.filter(bot_id=bot_id).afirst()
-        return file_obj.file_id if file_obj else default
+        # Оборачиваем получение менеджера, так как это вызывает синхронный запрос к контент-тайпам
+        manager = await sync_to_async(lambda: getattr(self, field_name))()
+        
+        # Теперь работаем с менеджером асинхронно
+        # Сначала проверяем существование записи
+        if await manager.filter(bot_id=bot_id).aexists():
+            # Если есть, получаем объект
+            file_obj = await manager.filter(bot_id=bot_id).afirst()
+            return file_obj.file_id
+        
+        return default
 
 def get_default_expires_at():
     """Возвращает время истечения по умолчанию (через 10 минут)."""

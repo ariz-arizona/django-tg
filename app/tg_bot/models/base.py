@@ -6,6 +6,7 @@ class Bot(models.Model):
     BOT_TYPE_CHOICES = [
         ("ParserBot", "ParserBot"),
         ("TarotBot", "TarotBot"),
+        ("GachaBot", "GachaBot")
     ]
 
     name = models.CharField(max_length=100, verbose_name="Название бота")

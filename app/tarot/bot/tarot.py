@@ -315,26 +315,31 @@ class TarotBot(AbstractBot):
             raise RuntimeError(f"Ошибка: {str(e)}") from e
 
     async def format_card_name(self, card):
-        return "\n".join(
-            [
-                str(item)
-                for item in [
-                    card["name"],
-                    "Перевернуто" if card["flipped"] else None,
-                    (
-                        f'{card["card_instance"].description} '
-                        + (
-                            ("Перевернуто: " + card["card_instance"].inverted)
-                            if (card["flipped"] and card["card_instance"].inverted)
-                            else card["card_instance"].direct
-                        )
-                        if isinstance(card["card_instance"], OraculumItem)
-                        else None
-                    ),
-                ]
-                if item is not None
-            ]
-        )
+        instance = card.get("card_instance")
+        flipped = card.get("flipped", False)
+        
+        # Основное описание (название или описание из модели)
+        main_desc = ""
+        if isinstance(instance, OraculumItem):
+            # Если description пустой, берем name
+            main_desc = (instance.description or "")
+        
+        # Текст значения (прямое или перевернутое)
+        value_text = ""
+        if isinstance(instance, OraculumItem):
+            if flipped and instance.inverted:
+                value_text = f"Перевернуто: {instance.inverted}"
+            else:
+                value_text = instance.direct or ""
+
+        # Собираем все части
+        parts = [
+            card.get("name"),
+            "Перевернуто" if flipped else None,
+            (f"{main_desc} {value_text}".strip() if isinstance(instance, OraculumItem) else None)
+        ]
+        
+        return "\n".join(str(p) for p in parts if p)
 
     async def send_card(self, update: Update, cards, meaning_cards, deck, flip, major):
         logger.info(

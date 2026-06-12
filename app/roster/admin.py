@@ -169,7 +169,8 @@ class RosterUserAdmin(admin.ModelAdmin):
 class RollLimitAdmin(admin.ModelAdmin):
     list_display = ["limit_type", "is_premium", "bot", "value"]
     list_filter = ["bot", "limit_type"]
-    search_fields = ["bot__name"]
+    search_fields = ["bot__name", "bot__username", "limit_type"]
+    list_editable = ["value"]
 
 @admin.register(RarityWeight)
 class RarityWeightAdmin(admin.ModelAdmin):

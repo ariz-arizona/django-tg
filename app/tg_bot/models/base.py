@@ -39,6 +39,8 @@ class Bot(models.Model):
     )
 
     def __str__(self):
+        if self.username:
+            return f"@{self.username}"
         return self.name
 
     class Meta:

@@ -41,6 +41,19 @@ def create_default_bot_texts(apps, schema_editor):
                 "{collected_status}"
             ),
         },
+        {
+            'text_type': 'me',
+            'text': (
+                "📊 <b>Твой прогресс — {season_name}</b>\n\n"
+                "{teams_progress}\n"
+                "🎯 <b>Итого: {collected_count}/{all_cards_count} карт</b>\n\n"
+                "⚡ <b>Броски (попытки):</b>\n"
+                "🟢 Доступно сегодня: {available_rolls}/{daily_limit} (кулдаун: {cooldown_sec} сек)\n"
+                "{cooldown_status}"
+                "💎 Премиум: {premium_status}\n\n"
+                "⏳ До конца сезона: {days_text}"
+            ),
+        }
     ]
 
     for text_data in default_texts:

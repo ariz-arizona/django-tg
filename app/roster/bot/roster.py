@@ -439,19 +439,51 @@ class GachaBot(AbstractBot):
         """Показывает прогресс пользователя за текущий сезон."""
         tg_user = update.effective_user
         user = await self.get_or_create_user(tg_user)
+        bot = await self.get_bot_instance()
         season = await self.get_active_season()
 
         if not season:
             await update.message.reply_text("⏳ Сейчас нет активного сезона.")
             return
+        
+        # Гарантируем создание/получение пользователя со связью RosterUser
+        user = await self.get_or_create_user(tg_user)
+        is_premium = user.roster_user.is_premium
 
-        # Все броски пользователя за сезон, группируем по команде
+        # ─── 1. Сбор лимитов и состояния бросков ──────────────────────
+        limits = await self.get_roll_limits(tg_user, ["cooldown", "daily"])
+        cooldown_sec = limits.get("cooldown")
+        daily_limit = limits.get("daily")
+        
+        # Сколько уже сделано за последние 24 часа
+        day_ago = now() - timedelta(hours=24)
+        rolls_today = await UserRoll.objects.filter(
+            user=user,
+            bot=bot,
+            rolled_at__gte=day_ago,
+        ).acount()
+        
+        available_rolls = max(0, daily_limit - rolls_today)
+        
+        # Проверяем текущий кулдаун в Redis
+        redis_key = f"roll:{user.tg_id}:{bot.id}"
+        ttl = redis_client.ttl(redis_key) if redis_client.exists(redis_key) else 0
+        
+        if available_rolls == 0:
+            cooldown_status = "❌ Попытки на сегодня исчерпаны. Жди обновления лимитов!\n"
+        elif ttl > 0:
+            cooldown_status = f"🔄 Следующий бросок через: {ttl} сек\n"
+        else:
+            cooldown_status = "✅ Готов к броску!\n"
+            
+        premium_status = "Да" if is_premium else "Нет ( /buy_premium )"
+
+        # ─── 2. Сбор статистики по картам и командам ──────────────────
         rolls = UserRoll.objects.filter(
             user=user,
             season=season,
         ).select_related("card", "card__team")
 
-        # Словарь: team_name → set(card_names)
         teams_dict: dict = {}
         async for roll in rolls:
             team_name = roll.card.team.name
@@ -459,12 +491,10 @@ class GachaBot(AbstractBot):
                 teams_dict[team_name] = set()
             teams_dict[team_name].add(roll.card.name)
 
-        # Все команды сезона
         all_teams = Team.objects.filter(season=season).prefetch_related("cards")
         all_cards_count = 0
         collected_count = 0
-
-        lines = [f"📊 <b>Твой прогресс — {season.name}</b>\n"]
+        teams_lines = []
 
         async for team in all_teams:
             team_cards = [card async for card in team.cards.all()]
@@ -475,24 +505,43 @@ class GachaBot(AbstractBot):
             all_cards_count += team_total
             collected_count += team_collected
 
-            emoji = "✅" if team_collected == team_total else "🔲"
-            if team_collected == 0:
-                card_list = "—"
-            else:
-                card_list = ", ".join(sorted(collected))
+            emoji = "✅" if team_collected == team_total and team_total > 0 else "🔲"
+            card_list = ", ".join(sorted(collected)) if team_collected > 0 else "—"
 
-            lines.append(
-                f"{emoji} <b>{team.name}</b> ({team_collected}/{team_total})\n"
-                f"   {card_list}\n"
-            )
+            teams_lines.append(f"{emoji} <b>{team.name}</b> ({team_collected}/{team_total})\n   {card_list}")
 
-        # Сроки
+        # Сроки сезона
         days_left = (season.end_date - now()).days
         days_text = f"{days_left} дн." if days_left > 0 else "сегодня!"
 
-        lines.append(
-            f"🎯 <b>Итого: {collected_count}/{all_cards_count} карт</b>\n"
-            f"⏳ До конца сезона: {days_text}"
+        # ─── 3. Сборка и отправка текста ──────────────────────────────
+        try:
+            text_obj = await BotText.objects.aget(bot=bot, text_type="me")
+            text_template = text_obj.text
+        except BotText.DoesNotExist:
+            # Если в базе нет, берем дефолтный хардкод
+            text_template = (
+                "📊 <b>Твой прогресс — {season_name}</b>\n\n"
+                "{teams_progress}\n\n"
+                "🎯 <b>Итого: {collected_count}/{all_cards_count} карт</b>\n\n"
+                "⚡ <b>Броски (попытки):</b>\n"
+                "🟢 Доступно сегодня: {available_rolls}/{daily_limit} (кулдаун: {cooldown_sec} сек)\n"
+                "{cooldown_status}"
+                "💎 Премиум: {premium_status}\n\n"
+                "⏳ До конца сезона: {days_text}"
+            )
+
+        final_text = text_template.format(
+            season_name=season.name,
+            teams_progress="\n".join(teams_lines),
+            collected_count=collected_count,
+            all_cards_count=all_cards_count,
+            available_rolls=available_rolls,
+            daily_limit=daily_limit,
+            cooldown_sec=cooldown_sec,
+            cooldown_status=cooldown_status,
+            premium_status=premium_status,
+            days_text=days_text
         )
 
-        await update.message.reply_html("\n".join(lines))
+        await update.message.reply_html(final_text)

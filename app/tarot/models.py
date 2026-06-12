@@ -106,34 +106,6 @@ class TarotCardItem(models.Model, BotFileMixin):
         unique_together = ("deck", "tarot_card")
 
 
-class TarotUserReading(models.Model):
-    user = models.ForeignKey(
-        "tg_bot.TgUser",  # Укажите имя модели, если TgUser определена в другом месте
-        on_delete=models.SET_NULL,
-        related_name="readings",
-        null=True,
-        verbose_name="Пользователь",  # Человекочитаемое имя для поля
-    )
-    date = models.DateTimeField(
-        default=timezone.now, verbose_name="Дата гадания"
-    )  # Дата и время гадания
-    text = models.TextField(blank=True, verbose_name="Текст гадания")  # Текст гадания
-    message_id = models.IntegerField(
-        null=True, blank=True, verbose_name="ID сообщения"
-    )  # Идентификатор сообщения в Telegram
-
-    def __str__(self):
-        username = self.user.username if self.user else "Unknown User"
-        return f"Reading by {username} on {self.date}"
-
-    class Meta:
-        verbose_name = f"{bot_prefix}: Пользовательское гадание"
-        verbose_name_plural = f"{bot_prefix}: Пользовательские гадания"
-        indexes = [
-            models.Index(fields=["user", "date"]),
-        ]
-
-
 class OraculumDeck(models.Model):
     name = models.CharField(
         max_length=255,
@@ -236,3 +208,69 @@ class Rune(models.Model):
     class Meta:
         verbose_name = f"{bot_prefix}: Руна"
         verbose_name_plural = f"{bot_prefix}: Руны"
+
+class UserReading(models.Model):
+    # Основной инструмент гадания
+    class ReadingCategory(models.TextChoices):
+        ONE = "one", "Одна карта)"  # Для команды /one
+        TAROT = "tarot", "Таро"                        # Для /card, /card3
+        ORACLE = "oracle", "Оракул"                    # Для /oraculum, /oraculum3
+        RUNES = "runes", "Руны (Футарк)"               # Для /futark, /futark triplet
+        CANVAS_SPREAD = "canvas_spread", "Расклад на холсте" # Для /spread
+
+    user = models.ForeignKey(
+        "tg_bot.TgUser",
+        on_delete=models.SET_NULL,
+        related_name="user_readings",
+        null=True,
+        verbose_name="Пользователь",
+    )
+    
+    # Поля типов
+    category = models.CharField(
+        max_length=20,
+        choices=ReadingCategory.choices,
+        default=ReadingCategory.TAROT,
+        verbose_name="Категория гадания",
+    )
+
+    # Дополнительные настройки расклада (флаги)
+    is_flipped_allowed = models.BooleanField(
+        default=False, verbose_name="С перевернутыми"
+    )  # Для флага flip
+    is_major_only = models.BooleanField(
+        default=False, verbose_name="Только Старшие Арканы"
+    )  # Для флага major
+    deck_id = models.IntegerField(
+        null=True, blank=True, verbose_name="ID колоды"
+    )  # Для аргумента deck НОМЕР
+    count = models.PositiveSmallIntegerField(
+        default=1, 
+        verbose_name="Количество карт/рун"
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True, 
+        verbose_name="Дата гадания"  # Оставляем понятное имя для админки
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, 
+        verbose_name="Дата изменения"
+    )
+    
+    # Основные данные
+    text = models.TextField(blank=True, verbose_name="Текст гадания")
+    message_id = models.IntegerField(null=True, blank=True, verbose_name="ID сообщения")
+
+    def __str__(self):
+        username = self.user.username if self.user else "Unknown User"
+        return f"{self.get_category_display()} - {username}"
+
+    class Meta:
+        verbose_name = f"{bot_prefix}: Пользовательское гадание"
+        verbose_name_plural = f"{bot_prefix}: Пользовательские гадания"
+        
+        # Индексы для быстрой фильтрации по категориям и датам
+        indexes = [
+            models.Index(fields=["user", "category", "created_at"]),
+        ]

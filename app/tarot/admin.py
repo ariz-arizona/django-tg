@@ -6,7 +6,6 @@ from .models import (
     TarotDeck,
     TarotCardItem,
     TarotMeaningCategory,
-    TarotUserReading,
     OraculumItem,
     OraculumDeck,
     Rune,
@@ -61,34 +60,6 @@ class CardAdmin(admin.ModelAdmin):
     inlines = [
         BotFileInline,
     ]
-
-
-@admin.register(TarotUserReading)
-class TarotUserReadingAdmin(admin.ModelAdmin):
-    # Поля, которые будут отображаться в списке записей
-    list_display = ("user", "date", "text", "message_id")
-
-    # Поля, по которым можно фильтровать записи
-    list_filter = ("user", "date")
-
-    # Поля, по которым можно искать записи
-    search_fields = ("text", "user__username", "message_id")
-
-    # Поля, которые будут использоваться для детального просмотра записи
-    fieldsets = (
-        (
-            None,
-            {
-                "fields": ("user", "date", "text", "message_id"),
-            },
-        ),
-    )
-
-    # Автоматическое заполнение поля даты при создании записи
-    def get_readonly_fields(self, request, obj=None):
-        if obj:  # Если объект уже существует, запрещаем редактирование даты
-            return self.readonly_fields + ("date",)
-        return self.readonly_fields
 
 
 @admin.register(OraculumDeck)
@@ -146,3 +117,53 @@ class RuneAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+from django.contrib import admin
+from .models import UserReading
+
+
+@admin.register(UserReading)
+class UserReadingAdmin(admin.ModelAdmin):
+    # Поля, которые будут отображаться в списке записей
+    list_display = (
+        "id",
+        "user_link",       # Красивая ссылка на пользователя (если настроена) или просто юзер
+        "category",
+        "deck_id",
+        "is_flipped_allowed",
+        "is_major_only",
+        "created_at",
+    )
+
+    # Боковая панель фильтрации (очень удобно для аналитики)
+    list_filter = (
+        "category",
+        "is_flipped_allowed",
+        "is_major_only",
+        "created_at",
+    )
+
+    # Поля, по которым будет работать поиск вверху страницы
+    # (ищет по ID телеграм-юзера, юзернейму или тексту самого расклада)
+    search_fields = (
+        "user__username", 
+        "user__tg_id", 
+        "text"
+    )
+
+    # Поля, доступные только для чтения (логи активности обычно не редактируют вручную)
+    readonly_fields = ("created_at", "updated_at")
+
+    # Сортировка по умолчанию: сначала самые новые расклады
+    ordering = ("-created_at",)
+
+    # Ограничение на количество записей на одной странице
+    list_per_page = 50
+
+    # Метод для отображения пользователя (если у модели TgUser есть метод get_absolute_url)
+    def user_link(self, obj):
+        if obj.user:
+            return obj.user.username or f"ID: {obj.user.pk}"
+        return "Unknown User"
+    
+    user_link.short_description = "Пользователь"

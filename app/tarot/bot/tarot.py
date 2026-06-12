@@ -28,10 +28,10 @@ from tarot.models import (
     TarotCardItem,
     TarotCard,
     ExtendedMeaning,
-    TarotUserReading,
     OraculumDeck,
     OraculumItem,
     Rune,
+    UserReading
 )
 from tg_bot.models import BotFileCache
 from server.logger import logger
@@ -122,8 +122,19 @@ class TarotBot(AbstractBot):
             ),
         ]
 
-    async def save_reading(self, user, message_id, text):
-        user, created = await TgUser.objects.aget_or_create(
+    async def save_reading(
+        self, 
+        user, 
+        message_id: int, 
+        text: str, 
+        category: str = "tarot", 
+        count: int = 1,
+        deck_id: int = None, 
+        is_flipped_allowed: bool = False, 
+        is_major_only: bool = False
+    ):
+        # 1. Получаем или создаем пользователя телеграма
+        user_obj, created = await TgUser.objects.aget_or_create(
             tg_id=user.id,
             defaults={
                 "username": user.username,
@@ -134,14 +145,23 @@ class TarotBot(AbstractBot):
             },
         )
 
-        reading = await TarotUserReading.objects.acreate(
-            user=user,
+        # 2. Создаем запись в новой типизированной модели UserReading
+        reading = await UserReading.objects.acreate(
+            user=user_obj,
+            category=category,
+            count=count,
+            deck_id=deck_id,
+            is_flipped_allowed=is_flipped_allowed,
+            is_major_only=is_major_only,
             text=text,
             message_id=message_id,
         )
+        logger.info(f"Результат гадания сохранен: {reading}")
+        # 3. Кешируем ID последнего сообщения для пользователя
         reading_ids[user.id] = message_id
+        
         return reading
-
+    
     async def get_deck(self, deck_id=None, deck_type="tarot"):
         # Получаем список всех ID колод
         model = TarotDeck.objects
@@ -452,16 +472,20 @@ class TarotBot(AbstractBot):
                 options.get('flip')
             )
             logger.info(f"Получено карт: {len(cards)}")
-            reading = await self.save_reading(
-                update.effective_user,
-                update.effective_message.message_id,
-                f"ТАРО: {deck.name} "
-                + ", ".join(
+            
+            await self.save_reading(
+                user=update.effective_user,
+                message_id=update.effective_message.message_id,
+                text=f"{deck.name if deck else 'Дефолтная колода'}: " + ", ".join(
                     [await self.format_card_name(c) for c in cards]
                 ),
+                category=UserReading.ReadingCategory.TAROT,        # Модельное свойство
+                count=options.get("counter", 1),
+                deck_id=deck.id if deck else None,
+                is_flipped_allowed=options.get('flip', False),
+                is_major_only=options.get('major', False)
             )
-
-            logger.info(f"Результат гадания сохранен: {reading}")
+            
             user_exclude_cards[update.effective_user.id] = [c["card_id"] for c in cards]
 
             # Отправка карт
@@ -523,16 +547,20 @@ class TarotBot(AbstractBot):
                 options['flip']
             )
             logger.info(f"Получено карт: {len(cards)}")
-            reading = await self.save_reading(
-                update.effective_user,
-                update.effective_message.message_id,
-                f"ОРАКУЛ: {deck.name} "
-                + ", ".join(
+            
+            await self.save_reading(
+                user=update.effective_user,
+                message_id=update.effective_message.message_id,
+                text=f"{deck.name if deck else 'Дефолтный оракул'}: " + ", ".join(
                     [await self.format_card_name(c) for c in cards]
                 ),
+                category=UserReading.ReadingCategory.ORACLE,  # Модельное свойство
+                count=options.get("counter", 1),
+                deck_id=deck.id if deck else None,
+                is_flipped_allowed=options.get('flip', False),
+                is_major_only=False  # Для оракулов этот флаг не актуален
             )
 
-            logger.info(f"Результат гадания сохранен: {reading}")
             user_exclude_cards[update.effective_user.id] = [c["card_id"] for c in cards]
 
             # Отправка карт
@@ -620,15 +648,23 @@ class TarotBot(AbstractBot):
                 },
             )
             initial_message_id = reading_ids.get(user.id)
-            reading, created = await TarotUserReading.objects.aupdate_or_create(
-                message_id=initial_message_id, user=user
+            reading, created = await UserReading.objects.aupdate_or_create(
+                message_id=initial_message_id, 
+                user=user,
+                defaults={
+                    # Если запись создается с нуля (мало ли, кеш упал)
+                    "category": UserReading.ReadingCategory.ORACLE,
+                    "deck_id": deck.id if deck else None,
+                    "count": 1,
+                    "text": f"{deck.name if deck else 'Дефолтный оракул'}: {new_card_text}"
+                }
             )
-            reading.text = (
-                f"ОРАКУЛ: {deck.name} {new_card_text}"
-                if created
-                else f"{reading.text}, {new_card_text}"
-            )
-            reading.data = now()
+            # Если запись УЖЕ существовала, дописываем текст и инкрементируем счетчик карт
+            if not created:
+                reading.text = f"{reading.text}, {new_card_text}"
+                reading.count += 1  # Карток-то стало больше!
+                
+            # Сохраняем изменения (Django автоматически обновит поле updated_at!)
             await reading.asave()
 
             user_exclude_cards[update.effective_user.id] = full_exclude
@@ -717,15 +753,24 @@ class TarotBot(AbstractBot):
                 },
             )
             initial_message_id = reading_ids.get(user.id)
-            reading, created = await TarotUserReading.objects.aupdate_or_create(
-                message_id=initial_message_id, user=user
+            reading, created = await UserReading.objects.aupdate_or_create(
+                message_id=initial_message_id, 
+                user=user,
+                defaults={
+                    # Дефолты на случай, если записи в БД не нашлось
+                    "category": UserReading.ReadingCategory.TAROT,
+                    "deck_id": deck.id if deck else None,
+                    "count": 1,
+                    "text": f"{deck.name if deck else 'Дефолтная колода'}: {new_card_text}"
+                }
             )
-            reading.text = (
-                f"ТАРО: {deck.name} {new_card_text}"
-                if created
-                else f"{reading.text}, {new_card_text}"
-            )
-            reading.data = now()
+            
+            # Если запись уже была, аккуратно дописываем карту и инкрементируем счетчик
+            if not created:
+                reading.text = f"{reading.text}, {new_card_text}"
+                reading.count += 1
+                
+            # Сохраняем. Django сам обновит поле updated_at текущим временем
             await reading.asave()
 
             user_exclude_cards[update.effective_user.id] = full_exclude
@@ -1051,13 +1096,12 @@ class TarotBot(AbstractBot):
         random_card_id = random.randint(0, len(cards) - 1)
         random_card = cards[random_card_id]
 
-        reading = await self.save_reading(
-            update.effective_user,
-            update.effective_message.message_id,
-            f"ONE: " + f"{random_card['name']}\n{random_card['url']}",
+        await self.save_reading(
+            user=update.effective_user,
+            message_id=update.effective_message.message_id,
+            text=f"{random_card['name']}\n{random_card['url']}",
+            category=UserReading.ReadingCategory.UNIVERSAL,  # Модельное свойство для /one
         )
-
-        logger.info(f"Результат гадания сохранен: {reading}")
 
         await update.effective_message.reply_photo(
             random_card["img"],
@@ -1246,13 +1290,15 @@ class TarotBot(AbstractBot):
                             callback_data=f"futhark_{rune.id}_{int(bool(inverted))}_{i + 1}",
                         )
                     )
-                reading_data = await self.save_reading(
-                    update.effective_user,
-                    update.effective_message.message_id,
-                    f"FUTARK: {' '.join(rune_texts)}",
+                    
+                await self.save_reading(
+                    user=update.effective_user,
+                    message_id=update.effective_message.message_id,
+                    text=" ".join(rune_texts),
+                    category=UserReading.ReadingCategory.RUNES,
+                    is_flipped_allowed=True,
+                    count=3
                 )
-
-                logger.info(f"Результат гадания сохранен: {reading_data}")
 
                 # Отправляем сообщение с рунами и inline-клавиатурой
                 await update.message.reply_text(
@@ -1270,13 +1316,14 @@ class TarotBot(AbstractBot):
                 if inverted:
                     text_parts.append("Перевернуто")
 
-                reading_data = await self.save_reading(
-                    update.effective_user,
-                    update.effective_message.message_id,
-                    f"FUTARK: {' '.join(text_parts)}",
+                await self.save_reading(
+                    user=update.effective_user,
+                    message_id=update.effective_message.message_id,
+                    text=" ".join(rune_texts),
+                    category=UserReading.ReadingCategory.RUNES,
+                    is_flipped_allowed=True,
+                    count=1
                 )
-
-                logger.info(f"Результат гадания сохранен: {reading_data}")
 
                 # Отправляем текст и стикер
                 await update.message.reply_text(
@@ -1546,13 +1593,18 @@ class TarotBot(AbstractBot):
                 cards_description.append(" ".join(parts))
 
             logger.info(f"Получено карт: {len(cards)}")
-            reading = await self.save_reading(
-                update.effective_user,
-                update.effective_message.message_id,
-                f"ТАРО РАСКЛАД: {deck.name} "
-                + ", ".join(
+            
+            await self.save_reading(
+                user=update.effective_user,
+                message_id=update.effective_message.message_id,
+                text=f"{deck.name if deck else 'Дефолтная колода'}: " + ", ".join(
                     [await self.format_card_name(c) for c in cards]
                 ),
+                category=UserReading.ReadingCategory.CANVAS_SPREAD,  # Модельное свойство для раскладов
+                count=options["counter"],                             # Передаем точное количество карт
+                deck_id=deck.id if deck else None,
+                is_flipped_allowed=options.get('flip', False),
+                is_major_only=options.get('major', False)
             )
 
             description_text = f"Расклад  из колоды {deck.name}:\n" + "\n".join(

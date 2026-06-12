@@ -410,9 +410,13 @@ class TarotBot(AbstractBot):
                     ),
                 ]
             ]
+        reply_id = update.effective_message.message_id
+        if update.effective_message.reply_to_message:
+            reply_id = update.effective_message.reply_to_message.message_id
+            
         params = {
             "text": "\n".join(text),
-            "reply_to_message_id": update.effective_message.message_id,
+            "reply_to_message_id": reply_id,
             "disable_web_page_preview": True,
         }
         if reply_markup:
@@ -495,9 +499,9 @@ class TarotBot(AbstractBot):
                 options.get("major", False),
                 options.get('flip')
             )
-            
+            user = await self.get_or_create_tg_user(update)
             await self.save_reading(
-                user=update.effective_user,
+                user=user,
                 message_id=update.effective_message.message_id,
                 text=f"{deck.name if deck else 'Дефолтная колода'}: " + ", ".join(
                     [await self.format_card_name(c) for c in cards]
@@ -508,7 +512,7 @@ class TarotBot(AbstractBot):
                 is_flipped_allowed=options.get('flip', False),
                 is_major_only=options.get('major', False)
             )
-            
+
             user_exclude_cards[update.effective_user.id] = [c["card_id"] for c in cards]
 
             # Отправка карт
@@ -547,9 +551,9 @@ class TarotBot(AbstractBot):
                 options['flip']
             )
             logger.info(f"Получено карт: {len(cards)}")
-            
+            user = await self.get_or_create_tg_user(update)
             await self.save_reading(
-                user=update.effective_user,
+                user=user,
                 message_id=update.effective_message.message_id,
                 text=f"{deck.name if deck else 'Дефолтный оракул'}: " + ", ".join(
                     [await self.format_card_name(c) for c in cards]
@@ -638,25 +642,29 @@ class TarotBot(AbstractBot):
 
         try:
             user = await self.get_or_create_tg_user(update)
-            initial_message_id = reading_ids.get(user.id)
-            reading, created = await UserReading.objects.aupdate_or_create(
-                message_id=initial_message_id, 
+            initial_message_id = update.effective_message.reply_to_message.message_id
+            logger.info(update.effective_message)
+            
+            # Ищем по ключевым полям. В defaults передаем только то, что инициализируется при создании
+            reading, created = await UserReading.objects.aget_or_create(
+                message_id=initial_message_id,
                 user=user,
                 defaults={
-                    # Если запись создается с нуля (мало ли, кеш упал)
                     "category": UserReading.ReadingCategory.ORACLE,
                     "deck_id": deck.id if deck else None,
-                    "count": 1,
-                    "text": f"{deck.name if deck else 'Дефолтный оракул'}: {new_card_text}"
+                    "text": f"{deck.name if deck else 'Оракул:'}: {new_card_text}",
+                    "count": 1
                 }
             )
-            # Если запись УЖЕ существовала, дописываем текст и инкрементируем счетчик карт
+
+            # Если запись НАЙДЕНА (не создана), вручную дописываем данные
             if not created:
                 reading.text = f"{reading.text}, {new_card_text}"
-                reading.count += 1  # Карток-то стало больше!
+                reading.count += 1
                 
-            # Сохраняем изменения (Django автоматически обновит поле updated_at!)
+            # Сохраняем изменения
             await reading.asave()
+            user_exclude_cards[update.effective_user.id] = full_exclude
 
             user_exclude_cards[update.effective_user.id] = full_exclude
 
@@ -689,6 +697,7 @@ class TarotBot(AbstractBot):
             logger.error(f"Ошибка при разборе query.data: {query.data}, ошибка: {e}")
             await query.edit_message_text("Ошибка обработки запроса.")
             return
+        
         logger.info(f"Выражение {query.data} разобрано на колода {deck_id}, major {major}, flip {flip}")
         logger.info(
             f"Запрошена ещё одна карта для колоды {deck_id}. Исключаемые карты: {exclude_cards}"
@@ -734,27 +743,28 @@ class TarotBot(AbstractBot):
 
         try:
             user = await self.get_or_create_tg_user(update)
-            initial_message_id = reading_ids.get(user.id)
-            reading, created = await UserReading.objects.aupdate_or_create(
-                message_id=initial_message_id, 
+            initial_message_id = update.effective_message.reply_to_message.message_id
+            logger.info(update.effective_message)
+            
+            # Ищем по ключевым полям. В defaults передаем только то, что инициализируется при создании
+            reading, created = await UserReading.objects.aget_or_create(
+                message_id=initial_message_id,
                 user=user,
                 defaults={
-                    # Дефолты на случай, если записи в БД не нашлось
                     "category": UserReading.ReadingCategory.TAROT,
                     "deck_id": deck.id if deck else None,
-                    "count": 1,
-                    "text": f"{deck.name if deck else 'Дефолтная колода'}: {new_card_text}"
+                    "text": f"{deck.name if deck else 'Колода таро:'}: {new_card_text}",
+                    "count": 1
                 }
             )
-            
-            # Если запись уже была, аккуратно дописываем карту и инкрементируем счетчик
+
+            # Если запись НАЙДЕНА (не создана), вручную дописываем данные
             if not created:
                 reading.text = f"{reading.text}, {new_card_text}"
                 reading.count += 1
                 
-            # Сохраняем. Django сам обновит поле updated_at текущим временем
+            # Сохраняем изменения
             await reading.asave()
-
             user_exclude_cards[update.effective_user.id] = full_exclude
 
             await self.send_card(
@@ -769,7 +779,7 @@ class TarotBot(AbstractBot):
                 f"Карта отправлена: {[str(n.get(k)) for k in ['name'] for n in new_card]}"
             )
         except Exception as e:
-            logger.error(f"Ошибка при отправке карты: {e}")
+            logger.error(f"Ошибка при отправке карты: {e}",exc_info=True)
             await query.edit_message_text("Ошибка при отправке карты.")
 
     def split_text(self, text, chunk_size=1024):

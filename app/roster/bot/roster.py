@@ -176,18 +176,26 @@ class GachaBot(AbstractBot):
         # Считаем дубли: общее кол-во минус уникальные
         duplicates_count = max(0, total_active_count - unique_collected_count)
         
-        # Сколько полных обменов доступно и сколько жетонов в текущем шаге
+        # Сколько полных обменов доступно
         available_crafts = duplicates_count // craft_limit
-        tokens_progress = duplicates_count % craft_limit
         
-        # Собираем базовый текст магазина
-        shop_text = f"🏪 Магазин дублей: {tokens_progress} жетона (из {craft_limit} для обмена на 1 карту)"
+        # Сколько дублей осталось собрать до следующего жетона
+        duplicates_to_next = craft_limit - (duplicates_count % craft_limit)
+        
+        # Собираем базовый текст магазина по новой логике
+        shop_text = (
+            "🏪 Магазин дублей:\n"
+            f"    🪙 Жетонов: {available_crafts} (из расчета {craft_limit} дублей за жетон)"
+        )
+        
+        if duplicates_to_next > 0:
+            shop_text += f"\n    📉 Дублей до следующего жетона: {duplicates_to_next}"
 
         # Если дубликатов хватает хотя бы на один полноценный обмен — добавляем призыв к действию
         if available_crafts > 0:
-            shop_text += f"\n✨ <b>Доступно обменов: {available_crafts}!</b> Вы можете вытянуть гарантированную карту через /roll_craft"
+            shop_text += "\n\n✨ Вы можете вытянуть гарантированную карту через /roll_craft"
         else:
-            shop_text += "\n🎲 Обычный бросок /roll"
+            shop_text += "\n\n🎲 Обычный бросок /roll"
             
         return {
             "collected_ids": unique_collected_set,        # Сет ID для кнопок

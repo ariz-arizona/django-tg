@@ -6,7 +6,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericRelation
 
-from tg_bot.models import TgUser, BotFile, BotFileMixin
+from tg_bot.models import Bot, BotFile, BotFileMixin
 from server.logger import logger
 
 bot_prefix = "Tarot"
@@ -256,6 +256,16 @@ class UserReading(models.Model):
     updated_at = models.DateTimeField(
         auto_now=True, 
         verbose_name="Дата изменения"
+    )
+    
+    bot = models.ForeignKey(
+        "tg_bot.Bot",
+        on_delete=models.SET_NULL,
+        related_name="user_readings",
+        null=True,
+        blank=True,
+        verbose_name="Бот",
+        help_text="Бот, через который выполнено гадание"
     )
     
     # Основные данные

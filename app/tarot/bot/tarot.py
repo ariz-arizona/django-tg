@@ -176,6 +176,7 @@ class TarotBot(AbstractBot):
 
         # 2. Создаем запись в новой типизированной модели UserReading
         reading = await UserReading.objects.acreate(
+            bot_id=self.app_bot_id,
             user=user,
             category=category,
             count=count,

@@ -270,8 +270,8 @@ class UserReading(models.Model):
     )
 
     def __str__(self):
-        username = self.user.username if self.user else "Unknown User"
-        return f"{self.get_category_display()} - {username}"
+        name = self.username or self.first_name or str(self.tg_id)
+        return f"{self.get_category_display()} - {name}"
 
     class Meta:
         verbose_name = f"{bot_prefix}: Пользовательское гадание"

@@ -506,6 +506,7 @@ class TarotBot(AbstractBot):
         Возвращает False, если гадание ДОСТУПНО.
         """
         user_id = update.effective_user.id
+        user = update.effective_user
         
         # Формируем ключ по тому же шаблону, что и при сохранении
         # Если шаблон не в классе, можно использовать строку: f"user:{user_id}:{category}"
@@ -521,6 +522,13 @@ class TarotBot(AbstractBot):
             if time_left > 0:
                 # Красиво форматируем категорию (например, tarot -> ТАРОТ)
                 category_upper = category.upper() 
+                
+                user_name = user.username or user.first_name or str(user_id)
+                logger.info(
+                f"Пользователь {user_name} (id: {user_id}) "
+                    f"пытается пойти раньше кулдауна на {time_left} секунд "
+                    f"для категории {category_upper}"
+                )
                 
                 await update.effective_message.reply_text(
                     f"Подождите {time_left} секунд до гадания {category_upper}"

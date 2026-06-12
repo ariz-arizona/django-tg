@@ -44,7 +44,7 @@ def webhook(request, token):
                 logger.info(
                     (
                         f"Сообщение добавлено в очередь: update_id: {message['update_id']}"
-                        f" от {from_user.get('username')} {from_user.get('id')}"
+                        f" от {from_user.get('username') or from_user.get('first_name')} {from_user.get('id')}"
                         f" с текстом {text_or_caption[:20]}"
                     )
                 )

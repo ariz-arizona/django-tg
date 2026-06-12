@@ -39,6 +39,7 @@ class GachaBot(AbstractBot):
         "cooldown": 60,
         "bihourly": 5,
         "daily": 10,
+        "craft": 5,
     }
     def __init__(self):
         self.handlers = self.get_handlers()
@@ -47,7 +48,7 @@ class GachaBot(AbstractBot):
         return [
             CommandHandler("start", self.handle_start, filters.ChatType.PRIVATE),
             CommandHandler("me", self.handle_me, filters.ChatType.PRIVATE),
-            CommandHandler(["roll", "get"], self.handle_roll, filters.ChatType.PRIVATE),
+            CommandHandler(["roll", "get", "roll_craft"], self.handle_roll, filters.ChatType.PRIVATE),
             CallbackQueryHandler(
                 self.handle_roll_album, pattern=r"^rollimg_\d+(_\d+){5}$"
             ),
@@ -143,7 +144,56 @@ class GachaBot(AbstractBot):
                 result[l_type] = self.DEFAULT_LIMITS.get(l_type, 5)
                 
         return result
+    
+    async def get_gacha_stats(self, tg_user) -> dict:
+        """
+        Считает уникальные карты и дубли пользователя за сезон (без учета скрафченных).
+        Динамически подтягивает лимит на обмен карт и предлагает /roll_craft при наличии жетонов.
+        """
+        user = await self.get_or_create_user(tg_user)
+        bot = await self.get_bot_instance()
+        season = await self.get_active_season()
+        
+        # 1. Тянем лимит на крафт из нашей готовой системы лимитов
+        limits = await self.get_roll_limits(tg_user, "craft")
+        craft_limit = limits.get("craft", 5)
 
+        # 2. Тянем все живые роллы за сезон
+        active_rolls = []
+        async for roll in UserRoll.objects.filter(
+            user=user,
+            season=season,
+            is_used_for_craft=False
+        ):
+            active_rolls.append(roll.card_id)
+
+        total_active_count = len(active_rolls)
+        unique_collected_set = set(active_rolls)
+        unique_collected_count = len(unique_collected_set)
+        
+        # Считаем дубли: общее кол-во минус уникальные
+        duplicates_count = max(0, total_active_count - unique_collected_count)
+        
+        # Сколько полных обменов доступно и сколько жетонов в текущем шаге
+        available_crafts = duplicates_count // craft_limit
+        tokens_progress = duplicates_count % craft_limit
+        
+        # Собираем базовый текст магазина
+        shop_text = f"🏪 Магазин дублей: {tokens_progress} жетона (из {craft_limit} для обмена на 1 карту)"
+
+        # Если дубликатов хватает хотя бы на один полноценный обмен — добавляем призыв к действию
+        if available_crafts > 0:
+            shop_text += f"\n✨ <b>Доступно обменов: {available_crafts}!</b> Вы можете вытянуть гарантированную карту через /roll_craft"
+
+        return {
+            "collected_ids": unique_collected_set,        # Сет ID для кнопок
+            "unique_count": unique_collected_count,       # Для "4/20 карт"
+            "duplicates_count": duplicates_count,         # Всего дублей
+            "available_crafts": available_crafts,         # Сколько раз можно прожать крафт прямо сейчас
+            "craft_limit": craft_limit,                   # Лимит (для валидации в хэндлере /roll_craft)
+            "shop_text": shop_text,                       # Готовая строка с подсказкой или без
+        }
+        
     # ─── /start ──────────────────────────────────────────────────────
 
     async def handle_start(self, update: Update, context: CallbackContext):
@@ -205,8 +255,21 @@ class GachaBot(AbstractBot):
         # ─── Загрузка лимитов из базы ────────────────────────────
         limits = await self.get_roll_limits(
             tg_user, 
-            ["cooldown", "daily", "bihourly"]
+            ["cooldown", "daily", "bihourly", "craft"]
         )
+        
+        is_craft_mode = update.message.text.startswith("/roll_craft")
+        stats = await self.get_gacha_stats(tg_user)
+        unique_collected = stats["unique_count"]
+        collected_cards = stats["collected_ids"]
+         
+        if is_craft_mode:
+            if stats["available_crafts"] < 1:
+                await update.message.reply_text(
+                    f"❌ У вас недостаточно дубликатов для обмена.\n"
+                    f"Необходимо собрать хотя бы {limits['craft']} дубликатов."
+                )
+                return
             
         # Кулдаун (секунды между бросками) — через Redis
         cooldown_sec = limits["cooldown"]
@@ -261,6 +324,14 @@ class GachaBot(AbstractBot):
             await update.message.reply_text("🃏 В сезоне пока нет карт.")
             return
         
+        # ЕСЛИ КРАФТ: Оставляем только те карты, которых у пользователя еще НЕТ
+        if is_craft_mode:
+            all_cards = [card for card in all_cards if card.id not in collected_cards]
+            
+            if not all_cards:
+                await update.message.reply_text("🏆 Поздравляем! Вы уже собрали ВСЕ карты этого сезона! Крафт больше не нужен.")
+                return
+            
         # Рассчитываем веса
         weights = [int(60 / card.stars) for card in all_cards]
 
@@ -283,7 +354,40 @@ class GachaBot(AbstractBot):
             card=picked_card,
             season=season,
         )
-
+        
+        stats = await self.get_gacha_stats(tg_user)
+        unique_collected = stats["unique_count"]
+        collected_cards = stats["collected_ids"] 
+        
+        if is_craft_mode:
+            # Списываем дубликаты! Нам нужно пометить ровно `craft_limit` штук как использованные.
+            # Берем старые записи дублей (те, где карт этого типа у юзера больше одной)
+            # Чтобы не усложнять, просто берем ЛЮБЫЕ лишние роллы пользователя за этот сезон
+            
+            # Сначала найдем ID всех записей, которые можно сжечь (кроме одной уникальной для каждой карты)
+            all_user_rolls = []
+            async for r in UserRoll.objects.filter(user=user, season=season, is_used_for_craft=False).order_by('rolled_at'):
+                all_user_rolls.append(r)
+                
+            # Вычисляем, какие конкретно записи являются дубликатами
+            seen_card_ids = set()
+            roll_ids_to_burn = []
+            
+            for r in all_user_rolls:
+                if r.card_id in seen_card_ids:
+                    roll_ids_to_burn.append(r.id)
+                else:
+                    seen_card_ids.add(r.card_id)
+            
+            # Нам нужно сжечь строго количество равное лимиту (например, 5 штук)
+            ids_to_update = roll_ids_to_burn[:limits['craft']]
+            
+            # Асинхронно обновляем статус "сожжены" в БД
+            await UserRoll.objects.filter(id__in=ids_to_update).aupdate(is_used_for_craft=True)
+            
+            # Текст-уведомление о списании
+            craft_notice = f"🔥 Использовано {len(ids_to_update)} дубликатов для обмена!\n\n"
+            
         # Собираем коллекцию пользователя за сезон
         collected_cards = set()
         async for roll in UserRoll.objects.filter(
@@ -339,7 +443,8 @@ class GachaBot(AbstractBot):
                 "{stars} <b>{name}</b>\n"
                 "🛡 Команда: {team}\n"
                 "📝 {description}\n\n"
-                "📊 Прогресс: {unique_collected}/{total_cards} уникальных карт"
+                "📊 Прогресс: {unique_collected}/{total_cards} уникальных карт\n"
+                "{shop_status}" 
             )
 
         text = text.format(
@@ -349,6 +454,7 @@ class GachaBot(AbstractBot):
             description=picked_card.description or 'Описание пока не добавлено.',
             unique_collected=unique_collected,
             total_cards=total_cards,
+            shop_status=stats["shop_text"]  # <-- Передаем строку магазина
         )
         
         file_id = await picked_card.aget_image_id(bot.id)

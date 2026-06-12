@@ -8,6 +8,7 @@ class RollLimit(models.Model):
         ("cooldown", "Кулдаун (сек)"),
         ("daily", "Дневной лимит"),
         ("bihourly", "Двухчасовой лимит"),
+        ("craft", "обмен карт"),
     ]
 
     bot = models.ForeignKey(

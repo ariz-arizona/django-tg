@@ -31,7 +31,8 @@ def create_default_bot_texts(apps, schema_editor):
                 "{stars} <b>{name}</b>\n"
                 "🛡 Команда: {team}\n"
                 "📝 {description}\n\n"
-                "📊 Прогресс: {unique_collected}/{total_cards} уникальных карт"
+                "📊 Прогресс: {unique_collected}/{total_cards} уникальных карт\n\n"
+                "{shop_status}" 
             ),
         },
         {

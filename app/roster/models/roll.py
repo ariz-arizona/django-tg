@@ -58,13 +58,19 @@ class UserRoll(models.Model):
         auto_now_add=True,
         verbose_name='Время ролла'
     )
+    is_used_for_craft = models.BooleanField(
+        default=False,
+        verbose_name='Использовано для крафта',
+        help_text='Если True, карта была сожжена в рецепте крафта и больше не принадлежит игроку'
+    )
 
     class Meta:
         ordering = ['-rolled_at']
         verbose_name = 'Ролл пользователя'
         verbose_name_plural = 'Роллы пользователей'
         indexes = [
-            models.Index(fields=['user', 'season']),
+            # Обновили индекс, так как теперь фильтрация всегда будет включать крафт-флаг
+            models.Index(fields=['user', 'season', 'is_used_for_craft']),
             models.Index(fields=['user', 'bot', 'rolled_at']),
         ]
 

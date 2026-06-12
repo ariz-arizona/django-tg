@@ -24,7 +24,7 @@ from tg_bot.models import TgUser, Bot, BotFile
 
 from roster.models.team import Season, Team, Card
 from roster.models.roll import UserRoll, RosterUser
-from roster.models.tech import RollLimit, BotText
+from roster.models.tech import RollLimit, BotText, RarityWeight
 
 from server.logger import logger
 
@@ -292,7 +292,27 @@ class GachaBot(AbstractBot):
                 await update.message.reply_text("🏆 Вы уже собрали ВСЕ карты! Крафт не нужен.")
                 return
 
-        weights = [int(60 / card.stars) for card in all_cards]
+        rarity_weight = await RarityWeight.objects.filter(
+            bot=bot,
+            enabled=True
+        ).afirst()
+        
+        if rarity_weight:
+            # Кешируем веса по звездам чтобы не считать для каждой карты отдельно
+            star_weights = {}
+            try:
+                for star in set(card.stars for card in all_cards):
+                    star_weights[star] = rarity_weight.calculate_weight(star)
+                
+                weights = [star_weights[card.stars] for card in all_cards]
+            except ValueError as e:
+                await update.message.reply_text(f"⚠️ Ошибка в формуле весов: {e}")
+                return
+        else:
+            # Fallback если нет активной записи
+            import math
+            weights = [1 / (math.factorial(card.stars) * (card.stars + 1)) for card in all_cards]
+
         picked_card = random.choices(all_cards, weights=weights, k=1)[0]
 
         # 6. Запись броска в БД

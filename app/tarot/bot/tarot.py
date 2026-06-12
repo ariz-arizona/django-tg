@@ -1,4 +1,5 @@
 import re
+import telegram.constants
 import traceback
 from typing import List, Optional, Dict
 
@@ -15,6 +16,7 @@ from telegram.ext import (
     CallbackContext,
     filters,
 )
+from telegram.constants import ParseMode
 
 from django.utils.timezone import now, timedelta
 from django.core.exceptions import ObjectDoesNotExist
@@ -121,10 +123,30 @@ class TarotBot(AbstractBot):
                 self.handle_spread,
             ),
         ]
+    
+    async def get_or_create_tg_user(self, update: Update) -> TgUser:
+        """
+        Получает или создает пользователя TgUser на основе данных из Telegram Update.
+        """
+        tg_user = update.effective_user
+        if not tg_user:
+            return None
+
+        user_obj, _ = await TgUser.objects.aget_or_create(
+            tg_id=tg_user.id,
+            defaults={
+                "username": tg_user.username,
+                "first_name": tg_user.first_name,
+                "last_name": tg_user.last_name,
+                "language_code": tg_user.language_code,
+                "is_bot": tg_user.is_bot,
+            },
+        )
+        return user_obj
 
     async def save_reading(
         self, 
-        user, 
+        user:TgUser, 
         message_id: int, 
         text: str, 
         category: str = "tarot", 
@@ -133,21 +155,9 @@ class TarotBot(AbstractBot):
         is_flipped_allowed: bool = False, 
         is_major_only: bool = False
     ):
-        # 1. Получаем или создаем пользователя телеграма
-        user_obj, created = await TgUser.objects.aget_or_create(
-            tg_id=user.id,
-            defaults={
-                "username": user.username,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "language_code": user.language_code,
-                "is_bot": user.is_bot,
-            },
-        )
-
         # 2. Создаем запись в новой типизированной модели UserReading
         reading = await UserReading.objects.acreate(
-            user=user_obj,
+            user=user,
             category=category,
             count=count,
             deck_id=deck_id,
@@ -637,16 +647,7 @@ class TarotBot(AbstractBot):
         logger.info(f"Обновленный список исключений: {full_exclude}")
 
         try:
-            user, _ = await TgUser.objects.aget_or_create(
-                tg_id=update.effective_user.id,
-                defaults={
-                    "username": update.effective_user.username,
-                    "first_name": update.effective_user.first_name,
-                    "last_name": update.effective_user.last_name,
-                    "language_code": update.effective_user.language_code,
-                    "is_bot": update.effective_user.is_bot,
-                },
-            )
+            user = await self.get_or_create_tg_user(update)
             initial_message_id = reading_ids.get(user.id)
             reading, created = await UserReading.objects.aupdate_or_create(
                 message_id=initial_message_id, 
@@ -742,16 +743,7 @@ class TarotBot(AbstractBot):
         logger.info(f"Обновленный список исключений: {full_exclude}")
 
         try:
-            user, _ = await TgUser.objects.aget_or_create(
-                tg_id=update.effective_user.id,
-                defaults={
-                    "username": update.effective_user.username,
-                    "first_name": update.effective_user.first_name,
-                    "last_name": update.effective_user.last_name,
-                    "language_code": update.effective_user.language_code,
-                    "is_bot": update.effective_user.is_bot,
-                },
-            )
+            user = await self.get_or_create_tg_user(update)
             initial_message_id = reading_ids.get(user.id)
             reading, created = await UserReading.objects.aupdate_or_create(
                 message_id=initial_message_id, 
@@ -1096,8 +1088,9 @@ class TarotBot(AbstractBot):
         random_card_id = random.randint(0, len(cards) - 1)
         random_card = cards[random_card_id]
 
+        user = await self.get_or_create_tg_user(update)
         await self.save_reading(
-            user=update.effective_user,
+            user=user,
             message_id=update.effective_message.message_id,
             text=f"{random_card['name']}\n{random_card['url']}",
             category=UserReading.ReadingCategory.UNIVERSAL,  # Модельное свойство для /one
@@ -1111,26 +1104,43 @@ class TarotBot(AbstractBot):
         await context.bot.delete_message(update.effective_chat.id, tech_msg_id)
 
     async def handle_last_readings(self, update: Update, context: CallbackContext):
-        # Получаем пользователя по tg_id
+        """
+        Обработчик команды истории последних 5 гаданий.
+        """
+        logger.info(f"Запрос истории гаданий для пользователя: {update.effective_user.id}")
+
         try:
-            user = await TgUser.objects.aget(tg_id=update.effective_user.id)
+            # 1. Безопасно получаем или создаем пользователя одной строкой
+            user = await self.get_or_create_tg_user(update)
+            if not user:
+                return
+
             user_readings = []
+            count = 5
+            
+            # 2. Выбираем последние 5 записей из новой модели
+            # Используем префикс даты для вывода в чат
             async for item in (
-                TarotUserReading.objects.filter(user=user)
-                .select_related("user")
-                .order_by("-date")[:5]
+                UserReading.objects.filter(user=user)
+                .order_by("-created_at")[:count]
             ):
-                user_readings.append(f"{item.date}: {item.text}")
+                # Форматируем дату для читаемости (например: 12.06.2026 13:30)
+                formatted_date = item.created_at.strftime("%d.%m.%Y %H:%M")
+                user_readings.append(f"📅 {formatted_date}\n{item.text}\n")
 
             if not user_readings:
-                await update.message.reply_text("Гаданий не найдено.")
+                await update.effective_message.reply_text("Гаданий не найдено.")
                 return
+
+            # 3. Отправляем красивый структурированный список
             await update.effective_message.reply_text(
-                "\n".join(user_readings),
+                "📜 <b>Ваши последние {count} гаданий:</b>\n\n" + "\n".join(user_readings),
+                parse_mode=ParseMode.HTML,
                 reply_to_message_id=update.effective_message.message_id,
             )
+            
         except Exception as e:
-            logger.error(e)
+            logger.error(f"Ошибка при получении истории гаданий: {e}", exc_info=True)
 
     async def make_decks_page(
         self,

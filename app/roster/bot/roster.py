@@ -21,7 +21,7 @@ from tg_bot.bot.abstract import AbstractBot
 from tg_bot.models import TgUser, Bot, BotFile
 
 from roster.models.team import Season, Team, Card
-from roster.models.roll import UserRoll
+from roster.models.roll import UserRoll, RosterUser
 from roster.models.tech import RollLimit, BotText
 
 from server.logger import logger
@@ -35,6 +35,11 @@ redis_client = redis.StrictRedis(
 
 
 class GachaBot(AbstractBot):
+    DEFAULT_LIMITS = {
+        "cooldown": 60,
+        "bihourly": 5,
+        "daily": 10,
+    }
     def __init__(self):
         self.handlers = self.get_handlers()
 
@@ -62,6 +67,18 @@ class GachaBot(AbstractBot):
                 "is_bot": tg_user.is_bot,
             },
         )
+        # 2. Находим или создаем гача-профиль для этого пользователя
+        roster_user, _ = await RosterUser.objects.aget_or_create(
+            user=user,
+            defaults={
+                "is_premium": False,
+                "description": "",
+            }
+        )
+        
+        # Пред-заполняем связь в объекте (кэшируем), чтобы Django не ходил 
+        # в базу повторно, когда ты вызовешь user.roster_user
+        user.roster_user = roster_user
         return user
 
     async def get_active_season(self) -> Season | None:
@@ -82,6 +99,50 @@ class GachaBot(AbstractBot):
             return await Bot.objects.filter(id=self.app_bot_id).afirst()
         except Exception:
             return None
+        
+    async def get_roll_limits(
+        self, 
+        tg_user, 
+        limit_types: list[str] | str, 
+    ) -> dict[str, int]:
+        """
+        Принимает список лимитов (или один лимит) и возвращает словарь {тип_лимита: значение}.
+        Делает ВСЕГО ОДИН запрос за пользователем и ОДИН запрос за всеми лимитами сразу.
+        """
+        # Переводим в список, если пришла одна строка
+        if isinstance(limit_types, str):
+            limit_types = [limit_types]
+            
+        # 1. Один запрос за юзером (создание или получение)
+        bot = await self.get_bot_instance()
+        user = await self.get_or_create_user(tg_user)
+        is_premium = user.roster_user.is_premium
+
+        # 2. Один запрос в базу: выгребаем сразу ВСЕ нужные лимиты для этого бота
+        # И для премиума, и обычные (чтобы сделать фоллбек в памяти, а не в БД)
+        limits_queryset = RollLimit.objects.filter(
+            bot=bot,
+            limit_type__in=limit_types
+        )
+        
+        db_limits = [limit async for limit in limits_queryset]
+        
+        # Собираем финальный результат
+        result = {}
+        for l_type in limit_types:
+            # Ищем в подгруженном списке премиум-лимит
+            premium_obj = next((l for l in db_limits if l.limit_type == l_type and l.is_premium), None)
+            # Ищем обычный лимит
+            regular_obj = next((l for l in db_limits if l.limit_type == l_type and not l.is_premium), None)
+            
+            if is_premium and premium_obj:
+                result[l_type] = premium_obj.value
+            elif regular_obj:
+                result[l_type] = regular_obj.value
+            else:
+                result[l_type] = self.DEFAULT_LIMITS.get(l_type, 5)
+                
+        return result
 
     # ─── /start ──────────────────────────────────────────────────────
 
@@ -91,12 +152,10 @@ class GachaBot(AbstractBot):
         user = await self.get_or_create_user(tg_user)
         bot = await self.get_bot_instance()
         
-        # Получаем дневной лимит из базы (или 5 по умолчанию)
-        try:
-            daily_limit_obj = await RollLimit.objects.aget(bot=bot, limit_type="daily")
-            daily_limit = daily_limit_obj.value
-        except RollLimit.DoesNotExist:
-            daily_limit = 5
+        limits = await self.get_roll_limits(
+            limit_types=["daily"], 
+            tg_user=tg_user,
+        )
 
         try:
             text_obj = await BotText.objects.aget(bot=bot, text_type="start")
@@ -112,7 +171,7 @@ class GachaBot(AbstractBot):
 
         text = text.format(
             first_name=user.first_name or 'герой',
-            daily_limit=daily_limit,
+            daily_limit=limits['daily'],
         )
         await update.message.reply_html(text)
 
@@ -124,6 +183,7 @@ class GachaBot(AbstractBot):
         user = await self.get_or_create_user(tg_user)
         bot = await self.get_bot_instance()
         season = await self.get_active_season()
+        
 
         # Проверки
         if not season:
@@ -143,12 +203,13 @@ class GachaBot(AbstractBot):
         redis_key = f"roll:{user.tg_id}:{bot.id}"
 
         # ─── Загрузка лимитов из базы ────────────────────────────
-        limits = {}
-        async for limit in RollLimit.objects.filter(bot=bot):
-            limits[limit.limit_type] = limit.value
+        limits = await self.get_roll_limits(
+            tg_user, 
+            ["cooldown", "daily", "bihourly"]
+        )
             
         # Кулдаун (секунды между бросками) — через Redis
-        cooldown_sec = limits.get("cooldown", 60)
+        cooldown_sec = limits["cooldown"]
         if redis_client.exists(redis_key):
             ttl = redis_client.ttl(redis_key)
             await update.message.reply_text(
@@ -157,7 +218,7 @@ class GachaBot(AbstractBot):
             return
 
         # Дневной лимит
-        daily_limit = limits.get("daily", 5)
+        daily_limit = limits["daily"]
         day_ago = now() - timedelta(hours=24)
         rolls_today = await UserRoll.objects.filter(
             user=user,
@@ -173,7 +234,7 @@ class GachaBot(AbstractBot):
             return
 
         # Двухчасовой лимит
-        bihourly_limit = limits.get("bihourly", 10)
+        bihourly_limit = limits["bihourly"]
         two_hours_ago = now() - timedelta(hours=2)
         rolls_bihourly = await UserRoll.objects.filter(
             user=user,
@@ -204,11 +265,11 @@ class GachaBot(AbstractBot):
         weights = [int(60 / card.stars) for card in all_cards]
 
         # Логируем информацию о картах и их весах
-        # logger_info = [
-        #     f"ID: {card.id} | Name: {card.name} | Stars: {card.stars} | Weight: {w}"
-        #     for card, w in zip(all_cards, weights)
-        # ]
-        # logger.info(f"Сформирован пул карт для выбора:\n" + "\n".join(logger_info))
+        logger_info = [
+            f"ID: {card.id} | Name: {card.name} | Stars: {card.stars} | Weight: {w}"
+            for card, w in zip(all_cards, weights)
+        ]
+        logger.info(f"Сформирован пул карт для выбора:\n" + "\n".join(logger_info))
 
         # random.choices сам распределит вероятности согласно этим весам
         picked_card = random.choices(all_cards, weights=weights, k=1)[0]

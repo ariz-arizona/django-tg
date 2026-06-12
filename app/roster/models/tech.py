@@ -25,15 +25,22 @@ class RollLimit(models.Model):
         verbose_name='Значение',
         help_text='Для кулдауна — секунды, для дневного/двухчасового — кол-во попыток'
     )
+    is_premium = models.BooleanField(
+        default=False,
+        verbose_name='Премиум лимит',
+        help_text='Применить этот лимит только к премиум-пользователям'
+    )
 
     class Meta:
-        unique_together = ['bot', 'limit_type']
+        # Теперь уникальность проверяется с учетом флага премиума
+        unique_together = ['bot', 'limit_type', 'is_premium']
         verbose_name = 'Лимит бросков'
         verbose_name_plural = 'Лимиты бросков'
 
     def __str__(self):
-        return f"{self.bot.name} — {self.get_limit_type_display()}: {self.value}"
-    
+        premium_status = " [Premium]" if self.is_premium else ""
+        return f"{self.bot.name} — {self.get_limit_type_display()}{premium_status}: {self.value}"
+        
 class BotText(models.Model):
     """Текстовые значения для бота, настраиваемые через админку."""
 

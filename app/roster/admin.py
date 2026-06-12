@@ -3,7 +3,7 @@ from django.contrib import admin
 
 from tg_bot.admin import BotFileInline
 from .models.team import Season, Team, Card
-from .models.roll import UserRoll
+from .models.roll import UserRoll, RosterUser
 from .models.tech import RollLimit
 
 
@@ -124,9 +124,48 @@ class UserRollAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         return False
 
+@admin.register(RosterUser)
+class RosterUserAdmin(admin.ModelAdmin):
+    # Поля, которые отображаются в списке пользователей гачи
+    list_display = (
+        'get_tg_id', 
+        'get_username', 
+        'get_full_name', 
+        'is_premium'
+    )
+    
+    # Быстрые фильтры в правой панели
+    list_filter = ('is_premium',)
+    
+    # Поиск. Так как связь OneToOne, ищем по полям связанной модели TgUser
+    search_fields = (
+        'user__tg_id', 
+        'user__username', 
+        'user__first_name', 
+        'user__last_name',
+        'description'
+    )
+    
+    # Чтобы случайно не повесить базу при дропдауне, если пользователей много
+    raw_id_fields = ('user',)
 
+    # Вычисляемые поля для красивого отображения данных из базового TgUser в списке
+    @admin.display(ordering='user__tg_id', description='Telegram ID')
+    def get_tg_id(self, obj):
+        return obj.user.tg_id
+
+    @admin.display(ordering='user__username', description='Username')
+    def get_username(self, obj):
+        return f"@{obj.user.username}" if obj.user.username else "—"
+
+    @admin.display(description='Имя Фамилия')
+    def get_full_name(self, obj):
+        parts = [obj.user.first_name, obj.user.last_name]
+        return " ".join([p for p in parts if p]) or "—"
+    
+    
 @admin.register(RollLimit)
 class RollLimitAdmin(admin.ModelAdmin):
-    list_display = ["limit_type", "bot", "value"]
+    list_display = ["limit_type", "is_premium", "bot", "value"]
     list_filter = ["bot", "limit_type"]
     search_fields = ["bot__name"]

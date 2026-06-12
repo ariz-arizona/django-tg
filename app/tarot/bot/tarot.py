@@ -286,7 +286,7 @@ class TarotBot(AbstractBot):
                     "name": card.tarot_card.name,
                     "flipped": random.choice([True, False]) if flip else False,
                 })
-
+            logger.info(f"Получено карт: {len(result)}")
             return result
 
         except ObjectDoesNotExist as e:
@@ -420,54 +420,68 @@ class TarotBot(AbstractBot):
 
         await update.effective_message.reply_text(**params)
 
+    def parse_reading_options(self, msg_text: str) -> dict:
+        """
+        Полный парсинг аргументов команды из текста сообщения.
+        Поддерживает: /card3, deck 5, flip, major, c12_15_23
+        """
+        msg_lower = msg_text.lower()
+        options = {}
+
+        # 1. Парсинг количества карт/рун (/card3, /oraculum6)
+        counter_found = re.search(r"/[a-zA-Z]+(\d+)", msg_lower)
+        options["counter"] = int(counter_found.group(1)) if counter_found else 1
+        options["counter"] = max(1, min(options["counter"], 10))
+
+        # 2. Парсинг ID колоды (deck 5)
+        deck_found = re.search(r"deck\s*(\d+)", msg_lower)
+        options["deck"] = int(deck_found.group(1)) if deck_found else None
+
+        # 3. Парсинг флага перевернутых позиций (flip)
+        options["flip"] = "flip" in msg_lower
+
+        # 4. Парсинг флага Старших Арканов (major)
+        options["major"] = "major" in msg_lower
+
+        # 5. Парсинг конкретных ID карт (формат: c12_15_23)
+        # Ищем в msg_text (оригинальном, на случай если регистр c/C важен, хотя регулярка покроет)
+        card_ids_found = re.findall(r"[cC](\d+(?:_\d+)*)", msg_text)
+        
+        if card_ids_found:
+            # Вытаскиваем числа из первой найденной группы, делим по модулю 78
+            card_ids = [int(c) % 78 for c in card_ids_found[0].split("_")]
+            
+            # Если переданных ID меньше, чем заказано в counter, циклически инкрементируем последний ID
+            target_count = options["counter"]
+            if len(card_ids) < target_count:
+                temp_id = card_ids[-1]
+                for _ in range(len(card_ids), target_count):
+                    temp_id = (temp_id + 1) % 78
+                    card_ids.append(temp_id)
+            
+            # Отрезаем лишнее, если передали больше, чем counter
+            options["card_ids"] = card_ids[:target_count]
+            logger.info(f"Парсинг ID карт: card_ids={options['card_ids']}")
+        else:
+            options["card_ids"] = None
+            logger.info("ID карт не указаны, будут выбраны случайные карты.")
+
+        logger.info(
+            f"Опции расклада полностью собраны: counter={options['counter']}, "
+            f"deck={options['deck']}, flip={options['flip']}, "
+            f"major={options['major']}, has_custom_ids={options['card_ids'] is not None}"
+        )
+        
+        return options
+    
     async def handle_card(self, update: Update, context: CallbackContext):
         """
         Обработчик команды /card.
         """
         msg_text = update.message.text
         logger.info(f"Обработка команды /card с текстом: {msg_text[:100]}")
-
-        # Парсинг параметров
-        options: Dict[str, any] = {}
         try:
-            # Парсинг количества карт (counter)
-            counter_found = re.search(r"(card)\d", msg_text)
-            options["counter"] = (
-                int(counter_found.group(0).replace("card", "")) if counter_found else 1
-            )
-            options["counter"] = max(1, min(options.get("counter", 1), 10))
-            logger.info(f"Парсинг количества карт: counter={options.get('counter')}")
-
-            # Парсинг колоды (deck)
-            deck_found = re.search(r"deck \d+", msg_text)
-            options["deck"] = (
-                int(deck_found.group(0).replace("deck ", "")) if deck_found else None
-            )
-            logger.info(f"Парсинг колоды: deck={options.get('deck')}")
-
-            # Парсинг переворота карты (flip)
-            options["flip"] = bool(re.search(r"flip", msg_text))
-            logger.info(f"Парсинг переворота карты: flip={options.get('flip')}")
-
-            # Парсинг ID карт (cardIds)
-            card_ids_found = re.findall(r"c(\d+(?:_\d+)*)", msg_text)
-            if card_ids_found:
-                # Преобразуем найденные ID в числа и ограничиваем их от 0 до 77
-                card_ids = [int(c) % 78 for c in card_ids_found[0].split("_")]
-                if len(card_ids) < options.get("counter", 1):
-                    temp_id = card_ids[-1]
-                    for j in range(len(card_ids), options.get("counter", 1)):
-                        temp_id = (temp_id + 1) % 78
-                        card_ids.append(temp_id)
-                options["card_ids"] = card_ids[: options.get("counter", 1)]
-                logger.info(f"Парсинг ID карт: card_ids={options.get('card_ids')}")
-            else:
-                options["card_ids"] = None
-                logger.info("ID карт не указаны, будут выбраны случайные карты.")
-
-            # Парсинг флага major
-            options["major"] = bool(re.search(r"major", msg_text))
-            logger.info(f"Парсинг флага major: major={options.get('major')}")
+            options = self.parse_reading_options(msg_text)
 
             # Получение колоды
             deck = await self.get_deck(options.get("deck"))
@@ -481,7 +495,6 @@ class TarotBot(AbstractBot):
                 options.get("major", False),
                 options.get('flip')
             )
-            logger.info(f"Получено карт: {len(cards)}")
             
             await self.save_reading(
                 user=update.effective_user,
@@ -520,31 +533,8 @@ class TarotBot(AbstractBot):
     async def handle_oraculum(self, update: Update, context: CallbackContext):
         msg_text = update.message.text
         logger.info(f"Обработка команды /oraculum с текстом: {msg_text[:100]}")
-
-        # Парсинг параметров
-        options: Dict[str, any] = {}
-
         try:
-            # Парсинг количества карт (counter)
-            counter_found = re.search(r"(oraculum)\d", msg_text)
-            options["counter"] = (
-                int(counter_found.group(0).replace("oraculum", ""))
-                if counter_found
-                else 1
-            )
-            options["counter"] = max(1, min(options.get("counter", 1), 10))
-            logger.info(f"Парсинг количества карт: counter={options.get('counter')}")
-
-            # Парсинг колоды (deck)
-            deck_found = re.search(r"deck \d+", msg_text)
-            options["deck"] = (
-                int(deck_found.group(0).replace("deck ", "")) if deck_found else None
-            )
-            logger.info(f"Парсинг колоды: deck={options.get('deck')}")
-
-            # Парсинг переворота карты (flip)
-            options["flip"] = bool(re.search(r"flip", msg_text))
-            logger.info(f"Парсинг переворота карты: flip={options.get('flip')}")
+            options = self.parse_reading_options(msg_text)
 
             deck = await self.get_deck(options.get("deck"), "oraculum")
             logger.info(f"Используемая колода: {deck.id if deck else 'не указана'}")
@@ -1514,82 +1504,18 @@ class TarotBot(AbstractBot):
             msg_text = update.message.text
             logger.info(f"Обработка команды /spread с текстом: {msg_text[:100]}")
 
-            # tg_id = update.effective_user.id
-            # tg_user, created = TgUser.objects.get_or_create(
-            #     tg_id=tg_id,
-            #     defaults={
-            #         'username': update.effective_user.username,
-            #         'first_name': update.effective_user.first_name,
-            #         'last_name': update.effective_user.last_name,
-            #         'language_code': update.effective_user.language_code,
-            #     }
-            # )
-            # # Проверяем ограничения
-            # now = timezone.now()
-            # last_24h = now - timedelta(hours=24)
-            # two_hours_ago = now - timedelta(hours=2)
-
-            # # Считаем гадания за последние 24 часа
-            # readings_last_24h = TarotUserReading.objects.filter(
-            #     user=tg_user,
-            #     date__gte=last_24h
-            # ).count()
-
-            # # Проверяем последнее гадание
-            # last_reading = TarotUserReading.objects.filter(
-            #     user=tg_user
-            # ).order_by('-date').first()
-
-            # # Ограничение 1: больше 24 гаданий за сутки
-            # if readings_last_24h >= 24:
-            #     await update.message.reply_text(
-            #         "Пока не больше 24 гаданий за сутки "
-            #         "Пожалуйста, попробуйте позже.\n"
-            #     )
-            #     return
-
-            # # Ограничение 2: последнее гадание было менее 2 часов назад
-            # if last_reading and last_reading.date > two_hours_ago:
-            #     remaining = last_reading.date + timedelta(hours=2) - now
-            #     wait_hours = remaining.seconds // 3600
-            #     wait_minutes = (remaining.seconds % 3600) // 60
-
-            #     await update.message.reply_text(
-            #         "Пока одно гадание в два часа "
-            #         "Пожалуйста, попробуйте позже.\n"
-            #     )
-            #     return
-
             # Если все проверки пройдены
             tech_msg = await update.message.reply_text("Выбор карт")
-            options: Dict[str, any] = {}
-
-            options["counter"] = 3
-
-            # Парсинг колоды (deck ЧИСЛО)
-            deck_found = re.search(r"deck\s+(\d+)", msg_text)
-            options["deck"] = int(deck_found.group(1)) if deck_found else None
-            logger.info(f"Парсинг колоды: deck={options.get('deck')}")
+            
+            options = self.parse_reading_options(msg_text)
 
             deck = await self.get_deck(options.get("deck"))
             logger.info(f"Используемая колода: {deck.id if deck else 'не указана'}")
 
-            # Парсинг переворота карты (flip)
-            options["flip"] = bool(re.search(r"flip", msg_text))
-            logger.info(f"Парсинг переворота карты: flip={options.get('flip')}")
-
-            options["major"] = bool(re.search(r"major", msg_text))
-            logger.info(f"Парсинг старших арканов: major={options.get('major')}")
-
-            cleaned_text = re.sub(r"deck\s+\d+|card\d+|flip|major", "", msg_text).strip()
-            cleaned_text = re.sub(r"^\/spread\s*", "", cleaned_text)
-            options["keyword"] = cleaned_text if cleaned_text else None
-            logger.info(f"Парсинг ключевого слова: keyword={options.get('keyword')}")
-
             cards = await self.get_cards(
                 deck_id=deck.id if deck else None,
                 counter=options["counter"],
-                card_ids=None,  # Можно передать список конкретных карт
+                card_ids=options["card_ids"],
                 major=options["major"],
                 flip=options['flip'],
                 exclude_cards=None,

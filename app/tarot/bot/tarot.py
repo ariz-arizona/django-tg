@@ -530,9 +530,43 @@ class TarotBot(AbstractBot):
                     f"для категории {category_upper}"
                 )
                 
-                await update.effective_message.reply_text(
-                    f"Подождите {time_left} секунд до гадания {category_upper}"
-                )
+                # Проверяем все остальные категории на наличие активного кулдауна
+                available_commands = []
+                
+                # Словарь соответствия категорий командам
+                category_to_command = {
+                    UserReading.ReadingCategory.ONE: "/one",
+                    UserReading.ReadingCategory.TAROT: "/card",
+                    UserReading.ReadingCategory.ORACLE: "/oraculum",
+                    UserReading.ReadingCategory.RUNES: "/futark",
+                    UserReading.ReadingCategory.CANVAS_SPREAD: "/spread",
+                }
+                
+                # Проверяем каждую категорию
+                for cat_choice in UserReading.ReadingCategory.values:
+                    if cat_choice == category:
+                        continue  # Пропускаем текущую заблокированную категорию
+                    
+                    # Формируем ключ для проверки
+                    check_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=cat_choice)
+                    check_ttl = await redis_client.ttl(check_key)
+                    
+                    # Если ключа нет (time_left == -2) - категория доступна
+                    if check_ttl == -2:
+                        command = category_to_command.get(cat_choice)
+                        if command:
+                            available_commands.append(command)
+                    
+                if available_commands:
+                    commands_text = ", ".join(available_commands)
+                    message = (
+                        f"⚠️ Подождите {time_left} секунд до гадания {category_upper}\n\n"
+                        f"💡 Вы можете попробовать: {commands_text}"
+                    )
+                else:
+                    message = f"⚠️ Подождите {time_left} секунд до гадания {category_upper}\n\n❌ Все команды на кулдауне"
+                    
+                await update.effective_message.reply_text(message)
                 return True # Блокировка активна
                 
         except Exception as e:

@@ -212,7 +212,7 @@ class Rune(models.Model):
 class UserReading(models.Model):
     # Основной инструмент гадания
     class ReadingCategory(models.TextChoices):
-        ONE = "one", "Одна карта)"  # Для команды /one
+        ONE = "one", "Одна карта"                      # Для команды /one
         TAROT = "tarot", "Таро"                        # Для /card, /card3
         ORACLE = "oracle", "Оракул"                    # Для /oraculum, /oraculum3
         RUNES = "runes", "Руны (Футарк)"               # Для /futark, /futark triplet
@@ -270,7 +270,7 @@ class UserReading(models.Model):
     )
 
     def __str__(self):
-        name = self.username or self.first_name or str(self.tg_id)
+        name = self.user.username or self.user.first_name or str(self.user.tg_id)
         return f"{self.get_category_display()} - {name}"
 
     class Meta:

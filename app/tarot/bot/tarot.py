@@ -1,8 +1,8 @@
 import re
-import telegram.constants
-import traceback
+import os
 from typing import List, Optional, Dict
 
+import redis.asyncio as aioredis
 import aiohttp
 import random
 from io import BytesIO
@@ -41,9 +41,16 @@ from django.conf import settings
 
 from tarot.utils.image_utils import create_spread_image
 
-reading_ids = {}
-user_exclude_cards = {}
+# Инициализируем асинхронный клиент
+redis_client = aioredis.StrictRedis(
+    host=os.getenv("REDIS_HOST", "localhost"), 
+    port=int(os.getenv("REDIS_PORT", 6379)), 
+    db=3,
+    decode_responses=True # Рекомендуется: автоматически декодирует bytes в строки python
+)
 
+REDIS_TTL_SECONDS = 10
+REDIS_KEY_TEMPLATE = "user:{user_id}:{category}"
 
 class TarotBot(AbstractBot):
     def __init__(self):
@@ -146,7 +153,7 @@ class TarotBot(AbstractBot):
 
     async def save_reading(
         self, 
-        user:TgUser, 
+        user: TgUser, 
         message_id: int, 
         text: str, 
         category: str = "tarot", 
@@ -173,9 +180,16 @@ class TarotBot(AbstractBot):
             card_ids=card_ids, 
         )
         logger.info(f"Результат гадания сохранен: {reading}")
-        # 3. Кешируем ID последнего сообщения для пользователя
-        reading_ids[user.id] = message_id
         
+        # 3. Сохраняем отметку в Redis
+        try:
+            # Формируем ключ, например: "user:123456789:tarot"
+            redis_key = REDIS_KEY_TEMPLATE.format(user_id=user.tg_id, category=category)
+            await redis_client.set(redis_key, reading.id, ex=REDIS_TTL_SECONDS) 
+            logger.info(f"Ключ {redis_key} успешно записан в Redis на {REDIS_TTL_SECONDS} сек.")
+        except Exception as e:
+            logger.error(f"Ошибка записи в Redis для пользователя {user.id}: {e}")
+            
         return reading
     
     async def get_deck(self, deck_id=None, deck_type="tarot"):
@@ -485,12 +499,53 @@ class TarotBot(AbstractBot):
         
         return options
     
+    async def check_reading_cooldown(self, update: Update, category: str) -> bool:
+        """
+        Проверяет, есть ли активный кулдаун на гадание для пользователя.
+        Возвращает True, если гадание ЗАБЛОКИРОВАНО (надо подождать).
+        Возвращает False, если гадание ДОСТУПНО.
+        """
+        user_id = update.effective_user.id
+        
+        # Формируем ключ по тому же шаблону, что и при сохранении
+        # Если шаблон не в классе, можно использовать строку: f"user:{user_id}:{category}"
+        redis_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=category)
+        
+        try:
+            # Запрашиваем оставшееся время жизни ключа (в секундах)
+            time_left = await redis_client.ttl(redis_key)
+            
+            # Redis возвращает:
+            # -1, если ключ существует, но у него нет TTL (бессрочный)
+            # -2, если ключа нет в базе (кулдауна нет, можно гадать)
+            if time_left > 0:
+                # Красиво форматируем категорию (например, tarot -> ТАРОТ)
+                category_upper = category.upper() 
+                
+                await update.effective_message.reply_text(
+                    f"Подождите {time_left} секунд до гадания {category_upper}"
+                )
+                return True # Блокировка активна
+                
+        except Exception as e:
+            # Если Redis упал, не блокируем пользователя, а логируем ошибку
+            import logging
+            logging.error(f"Ошибка проверки TTL в Redis: {e}")
+            
+        return False
+
     async def handle_card(self, update: Update, context: CallbackContext):
         """
         Обработчик команды /card.
         """
         msg_text = update.message.text
         logger.info(f"Обработка команды /card с текстом: {msg_text[:100]}")
+        
+        category = UserReading.ReadingCategory.TAROT
+        is_locked = await self.check_reading_cooldown(update, category)
+        if is_locked:
+            return
+        
         try:
             options = self.parse_reading_options(msg_text)
 
@@ -513,15 +568,13 @@ class TarotBot(AbstractBot):
                 text=f"{deck.name if deck else 'Дефолтная колода'}: " + ", ".join(
                     [await self.format_card_name(c) for c in cards]
                 ),
-                category=UserReading.ReadingCategory.TAROT,        # Модельное свойство
+                category=category,
                 count=options.get("counter", 1),
                 deck_id=deck.id if deck else None,
                 is_flipped_allowed=options.get('flip', False),
                 is_major_only=options.get('major', False),
                 card_ids=[c["card_id"] for c in cards]
             )
-
-            user_exclude_cards[update.effective_user.id] = [c["card_id"] for c in cards]
 
             # Отправка карт
             await self.send_card(
@@ -545,6 +598,12 @@ class TarotBot(AbstractBot):
     async def handle_oraculum(self, update: Update, context: CallbackContext):
         msg_text = update.message.text
         logger.info(f"Обработка команды /oraculum с текстом: {msg_text[:100]}")
+        
+        category = UserReading.ReadingCategory.ORACLE
+        is_locked = await self.check_reading_cooldown(update, category)
+        if is_locked:
+            return
+        
         try:
             options = self.parse_reading_options(msg_text)
 
@@ -566,15 +625,13 @@ class TarotBot(AbstractBot):
                 text=f"{deck.name if deck else 'Дефолтный оракул'}: " + ", ".join(
                     [await self.format_card_name(c) for c in cards]
                 ),
-                category=UserReading.ReadingCategory.ORACLE,  # Модельное свойство
+                category=category,
                 count=options.get("counter", 1),
                 deck_id=deck.id if deck else None,
                 is_flipped_allowed=options.get('flip', False),
                 is_major_only=False,  
                 card_ids=[c["card_id"] for c in cards]
             )
-
-            user_exclude_cards[update.effective_user.id] = [c["card_id"] for c in cards]
 
             # Отправка карт
             await self.send_card(
@@ -1070,6 +1127,11 @@ class TarotBot(AbstractBot):
                 return await response.text()
 
     async def handle_one_command(self, update: Update, context: CallbackContext):
+        category = UserReading.ReadingCategory.ONE
+        is_locked = await self.check_reading_cooldown(update, category)
+        if is_locked:
+            return
+                
         tarot_url = "https://www.tarot.com"
         decks_url = "/tarot/decks"
 
@@ -1114,7 +1176,7 @@ class TarotBot(AbstractBot):
             user=user,
             message_id=update.effective_message.message_id,
             text=f"{random_card['name']}\n{random_card['url']}",
-            category=UserReading.ReadingCategory.ONE
+            category=category
         )
 
         await update.effective_message.reply_photo(
@@ -1147,7 +1209,7 @@ class TarotBot(AbstractBot):
             ):
                 # Форматируем дату для читаемости (например: 12.06.2026 13:30)
                 formatted_date = item.created_at.strftime("%d.%m.%Y %H:%M")
-                user_readings.append(f"📅 {formatted_date}\n{item.text}\n")
+                user_readings.append(f"📅 {formatted_date}\n{item.text[0:200]}\n")
 
             if not user_readings:
                 await update.effective_message.reply_text("Гаданий не найдено.")
@@ -1298,6 +1360,11 @@ class TarotBot(AbstractBot):
         msg_text = update.message.text
         user = await self.get_or_create_tg_user(update)
         logger.info(f"Обработка команды /futark с текстом: {msg_text[:100]}")
+        
+        category = UserReading.ReadingCategory.RUNES
+        is_locked = await self.check_reading_cooldown(update, category)
+        if is_locked:
+            return
 
         try:
             # Получаем все руны из базы данных
@@ -1326,7 +1393,7 @@ class TarotBot(AbstractBot):
                     user=user,
                     message_id=update.effective_message.message_id,
                     text=" ".join(rune_texts),
-                    category=UserReading.ReadingCategory.RUNES,
+                    category=category,
                     is_flipped_allowed=True,
                     count=3
                 )
@@ -1531,11 +1598,16 @@ class TarotBot(AbstractBot):
             )
 
     async def handle_spread(self, update: Update, context: CallbackContext):
+        msg_text = update.message.text
+        user = await self.get_or_create_tg_user(update)
+        logger.info(f"Обработка команды /spread с текстом: {msg_text[:100]}")
+        
+        category = UserReading.ReadingCategory.CANVAS_SPREAD
+        is_locked = await self.check_reading_cooldown(update, category)
+        if is_locked:
+            return
+        
         try:
-            msg_text = update.message.text
-            user = await self.get_or_create_tg_user(update)
-            logger.info(f"Обработка команды /spread с текстом: {msg_text[:100]}")
-
             # Если все проверки пройдены
             tech_msg = await update.message.reply_text("Выбор карт")
             
@@ -1568,7 +1640,7 @@ class TarotBot(AbstractBot):
                 text=f"{deck.name if deck else 'Дефолтная колода'}: " + ", ".join(
                     [await self.format_card_name(c) for c in cards]
                 ),
-                category=UserReading.ReadingCategory.CANVAS_SPREAD,  # Модельное свойство для раскладов
+                category=category,
                 count=options["counter"],                             # Передаем точное количество карт
                 deck_id=deck.id if deck else None,
                 is_flipped_allowed=options.get('flip', False),

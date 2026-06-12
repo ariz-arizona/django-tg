@@ -1,5 +1,5 @@
 # cardparser/tasks.py
-import asgiref.sync
+import redis.asyncio as aioredis
 import time
 import json
 import redis

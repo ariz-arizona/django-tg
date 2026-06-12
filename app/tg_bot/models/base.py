@@ -10,6 +10,15 @@ class Bot(models.Model):
     ]
 
     name = models.CharField(max_length=100, verbose_name="Название бота")
+    username = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name="Username бота",
+        help_text="Telegram username бота (например: my_test_bot)",
+        editable=False,  # Не редактируется в админке
+        blank=True,
+        null=True
+    )
     token = models.CharField(max_length=255, verbose_name="Токен")
     chat_id = models.CharField(max_length=50, verbose_name="Chat ID")
     bot_type = models.CharField(

@@ -1,14 +1,26 @@
 from django.contrib import admin
 from django.contrib.contenttypes.admin import GenericTabularInline
+from django.utils.html import format_html
 
 from .models import Bot, BotFile, BotFileCache, TgUser
 
 
 @admin.register(Bot)
 class BotAdmin(admin.ModelAdmin):
-    list_display = ("name", "token", "chat_id", "bot_type", "is_enabled", "docker_instance_name")
-    search_fields = ("name", "token", "chat_id")
-    list_filter = ("bot_type", "created_at")
+    list_display = ("name", "username_link", "token", "chat_id", "bot_type", "is_enabled", "docker_instance_name")
+    search_fields = ("name", "username", "token", "chat_id")
+    list_filter = ("bot_type", "is_enabled", "created_at")
+    readonly_fields = ("username",)
+    
+    def username_link(self, obj):
+        if obj.username:
+            return format_html(
+                '<a href="https://t.me/{}" target="_blank">@{}</a>',
+                obj.username, obj.username
+            )
+        return "—"
+    
+    username_link.short_description = "Username"
 
 
 class BotFileInline(GenericTabularInline):

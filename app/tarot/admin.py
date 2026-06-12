@@ -148,7 +148,7 @@ class UserReadingAdmin(admin.ModelAdmin):
         "user__first_name", 
         "user__last_name",
         "user__tg_id",
-        "bot__name",      # Поиск по юзернейму бота
+        "bot__username",      # Поиск по юзернейму бота
         "text",
         "card_ids",           # Поиск по ID карт
     )
@@ -203,12 +203,12 @@ class UserReadingAdmin(admin.ModelAdmin):
             from django.utils.html import format_html
             
             url = reverse("admin:tg_bot_bot_change", args=[obj.bot.id])
-            display_name = obj.bot.name or f"Bot #{obj.bot.id}"
+            display_name = obj.bot.username or f"Bot #{obj.bot.id}"
             return format_html('<a href="{}">{}</a>', url, display_name)
         return "—"
     
     bot_link.short_description = "Бот"
-    bot_link.admin_order_field = "bot__name"
+    bot_link.admin_order_field = "bot__username"
 
     def category_display(self, obj):
         """Цветное отображение категории"""
@@ -274,7 +274,7 @@ class UserReadingAdmin(admin.ModelAdmin):
                 obj.id,
                 obj.user.tg_id if obj.user else "",
                 obj.user.username if obj.user else "",
-                obj.bot.name if obj.bot else "",
+                obj.bot.username if obj.bot else "",
                 obj.get_category_display(),
                 obj.count,
                 obj.is_flipped_allowed,

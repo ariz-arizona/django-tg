@@ -13,6 +13,7 @@ from celery import shared_task
 from telegram.ext import ApplicationBuilder, CommandHandler
 from telegram import Update
 
+from tg_bot.models import Bot
 from cardparser.bot.parser import ParserBot
 from tarot.bot.tarot import TarotBot
 from roster.bot.roster import GachaBot
@@ -55,6 +56,27 @@ async def run_bot(token, app_bot_id, handlersClass):
     await app.bot.set_webhook(
         webhook_url, drop_pending_updates=True
     )  # Асинхронная установка webhook
+    
+    try:
+        # Получаем бота из БД по ID
+        bot_model = await Bot.objects.aget(id=app_bot_id)
+        
+        # Получаем username из app.bot
+        bot_username = app.bot.username
+        
+        # Обновляем username в БД, если он изменился
+        if bot_model.username != bot_username:
+            await Bot.objects.filter(id=app_bot_id).aupdate(username=bot_username)
+            logger.info(f"Обновлен username для бота {app_bot_id}: @{bot_username}")
+        else:
+            logger.info(f"Username для бота {app_bot_id} уже актуален: @{bot_username}")
+            
+    except Bot.DoesNotExist:
+        logger.error(f"Бот с ID {app_bot_id} не найден в базе данных")
+        bot_username = None
+    except Exception as e:
+        logger.error(f"Ошибка при обновлении username бота: {e}")
+        bot_username = None
     
     bot_info = {
         'bot_id': app_bot_id,

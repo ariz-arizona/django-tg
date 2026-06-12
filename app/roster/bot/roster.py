@@ -309,11 +309,26 @@ class GachaBot(AbstractBot):
         for team in teams:
             cards = [card async for card in team.cards.all().order_by("id")]
             slots = []
+            
+            # Считаем, сколько карт этой команды уже открыто у пользователя
+            team_total = len(cards)
+            team_collected = sum(1 for card in cards if card.id in collected_cards)
+            
+            # Формируем красивый статус для названия кнопки
+            if team_collected == team_total and team_total > 0:
+                status_emoji = "✅ "  # Фулл сет собран
+            else:
+                status_emoji = "🃏 "  # В процессе сборки
+                
+            button_text = f"{status_emoji}{team.name} ({team_collected}/{team_total})"
+
+            # Твоя логика слотов для callback_data (ограничение до 10 карт)
+            slots = []
             for card in cards[:10]:
                 slots.append(str(card.id) if card.id in collected_cards else "0")
 
             callback_data = f"rollimg_{team.id}_" + "_".join(slots)
-            keyboard.append([InlineKeyboardButton(team.name, callback_data=callback_data)])
+            keyboard.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
 
         try:
             text_obj = await BotText.objects.aget(bot=bot, text_type="roll")

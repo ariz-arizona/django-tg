@@ -1,7 +1,9 @@
 import os
-import redis
+import redis.asyncio as redis
 import asyncio
 import json
+from datetime import datetime
+
 from django.urls import reverse
 from django.conf import settings
 import signal
@@ -20,7 +22,10 @@ from server.logger import logger
 
 # Настроим соединение с Redis
 redis_client = redis.StrictRedis(
-    host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"), db=2
+    host=os.getenv("REDIS_HOST"), 
+    port=os.getenv("REDIS_PORT"), 
+    db=2,
+    decode_responses=True  # автоматически декодировать строки
 )
 
 
@@ -50,16 +55,24 @@ async def run_bot(token, app_bot_id, handlersClass):
     await app.bot.set_webhook(
         webhook_url, drop_pending_updates=True
     )  # Асинхронная установка webhook
+    
+    bot_info = {
+        'bot_id': app_bot_id,
+        'username': app.bot.username,
+        'type': handlersClass,
+        'started_at': datetime.now().isoformat(),
+    }
+    await redis_client.hset("running_bots", app_bot_id, json.dumps(bot_info))
+    logger.info(f"Бот {app_bot_id} зарегистрирован в Redis")
 
     while True:
         try:
             # Извлекаем сообщение из очереди
-            message = redis_client.lpop(f"bot_messages_queue_{token}")
+            message = await redis_client.lpop(f"bot_messages_queue_{token}")
             if message:
                 try:
                     # Декодируем сообщение
-                    json_str = message.decode("utf-8")
-                    data = json.loads(json_str)
+                    data = json.loads(message)
                     # logger.info(f"Сообщение из очереди update_id: {data['update_id']}")
 
                     # Преобразуем в объект Update

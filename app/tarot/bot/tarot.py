@@ -2,6 +2,7 @@ import re
 import os
 from typing import List, Optional, Dict
 
+import json
 import redis.asyncio as aioredis
 import aiohttp
 import random
@@ -46,6 +47,12 @@ redis_client = aioredis.StrictRedis(
     host=os.getenv("REDIS_HOST", "localhost"), 
     port=int(os.getenv("REDIS_PORT", 6379)), 
     db=3,
+    decode_responses=True # Рекомендуется: автоматически декодирует bytes в строки python
+)
+redis_client_bot = aioredis.StrictRedis(
+    host=os.getenv("REDIS_HOST", "localhost"), 
+    port=int(os.getenv("REDIS_PORT", 6379)), 
+    db=2,
     decode_responses=True # Рекомендуется: автоматически декодирует bytes в строки python
 )
 
@@ -556,15 +563,36 @@ class TarotBot(AbstractBot):
                         command = category_to_command.get(cat_choice)
                         if command:
                             available_commands.append(command)
+                            
+                # === ИЩЕМ ДРУГИХ БОТОВ В REDIS ===
+                all_bots = await redis_client_bot.hgetall("running_bots")
+                other_bots = set() 
+                
+                for bot_id, bot_info_json in all_bots.items():
+                    bot_info = json.loads(bot_info_json)
+                    # Ищем ботов типа TarotBot
+                    if (
+                        bot_info.get('type') == 'TarotBot' and
+                        bot_info.get('bot_id') != self.app_bot_id
+                        ): 
+                        bot_username = bot_info.get('username')
+                        if bot_username:
+                            other_bots.add(f"@{bot_username}")
                     
+                message_parts = [f"⚠️ Подождите {time_left} секунд до гадания {category_upper}"]
+
                 if available_commands:
                     commands_text = ", ".join(available_commands)
-                    message = (
-                        f"⚠️ Подождите {time_left} секунд до гадания {category_upper}\n\n"
-                        f"💡 Вы можете попробовать: {commands_text}"
-                    )
-                else:
-                    message = f"⚠️ Подождите {time_left} секунд до гадания {category_upper}\n\n❌ Все команды на кулдауне"
+                    message_parts.append(f"💡 Вы можете попробовать: {commands_text}")
+
+                if other_bots:
+                    bots_text = ", ".join(other_bots)
+                    message_parts.append(f"🤖 Или попробуйте в других ботах: {bots_text}")
+
+                if not available_commands and not other_bots:
+                    message_parts.append("❌ Все команды на кулдауне")
+
+                message = "\n\n".join(message_parts)
                     
                 await update.effective_message.reply_text(message)
                 return True # Блокировка активна

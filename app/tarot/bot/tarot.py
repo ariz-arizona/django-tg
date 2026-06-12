@@ -119,7 +119,7 @@ class TarotBot(AbstractBot):
                 filters.COMMAND
                 & filters.TEXT
                 & filters.ChatType.PRIVATE
-                & filters.Regex(r"^\/spread"),
+                & filters.Regex(r"^\/(spread|canvas)"),
                 self.handle_spread,
             ),
         ]
@@ -1093,7 +1093,7 @@ class TarotBot(AbstractBot):
             user=user,
             message_id=update.effective_message.message_id,
             text=f"{random_card['name']}\n{random_card['url']}",
-            category=UserReading.ReadingCategory.UNIVERSAL,  # Модельное свойство для /one
+            category=UserReading.ReadingCategory.ONE
         )
 
         await update.effective_message.reply_photo(
@@ -1275,6 +1275,7 @@ class TarotBot(AbstractBot):
         Обработчик команды /futark.
         """
         msg_text = update.message.text
+        user = await self.get_or_create_tg_user(update)
         logger.info(f"Обработка команды /futark с текстом: {msg_text[:100]}")
 
         try:
@@ -1300,9 +1301,8 @@ class TarotBot(AbstractBot):
                             callback_data=f"futhark_{rune.id}_{int(bool(inverted))}_{i + 1}",
                         )
                     )
-                    
                 await self.save_reading(
-                    user=update.effective_user,
+                    user=user,
                     message_id=update.effective_message.message_id,
                     text=" ".join(rune_texts),
                     category=UserReading.ReadingCategory.RUNES,
@@ -1320,16 +1320,16 @@ class TarotBot(AbstractBot):
                 # Выбираем одну случайную руну
                 random_rune = random.choice(runes)
                 inverted = "flip" in msg_text.lower() and random.choice([True, False])
-                logger.info(random_rune.symbol)
+                
                 # Формируем текст сообщения
                 text_parts = [f"<b>{random_rune.symbol}</b>", random_rune.type]
                 if inverted:
                     text_parts.append("Перевернуто")
 
                 await self.save_reading(
-                    user=update.effective_user,
+                    user=user,
                     message_id=update.effective_message.message_id,
-                    text=" ".join(rune_texts),
+                    text=" ".join(text_parts),
                     category=UserReading.ReadingCategory.RUNES,
                     is_flipped_allowed=True,
                     count=1
@@ -1512,6 +1512,7 @@ class TarotBot(AbstractBot):
     async def handle_spread(self, update: Update, context: CallbackContext):
         try:
             msg_text = update.message.text
+            user = await self.get_or_create_tg_user(update)
             logger.info(f"Обработка команды /spread с текстом: {msg_text[:100]}")
 
             # Если все проверки пройдены
@@ -1541,7 +1542,7 @@ class TarotBot(AbstractBot):
             logger.info(f"Получено карт: {len(cards)}")
             
             await self.save_reading(
-                user=update.effective_user,
+                user=user,
                 message_id=update.effective_message.message_id,
                 text=f"{deck.name if deck else 'Дефолтная колода'}: " + ", ".join(
                     [await self.format_card_name(c) for c in cards]

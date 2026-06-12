@@ -4,6 +4,7 @@ import os
 import redis
 from datetime import timedelta
 from typing import List
+from asgiref.sync import sync_to_async
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from telegram.ext import (
@@ -16,6 +17,7 @@ from telegram.constants import ParseMode
 
 from django.utils.timezone import now
 from django.db.models import Count, Q
+from django.db import transaction
 
 from tg_bot.bot.abstract import AbstractBot
 from tg_bot.models import TgUser, Bot, BotFile
@@ -184,7 +186,9 @@ class GachaBot(AbstractBot):
         # Если дубликатов хватает хотя бы на один полноценный обмен — добавляем призыв к действию
         if available_crafts > 0:
             shop_text += f"\n✨ <b>Доступно обменов: {available_crafts}!</b> Вы можете вытянуть гарантированную карту через /roll_craft"
-
+        else:
+            shop_text += "\n🎲 Обычный бросок /roll"
+            
         return {
             "collected_ids": unique_collected_set,        # Сет ID для кнопок
             "unique_count": unique_collected_count,       # Для "4/20 карт"
@@ -226,214 +230,96 @@ class GachaBot(AbstractBot):
         await update.message.reply_html(text)
 
     # ─── /roll (он же /get) ──────────────────────────────────────────
-
     async def handle_roll(self, update: Update, context: CallbackContext):
         """Случайный бросок карты."""
         tg_user = update.effective_user
         user = await self.get_or_create_user(tg_user)
         bot = await self.get_bot_instance()
         season = await self.get_active_season()
-        
 
-        # Проверки
+        # 1. Начальные проверки
         if not season:
-            await update.message.reply_text(
-                "⏳ Сейчас нет активного сезона. Загляни позже!"
-            )
+            await update.message.reply_text("⏳ Сейчас нет активного сезона. Загляни позже!")
             return
 
-        # Лимит: 3 броска за последние 24 часа
-        day_ago = now() - timedelta(hours=24)
-        rolls_today = await UserRoll.objects.filter(
-            user=user,
-            bot=bot,
-            rolled_at__gte=day_ago,
-        ).acount()
-
-        redis_key = f"roll:{user.tg_id}:{bot.id}"
-
-        # ─── Загрузка лимитов из базы ────────────────────────────
-        limits = await self.get_roll_limits(
-            tg_user, 
-            ["cooldown", "daily", "bihourly", "craft"]
-        )
-        
         is_craft_mode = update.message.text.startswith("/roll_craft")
+        limits = await self.get_roll_limits(tg_user, ["cooldown", "daily", "bihourly", "craft"])
         stats = await self.get_gacha_stats(tg_user)
-        unique_collected = stats["unique_count"]
-        collected_cards = stats["collected_ids"]
-         
-        if is_craft_mode:
-            if stats["available_crafts"] < 1:
-                await update.message.reply_text(
-                    f"❌ У вас недостаточно дубликатов для обмена.\n"
-                    f"Необходимо собрать хотя бы {limits['craft']} дубликатов."
-                )
-                return
-            
-        # Кулдаун (секунды между бросками) — через Redis
-        cooldown_sec = limits["cooldown"]
+
+        # 2. Проверка кулдауна (Redis)
+        redis_key = f"roll:{user.tg_id}:{bot.id}"
         if redis_client.exists(redis_key):
             ttl = redis_client.ttl(redis_key)
-            await update.message.reply_text(
-                f"⏳ Подожди {ttl} сек. перед следующим броском!"
-            )
+            await update.message.reply_text(f"⏳ Подожди {ttl} сек. перед следующим броском!")
             return
 
-        # Дневной лимит
-        daily_limit = limits["daily"]
+        # 3. Проверка лимитов (БД)
         day_ago = now() - timedelta(hours=24)
-        rolls_today = await UserRoll.objects.filter(
-            user=user,
-            bot=bot,
-            rolled_at__gte=day_ago,
-        ).acount()
-
-        if rolls_today >= daily_limit:
-            await update.message.reply_text(
-                f"⛔ Дневной лимит исчерпан: {rolls_today}/{daily_limit}.\n"
-                "Попробуй снова позже!"
-            )
-            return
-
-        # Двухчасовой лимит
-        bihourly_limit = limits["bihourly"]
         two_hours_ago = now() - timedelta(hours=2)
-        rolls_bihourly = await UserRoll.objects.filter(
-            user=user,
-            bot=bot,
-            rolled_at__gte=two_hours_ago,
-        ).acount()
-
-        if rolls_bihourly >= bihourly_limit:
-            await update.message.reply_text(
-                f"⛔ Лимит за 2 часа исчерпан: {rolls_bihourly}/{bihourly_limit}.\n"
-                "Попробуй снова позже!"
-            )
+        
+        rolls_today = await UserRoll.objects.filter(user=user, bot=bot, rolled_at__gte=day_ago).acount()
+        if rolls_today >= limits["daily"]:
+            await update.message.reply_text(f"⛔ Дневной лимит исчерпан: {rolls_today}/{limits['daily']}.")
             return
 
-        # Выбор случайной карты из активного сезона (с весом по звёздам)
-        all_cards: List[Card] = [
-            card
-            async for card in Card.objects.filter(
-                team__season=season,
-            ).select_related("team")
-        ]
+        rolls_bihourly = await UserRoll.objects.filter(user=user, bot=bot, rolled_at__gte=two_hours_ago).acount()
+        if rolls_bihourly >= limits["bihourly"]:
+            await update.message.reply_text(f"⛔ Лимит за 2 часа исчерпан: {rolls_bihourly}/{limits['bihourly']}.")
+            return
 
+        # 4. Логика крафта (проверка условий перед роллом)
+        if is_craft_mode and stats["available_crafts"] < 1:
+            await update.message.reply_text(f"❌ Недостаточно дубликатов. Нужно {limits['craft']}.")
+            return
+
+        # 5. Выбор карты
+        all_cards = [card async for card in Card.objects.filter(team__season=season).select_related("team")]
         if not all_cards:
             await update.message.reply_text("🃏 В сезоне пока нет карт.")
             return
         
-        # ЕСЛИ КРАФТ: Оставляем только те карты, которых у пользователя еще НЕТ
         if is_craft_mode:
-            all_cards = [card for card in all_cards if card.id not in collected_cards]
-            
+            all_cards = [card for card in all_cards if card.id not in stats["collected_ids"]]
             if not all_cards:
-                await update.message.reply_text("🏆 Поздравляем! Вы уже собрали ВСЕ карты этого сезона! Крафт больше не нужен.")
+                await update.message.reply_text("🏆 Вы уже собрали ВСЕ карты! Крафт не нужен.")
                 return
-            
-        # Рассчитываем веса
+
         weights = [int(60 / card.stars) for card in all_cards]
-
-        # Логируем информацию о картах и их весах
-        logger_info = [
-            f"ID: {card.id} | Name: {card.name} | Stars: {card.stars} | Weight: {w}"
-            for card, w in zip(all_cards, weights)
-        ]
-        logger.info(f"Сформирован пул карт для выбора:\n" + "\n".join(logger_info))
-
-        # random.choices сам распределит вероятности согласно этим весам
         picked_card = random.choices(all_cards, weights=weights, k=1)[0]
 
-        logger.info(f"Выбрана карта: ID {picked_card.id}, {picked_card.name}")
-
-        # Сохраняем бросок
-        await UserRoll.objects.acreate(
-            user=user,
-            bot=bot,
-            card=picked_card,
-            season=season,
-        )
+        # 6. Запись броска в БД
+        await UserRoll.objects.acreate(user=user, bot=bot, card=picked_card, season=season)
         
-        stats = await self.get_gacha_stats(tg_user)
-        unique_collected = stats["unique_count"]
-        collected_cards = stats["collected_ids"] 
-        
+        # 7. Обработка крафта (списание дублей)
+        craft_notice = ""
         if is_craft_mode:
-            # Списываем дубликаты! Нам нужно пометить ровно `craft_limit` штук как использованные.
-            # Берем старые записи дублей (те, где карт этого типа у юзера больше одной)
-            # Чтобы не усложнять, просто берем ЛЮБЫЕ лишние роллы пользователя за этот сезон
+            all_rolls = [r async for r in UserRoll.objects.filter(user=user, season=season, is_used_for_craft=False).order_by('rolled_at')]
+            seen_ids, to_burn = set(), []
+            for r in all_rolls:
+                if r.card_id in seen_ids: to_burn.append(r.id)
+                else: seen_ids.add(r.card_id)
             
-            # Сначала найдем ID всех записей, которые можно сжечь (кроме одной уникальной для каждой карты)
-            all_user_rolls = []
-            async for r in UserRoll.objects.filter(user=user, season=season, is_used_for_craft=False).order_by('rolled_at'):
-                all_user_rolls.append(r)
-                
-            # Вычисляем, какие конкретно записи являются дубликатами
-            seen_card_ids = set()
-            roll_ids_to_burn = []
-            
-            for r in all_user_rolls:
-                if r.card_id in seen_card_ids:
-                    roll_ids_to_burn.append(r.id)
-                else:
-                    seen_card_ids.add(r.card_id)
-            
-            # Нам нужно сжечь строго количество равное лимиту (например, 5 штук)
-            ids_to_update = roll_ids_to_burn[:limits['craft']]
-            
-            # Асинхронно обновляем статус "сожжены" в БД
+            ids_to_update = to_burn[:limits['craft']]
             await UserRoll.objects.filter(id__in=ids_to_update).aupdate(is_used_for_craft=True)
-            
-            # Текст-уведомление о списании
-            craft_notice = f"🔥 Использовано {len(ids_to_update)} дубликатов для обмена!\n\n"
-            
-        # Собираем коллекцию пользователя за сезон
-        collected_cards = set()
-        async for roll in UserRoll.objects.filter(
-            user=user,
-            season=season,
-        ).select_related("card"):
-            collected_cards.add(roll.card_id)
+            craft_notice = f"🔥 Использовано {len(ids_to_update)} дубликатов!\n\n"
 
-        total_cards = len(all_cards)
-        unique_collected = len(set(collected_cards))
-
-        # Собираем все команды сезона для кнопок
-        teams = []
-        async for team in (
-            Team.objects.filter(season=season)
-            .order_by("name")
-            .prefetch_related("cards")
-        ):
-            teams.append(team)
-
-        # Кнопки: по одной на команду, ведут на заглушечный колбэк
+        # 8. Обновление данных для интерфейса
+        stats = await self.get_gacha_stats(tg_user)
+        collected_ids = stats["collected_ids"]
+        
+        # 9. Формирование клавиатуры
+        teams = [t async for t in Team.objects.filter(season=season).order_by("name").prefetch_related("cards")]
         keyboard = []
         for team in teams:
-            cards = [card async for card in team.cards.all().order_by("id")]
-            slots = []
+            cards = [c async for c in team.cards.all().order_by("id")]
+            team_collected = sum(1 for c in cards if c.id in collected_ids)
+            status = "✅ " if team_collected == len(cards) and len(cards) > 0 else "🃏 "
             
-            # Считаем, сколько карт этой команды уже открыто у пользователя
-            team_total = len(cards)
-            team_collected = sum(1 for card in cards if card.id in collected_cards)
-            
-            # Формируем красивый статус для названия кнопки
-            if team_collected == team_total and team_total > 0:
-                status_emoji = "✅ "  # Фулл сет собран
-            else:
-                status_emoji = "🃏 "  # В процессе сборки
-                
-            button_text = f"{status_emoji}{team.name} ({team_collected}/{team_total})"
+            slots = [str(c.id) if c.id in collected_ids else "0" for c in cards[:10]]
+            keyboard.append([InlineKeyboardButton(f"{status}{team.name} ({team_collected}/{len(cards)})", 
+                             callback_data=f"rollimg_{team.id}_" + "_".join(slots))])
 
-            # Твоя логика слотов для callback_data (ограничение до 10 карт)
-            slots = []
-            for card in cards[:10]:
-                slots.append(str(card.id) if card.id in collected_cards else "0")
-
-            callback_data = f"rollimg_{team.id}_" + "_".join(slots)
-            keyboard.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
-
+    # 10. Ответ пользователю
         try:
             text_obj = await BotText.objects.aget(bot=bot, text_type="roll")
             text = text_obj.text
@@ -444,7 +330,7 @@ class GachaBot(AbstractBot):
                 "🛡 Команда: {team}\n"
                 "📝 {description}\n\n"
                 "📊 Прогресс: {unique_collected}/{total_cards} уникальных карт\n"
-                "{shop_status}" 
+                "{shop_status}"
             )
 
         text = text.format(
@@ -452,21 +338,18 @@ class GachaBot(AbstractBot):
             name=picked_card.name,
             team=picked_card.team.name,
             description=picked_card.description or 'Описание пока не добавлено.',
-            unique_collected=unique_collected,
-            total_cards=total_cards,
-            shop_status=stats["shop_text"]  # <-- Передаем строку магазина
+            unique_collected=stats["unique_count"],
+            total_cards=len(all_cards),
+            shop_status=f"{craft_notice}{stats['shop_text']}"
         )
         
-        file_id = await picked_card.aget_image_id(bot.id)
-        await update.message.reply_photo(
-            photo=file_id,
-            caption=text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode=ParseMode.HTML
-        )
+        await update.message.reply_photo(photo=await picked_card.aget_image_id(bot.id), 
+                                         caption=text, reply_markup=InlineKeyboardMarkup(keyboard), 
+                                         parse_mode=ParseMode.HTML)
 
-        redis_client.setex(redis_key, cooldown_sec, card.id)
-
+        # 11. Установка кулдауна в конце
+        redis_client.setex(redis_key, limits["cooldown"], picked_card.id)
+    
     async def handle_roll_album(self, update: Update, context: CallbackContext):
         """Показывает альбом команды, где открытые карты = image, скрытые = image_hidden."""
         query = update.callback_query

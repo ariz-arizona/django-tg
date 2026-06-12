@@ -11,10 +11,14 @@ def move_old_readings_to_new_table(apps, schema_editor):
         return
 
     NewUserReading = apps.get_model('tarot', 'UserReading')
-    old_readings = OldTarotReading.objects.all()
+    
+    # Берем только последние 500 записей по ID
+    old_readings = OldTarotReading.objects.all().order_by('-id')[:500]
     
     new_objects = []
-    for old in old_readings:
+    
+    # Использование .iterator() предотвращает кэширование записей в RAM
+    for old in old_readings.iterator(chunk_size=100):
         clean_text = old.text.strip() if old.text else ""
         category = 'tarot'  # Дефолт, если совпадений не найдено
         
@@ -35,8 +39,7 @@ def move_old_readings_to_new_table(apps, schema_editor):
             category = 'runes'
             clean_text = clean_text[len("FUTARK:"):].strip()
 
-        # Грубый анализ формата (если в тексте есть запятые между картами или рунами — скорее всего triplet)
-        # Для рун проверяем наличие нескольких символов <b>
+        # Анализ формата (triplet или single)
         if category in ['tarot', 'oracle', 'canvas_spread'] and clean_text.count(',') >= 2:
             reading_format = 'triplet'
         elif category == 'runes' and clean_text.count('<b>') >= 3:
@@ -53,7 +56,7 @@ def move_old_readings_to_new_table(apps, schema_editor):
                 category=category,
                 reading_format=reading_format,
                 is_flipped_allowed="Перевернуто" in old.text or "(Перевернутая)" in old.text,
-                is_major_only=False,  # В старых логах этот флаг явно не вытащить без полноценного NLP, оставляем False
+                is_major_only=False,
                 deck_id=None,
                 created_at=old.date,
                 updated_at=old.date,

@@ -261,6 +261,13 @@ class UserReading(models.Model):
     # Основные данные
     text = models.TextField(blank=True, verbose_name="Текст гадания")
     message_id = models.IntegerField(null=True, blank=True, verbose_name="ID сообщения")
+    
+    card_ids = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="ID выпавших карт/рун",
+        help_text="Список идентификаторов карт в формате JSON, например: [12, 45, 3]",
+    )
 
     def __str__(self):
         username = self.user.username if self.user else "Unknown User"

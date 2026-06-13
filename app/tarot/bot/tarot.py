@@ -513,8 +513,9 @@ class TarotBot(AbstractBot):
         user = update.effective_user
         
         # Формируем ключ по тому же шаблону, что и при сохранении
-        # Если шаблон не в классе, можно использовать строку: f"user:{user_id}:{category}"
         redis_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=category)
+        # Ключ для хранения ID сообщения кулдауна
+        msg_ttl_key = f"user:ttl:message:{user_id}:{category}"
         
         try:
             # Запрашиваем оставшееся время жизни ключа (в секундах)
@@ -529,7 +530,7 @@ class TarotBot(AbstractBot):
                 
                 user_name = user.username or user.first_name or str(user_id)
                 logger.info(
-                f"Пользователь {user_name} (id: {user_id}) "
+                    f"Пользователь {user_name} (id: {user_id}) "
                     f"пытается пойти раньше кулдауна на {time_left} секунд "
                     f"для категории {category_upper}"
                 )
@@ -590,15 +591,41 @@ class TarotBot(AbstractBot):
                     message_parts.append("❌ Все команды на кулдауне")
 
                 message = "\n\n".join(message_parts)
+                
+                # === ОБНОВЛЕНИЕ ИЛИ ОТПРАВКА СООБЩЕНИЯ ===
+                # Проверяем, есть ли уже отправленное сообщение об этом кулдауне
+                existing_msg_id = await redis_client.get(msg_ttl_key)
+                
+                if existing_msg_id:
+                    try:
+                        # Используем update.get_bot() для вызова edit_message_text
+                        await update.get_bot().edit_message_text(
+                            chat_id=update.effective_chat.id,
+                            message_id=int(existing_msg_id),
+                            text=message
+                        )
+                        # ОБНОВЛЯЕМ TTL: перезаписываем тот же ID с актуальным остатком времени,
+                        # чтобы ключ в Redis не удалился раньше времени
+                        await redis_client.set(msg_ttl_key, existing_msg_id, ex=time_left)
+                        await update.effective_message.delete()
+                        
+                    except Exception as edit_err:
+                        # Если сообщение удалено или текст совпадает, отправляем заново
+                        logger.warning(f"Не удалось отредактировать сообщение {existing_msg_id}: {edit_err}")
+                        existing_msg_id = None
+                        
+                if not existing_msg_id:
+                    # Если сообщения не было или не удалось отредактировать — отправляем новое
+                    sent_msg = await update.effective_message.reply_text(message)
+                    # Сохраняем ID сообщения в Redis с TTL, равным остатку кулдауна
+                    await redis_client.set(msg_ttl_key, sent_msg.message_id, ex=time_left)
                     
-                await update.effective_message.reply_text(message)
                 return True # Блокировка активна
                 
         except Exception as e:
             # Если Redis упал, не блокируем пользователя, а логируем ошибку
             import logging
             logging.error(f"Ошибка проверки TTL в Redis: {e}")
-            
         return False
 
     async def handle_card(self, update: Update, context: CallbackContext):

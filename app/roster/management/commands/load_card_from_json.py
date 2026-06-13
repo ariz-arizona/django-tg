@@ -90,9 +90,11 @@ class Command(BaseCommand):
 
         total_teams = 0
         total_cards = 0
+        total_backgrounds = 0
         success_images = 0
 
-        # ContentType для Card
+        # ContentType для Team и Card
+        team_ct = ContentType.objects.get_for_model(Team)
         card_ct = ContentType.objects.get_for_model(Card)
 
         for team_data in data['teams']:
@@ -119,74 +121,125 @@ class Command(BaseCommand):
                     team.save(update_fields=['stars'])
                 self.stdout.write(f'  🔄 Команда существует: {team_name}')
 
-            # Обрабатываем карты
-            for card_data in team_data['items']:
-                card_name = card_data['name']
-                card_stars = card_data.get('stars', 1)
-                card_description = card_data.get('description', '')
-                image_filename = card_data.get('image', '')
+            # Обрабатываем элементы (и фоны, и карты)
+            for item_data in team_data.get('items', []):
+                item_name = item_data['name']
+                item_stars = item_data.get('stars', 1)
+                item_description = item_data.get('description', '')
+                image_filename = item_data.get('image', '')
 
-                self.stdout.write(f'  📇 Карта: {card_name} ({card_stars}⭐)')
+                # Определяем, это фон или карта
+                is_background = item_name.startswith('Фон команды:')
 
-                # Создаём или обновляем карту
-                card, created = Card.objects.update_or_create(
-                    team=team,
-                    name=card_name,
-                    defaults={
-                        'stars': card_stars,
-                        'description': card_description,
-                    },
-                )
+                if is_background:
+                    # === ОБРАБОТКА ФОНА КОМАНДЫ ===
+                    self.stdout.write(f'  🖼️  Фон команды: {item_name}')
+                    
+                    if not image_filename:
+                        self.stderr.write(self.style.WARNING(f'    ⚠️  Нет изображения для фона'))
+                        continue
 
-                if created:
-                    self.stdout.write(self.style.SUCCESS(f'    ✅ Создана'))
-                else:
-                    self.stdout.write(f'    🔄 Обновлена')
+                    bg_path = os.path.join(images_dir, image_filename)
 
-                total_cards += 1
-
-                # Загружаем изображение
-                if image_filename:
-                    image_path = os.path.join(images_dir, image_filename)
-
-                    if not os.path.exists(image_path):
+                    if not os.path.exists(bg_path):
                         self.stderr.write(self.style.WARNING(
-                            f'    ⚠️  Файл не найден: {image_path}'
+                            f'    ⚠️  Файл фона не найден: {bg_path}'
                         ))
                         continue
 
-                    self.stdout.write(f'    📤 Загружаю: {image_filename}')
-                    file_id = self.upload_photo(token, chat_id, image_path)
+                    # Загружаем фон через Telegram API так же, как и карты
+                    self.stdout.write(f'    📤 Загружаю фон: {image_filename}')
+                    file_id = self.upload_photo(token, chat_id, bg_path)
 
                     if file_id:
-                        # Удаляем старые BotFile для этой карты и бота
+                        # Удаляем старые фоны для этой команды
                         BotFile.objects.filter(
                             bot=bot,
-                            content_type=card_ct,
-                            object_id=card.id,
+                            content_type=team_ct,
+                            object_id=team.id,
                         ).delete()
 
-                        # Создаём новый BotFile
+                        # Сохраняем file_id для фона команды
                         BotFile.objects.create(
                             bot=bot,
-                            content_type=card_ct,
-                            object_id=card.id,
+                            content_type=team_ct,
+                            object_id=team.id,
                             file_id=file_id,
                         )
-                        self.stdout.write(self.style.SUCCESS(f'    🖼️  file_id: {file_id}'))
+                        self.stdout.write(self.style.SUCCESS(f'    ✅ Фон сохранён: {file_id}'))
+                        total_backgrounds += 1
                         success_images += 1
-
+                        
                         # Задержка между загрузками
                         self.stdout.write(f'    ⏳ Ожидание {delay}с...')
                         time.sleep(delay)
                     else:
-                        self.stderr.write(self.style.ERROR(f'    ❌ Ошибка загрузки'))
+                        self.stderr.write(self.style.ERROR(f'    ❌ Ошибка загрузки фона'))
+
+                else:
+                    # === ОБРАБОТКА КАРТЫ ===
+                    self.stdout.write(f'  📇 Карта: {item_name} ({item_stars}⭐)')
+
+                    # Создаём или обновляем карту
+                    card, created = Card.objects.update_or_create(
+                        team=team,
+                        name=item_name,
+                        defaults={
+                            'stars': item_stars,
+                            'description': item_description,
+                        },
+                    )
+
+                    if created:
+                        self.stdout.write(self.style.SUCCESS(f'    ✅ Создана'))
+                    else:
+                        self.stdout.write(f'    🔄 Обновлена')
+
+                    total_cards += 1
+
+                    # Загружаем изображение карты (через Telegram API как file_id)
+                    if image_filename:
+                        image_path = os.path.join(images_dir, image_filename)
+
+                        if not os.path.exists(image_path):
+                            self.stderr.write(self.style.WARNING(
+                                f'    ⚠️  Файл не найден: {image_path}'
+                            ))
+                            continue
+
+                        self.stdout.write(f'    📤 Загружаю: {image_filename}')
+                        file_id = self.upload_photo(token, chat_id, image_path)
+
+                        if file_id:
+                            # Удаляем старые BotFile для этой карты
+                            BotFile.objects.filter(
+                                bot=bot,
+                                content_type=card_ct,
+                                object_id=card.id,
+                            ).delete()
+
+                            # Создаём новый BotFile для карты (с file_id)
+                            BotFile.objects.create(
+                                bot=bot,
+                                content_type=card_ct,
+                                object_id=card.id,
+                                file_id=file_id,
+                            )
+                            self.stdout.write(self.style.SUCCESS(f'    🖼️  file_id: {file_id}'))
+                            success_images += 1
+
+                            # Задержка между загрузками
+                            self.stdout.write(f'    ⏳ Ожидание {delay}с...')
+                            time.sleep(delay)
+                        else:
+                            self.stderr.write(self.style.ERROR(f'    ❌ Ошибка загрузки'))
 
         self.stdout.write(self.style.SUCCESS(
             f'\n{"="*50}\n'
             f'📊 Импорт завершён:\n'
             f'  • Сезон: {season_name} ({"новый" if season_created else "существующий"})\n'
             f'  • Команд: {total_teams} (создано)\n'
+            f'  • Фонов команд: {total_backgrounds}\n'
             f'  • Карт: {total_cards}\n'
             f'  • Изображений: {success_images}\n'
             f'{"="*50}'

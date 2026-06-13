@@ -5,7 +5,7 @@ from django.utils.html import format_html
 from tg_bot.admin import BotFileInline
 from .models.team import Season, Team, Card
 from .models.roll import UserRoll, RosterUser
-from .models.tech import RollLimit, RarityWeight
+from .models.tech import RollLimit, RarityWeight, BotText
 
 
 class TeamInline(admin.TabularInline):
@@ -395,3 +395,48 @@ class RarityWeightAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('bot')
+    
+
+@admin.register(BotText)
+class BotTextAdmin(admin.ModelAdmin):
+    
+    list_display = [
+        'bot',
+        'text_type',
+        'text_preview',
+        'id',
+    ]
+    
+    list_filter = [
+        'bot',
+        'text_type',
+    ]
+    
+    search_fields = [
+        'text',
+        'bot__username',
+    ]
+    
+    fieldsets = (
+        ('Основное', {
+            'fields': ('bot', 'text_type')
+        }),
+        ('Содержание', {
+            'fields': ('text',),
+            'description': 'Введите текст сообщения. Можно использовать HTML-теги и переменные в фигурных скобках, например: {user_name}, {card_name}, {team_name}'
+        }),
+    )
+    
+    def text_preview(self, obj):
+        """Превью текста в списке (первые 50 символов)."""
+        if len(obj.text) > 50:
+            return obj.text[:50] + '...'
+        return obj.text
+    
+    text_preview.short_description = 'Текст (превью)'
+
+    def get_readonly_fields(self, request, obj=None):
+        """Делаем text_type только для чтения при редактировании."""
+        if obj:  # редактирование существующего объекта
+            return ['text_type']
+        return []

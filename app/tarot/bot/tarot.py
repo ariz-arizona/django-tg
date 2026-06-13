@@ -21,6 +21,8 @@ from telegram.constants import ParseMode
 
 from django.utils.timezone import now, timedelta
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models.functions import Cast
+from django.db.models import IntegerField
 
 from tg_bot.bot.abstract import AbstractBot
 from tg_bot.models import (
@@ -41,6 +43,7 @@ from server.logger import logger
 from django.conf import settings
 
 from tarot.utils.image_utils import create_spread_image
+from tarot.bot.allcard_handler import AllCardHandler
 
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(
@@ -61,6 +64,7 @@ REDIS_KEY_TEMPLATE = "user:{user_id}:{category}"
 
 class TarotBot(AbstractBot):
     def __init__(self):
+        self.allcard_handler = AllCardHandler(self)
         self.handlers = self.get_handlers()
 
     def get_handlers(self):
@@ -68,17 +72,9 @@ class TarotBot(AbstractBot):
             MessageHandler(filters.PHOTO, self.handle_photo_msg),
             CommandHandler("start", self.handle_help),
             CommandHandler("help", self.handle_help),
-            MessageHandler(
-                filters.COMMAND
-                & filters.TEXT
-                & filters.ChatType.PRIVATE
-                & filters.Regex(r"^\/all deck \d+$"),
-                self.handle_all_by_deck,
-            ),
-            CallbackQueryHandler(
-                self.handle_allcard_callback,
-                pattern=r"^allcard_",
-            ),
+            
+            *self.allcard_handler.get_handlers(),
+            
             MessageHandler(
                 filters.COMMAND
                 & filters.TEXT
@@ -1562,108 +1558,6 @@ class TarotBot(AbstractBot):
             )
         except Exception as e:
             logger.error(f"Ошибка при обработке callback-запроса: {e}", exc_info=True)
-            await query.edit_message_text(
-                "Произошла ошибка. Пожалуйста, попробуйте снова."
-            )
-
-    async def make_only_card_message(self, card, deck_id: int, card_index: int):
-        """
-        Формирует сообщение с картой (изображение, описание и кнопки).
-        """
-        # Формируем описание карты
-        card_text = await self.format_card_name(card, False)
-
-        # Формируем клавиатуру с кнопками "вперед" и "назад"
-        keyboard = []
-        if card_index > 0:
-            keyboard.append(
-                InlineKeyboardButton(
-                    text="⬅️ Назад",
-                    callback_data=f"allcard_{deck_id}_{card_index - 1}",
-                )
-            )
-        if (
-            card_index
-            < (await TarotCardItem.objects.filter(deck_id=deck_id).acount()) - 1
-        ):
-            keyboard.append(
-                InlineKeyboardButton(
-                    text="➡️ Вперед",
-                    callback_data=f"allcard_{deck_id}_{card_index + 1}",
-                )
-            )
-
-        return card_text, InlineKeyboardMarkup([keyboard])
-
-    async def handle_all_by_deck(self, update: Update, context: CallbackContext):
-        """
-        Обработчик команды /all deck <deck_id>.
-        """
-        try:
-            msg_text = update.message.text
-            logger.info(f"Обработка команды /all deck с текстом: {msg_text[:100]}")
-
-            # Извлекаем deck_id из команды
-            deck_id = int(msg_text.split()[-1])  # /all deck 8 -> 8
-            # Получаем первую карту
-            card = await self.get_cards(deck_id, 1, [0])
-            card = card[0]
-            if not card:
-                await update.message.reply_text("Карты в этой колоде не найдены.")
-                return
-
-            # Формируем сообщение с первой картой
-            card_text, keyboard = await self.make_only_card_message(card, deck_id, 0)
-
-            # Отправляем изображение и описание карты
-            await update.message.reply_photo(
-                photo=(card["img_id"]),
-                caption=card_text,
-                reply_markup=keyboard,
-                parse_mode="HTML",
-            )
-        except Exception as e:
-            logger.error(f"Ошибка при обработке команды /all deck: {e}", exc_info=True)
-            await update.message.reply_text(
-                "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
-            )
-
-    async def handle_allcard_callback(self, update: Update, context: CallbackContext):
-        """
-        Обработчик callback-запросов для навигации между картами.
-        """
-        try:
-            query = update.callback_query
-            await query.answer()
-
-            # Извлекаем данные из callback_data
-            _, deck_id, card_index = query.data.split("_")
-            deck_id = int(deck_id)
-            card_index = int(card_index)
-
-            # Получаем данные карты
-            card = await self.get_cards(deck_id, 1, [card_index])
-            card = card[0]
-            if not card:
-                await query.edit_message_text("Карта не найдена.")
-                return
-
-            # Формируем сообщение с картой
-            card_text, keyboard = await self.make_only_card_message(
-                card, deck_id, card_index
-            )
-
-            # Обновляем сообщение с новой картой
-            await query.edit_message_media(
-                InputMediaPhoto(
-                    media=(card["img_id"]),
-                    caption=card_text,
-                    parse_mode="HTML",
-                ),
-                reply_markup=keyboard,
-            )
-        except Exception as e:
-            logger.error(f"Ошибка при обработке callback: {e}", exc_info=True)
             await query.edit_message_text(
                 "Произошла ошибка. Пожалуйста, попробуйте снова."
             )

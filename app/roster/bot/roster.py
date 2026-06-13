@@ -52,7 +52,7 @@ class GachaBot(AbstractBot):
             CommandHandler("me", self.handle_me, filters.ChatType.PRIVATE),
             CommandHandler(["roll", "get", "roll_craft"], self.handle_roll, filters.ChatType.PRIVATE),
             CallbackQueryHandler(
-                self.handle_roll_album, pattern=r"^rollimg_\d+(_\d+){5}$"
+                self.handle_roll_album, pattern=r"^rollimg_\d+(_\d+){2,11}$"
             ),
         ]
 
@@ -391,7 +391,7 @@ class GachaBot(AbstractBot):
         # Парсим колбэк: rollimg_TEAMID_SLOT1_SLOT2_SLOT3_SLOT4_SLOT5
         parts = query.data.split("_")
         team_id = int(parts[1])
-        slots = [int(x) for x in parts[2:7]]  # 5 слотов
+        slots = [int(x) for x in parts[2:]]  # 5 слотов
 
         # Получаем команду и её карты
         try:

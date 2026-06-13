@@ -38,7 +38,7 @@ class TeamAdmin(admin.ModelAdmin):
     list_display = ["name", "stars_display", "season", "card_count"]
     list_filter = ["season", "stars"]
     search_fields = ["name"]
-    inlines = [CardInline]
+    inlines = [CardInline, BotFileInline,]
 
     def stars_display(self, obj):
         return "⭐" * obj.stars
@@ -49,6 +49,7 @@ class TeamAdmin(admin.ModelAdmin):
         return obj.cards.count()
 
     card_count.short_description = "Карт"
+    
 
 
 # roster/admin.py

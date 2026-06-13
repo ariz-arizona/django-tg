@@ -33,28 +33,35 @@ def webhook(request, token):
             redis_client.rpush(f"bot_messages_queue_{token}", json_str)
             try:
                 message = json.loads(json_str)
-                message_content = message.get("message") or message.get("edited_message") or {}
-                from_user = message_content.get("from", {})
-                text_or_caption = (
-                    message_content.get("text")
-                    or message_content.get("caption")
-                    or message.get("callback_query", {}).get("data")
-                    or ""
-                )
-                logger.info(
-                    (
-                        f"Сообщение добавлено в очередь: update_id: {message['update_id']}"
-                        f" от {from_user.get('username') or from_user.get('first_name')} {from_user.get('id')}"
-                        f" с текстом {text_or_caption[:20]}"
+                
+                # Определяем тип обновления и извлекаем данные
+                if "callback_query" in message:
+                    callback = message["callback_query"]
+                    from_user = callback.get("from", {})
+                    text_or_caption = callback.get("data", "")
+                    update_id = message.get("update_id", "unknown")
+                else:
+                    message_content = message.get("message") or message.get("edited_message") or {}
+                    from_user = message_content.get("from", {})
+                    text_or_caption = (
+                        message_content.get("text") 
+                        or message_content.get("caption") 
+                        or ""
                     )
+                    update_id = message.get("update_id", "unknown")
+                
+                logger.info(
+                    f"Сообщение добавлено в очередь: update_id: {update_id}"
+                    f" от {from_user.get('username') or from_user.get('first_name', 'unknown')} ({from_user.get('id', 'unknown')})"
+                    f" с текстом {text_or_caption[:20] if text_or_caption else 'empty'}"
                 )
+                
+            except KeyError as e:
+                logger.error(f"Ошибка при обработке обновления: отсутствует ключ {e}")
+                logger.info(f"Сообщение добавлено в очередь (сырое): {json_str[:200]}")
             except Exception as e:
-                logger.info(
-                    (
-                        f"Сообщение добавлено в очередь: update_id: {message['update_id']}"
-                    )
-                )
-                logger.info(message)
+                logger.error(f"Неожиданная ошибка при обработке обновления: {e}")
+                logger.info(f"Сообщение добавлено в очередь (с ошибкой), update_id: {message.get('update_id', 'unknown') if 'message' in locals() else 'unknown'}")
             return JsonResponse({"status": "ok"})
         except Exception as e:
             logger.error(

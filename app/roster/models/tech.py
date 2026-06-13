@@ -54,6 +54,7 @@ class BotText(models.Model):
         ROLL = "roll", "Текст броска"
         START = "start", "Приветственное сообщение"
         CAPTION = "caption", "Подпись к карточке"
+        ME = "me", "Данные пользователя"
 
     bot = models.ForeignKey(
         Bot,

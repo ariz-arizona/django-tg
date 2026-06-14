@@ -38,7 +38,7 @@ class AIApiKeyAdmin(admin.ModelAdmin):
     # 2. Форма редактирования (Form View) — группируем поля по смыслу
     fieldsets = (
         ("Основная информация", {
-            "fields": ("bot", "title", "api_key")
+            "fields": ("bot", "title", "api_key", "system_prompt")
         }),
         ("Настройки провайдера и эндпоинта", {
             "fields": ("provider", "custom_base_url", "override_model_name", "project_identifier"),

@@ -15,14 +15,13 @@ class AIReadingInterpretationInline(admin.TabularInline):
     # Делаем поля только для чтения, чтобы случайно не сломать логи токенов вручную
     readonly_fields = (
         "status_display", 
-        "ai_key_link", 
         "model_used", 
         "tokens_summary", 
         "response_preview", 
         "created_at"
     )
     # Поля, которые будут видны в строке таблицы инлайна
-    fields = ("status_display", "ai_key_link", "model_used", "tokens_summary", "response_preview", "created_at")
+    fields = ("status_display", "model_used", "tokens_summary", "response_preview", "created_at")
     can_delete = False
     
     def has_add_permission(self, request, obj=None):
@@ -40,13 +39,6 @@ class AIReadingInterpretationInline(admin.TabularInline):
             color, obj.get_status_display()
         )
     status_display.short_description = "Статус"
-
-    def ai_key_link(self, obj):
-        if obj.ai_key:
-            url = reverse("admin:tg_bot_aiapikey_change", args=[obj.ai_key.id])
-            return format_html('<a href="{}">{}</a>', url, obj.ai_key.title)
-        return "—"
-    ai_key_link.short_description = "Ключ ИИ"
 
     def tokens_summary(self, obj):
         if obj.status == "success":
@@ -223,7 +215,7 @@ class UserReadingAdmin(admin.ModelAdmin):
 @admin.register(AIReadingInterpretation)
 class AIReadingInterpretationAdmin(admin.ModelAdmin):
     """Отдельная админка для глубокого анализа ИИ запросов и разбора ошибок"""
-    list_display = ("id", "reading_link", "status", "model_used", "prompt_tokens", "completion_tokens", "total_tokens", "created_at")
+    list_display = ("id", "status", "model_used", "prompt_tokens", "completion_tokens", "total_tokens", "created_at")
     list_filter = ("status", "model_used", "created_at")
     search_fields = ("reading__id", "prompt_user", "response_text", "error_message")
     ordering = ("-created_at",)
@@ -248,8 +240,3 @@ class AIReadingInterpretationAdmin(admin.ModelAdmin):
             "classes": ("collapse",)
         }),
     )
-
-    def reading_link(self, obj):
-        url = reverse("admin:tg_bot_userreading_change", args=[obj.reading.id])
-        return format_html('<a href="{}">Расклад #{}</a>', url, obj.reading.id)
-    reading_link.short_description = "Расклад"

@@ -12,7 +12,15 @@ class AIApiKey(models.Model):
         DEEPSEEK = "https://api.deepseek.com/v1", "DeepSeek API"
         LOCAL_OLLAMA = "http://localhost:11434/v1", "Локальный Ollama (Localhost)"
         CUSTOM = "custom", "Свой URL (указать в поле ниже)"
-
+    DEFAULT_SYSTEM_PROMPT = (
+        # "Ты — опытный, мудрый таролог и эксперт по эзотерике. "
+        # "Твоя задача — дать глубокое, поддерживающее и развернутое толкование расклада карт для пользователя.\n\n"
+        "СТРОГИЕ ПРАВИЛА ОФОРМЛЕНИЯ:\n"
+        "1. НЕ ИСПОЛЬЗУЙ НИКАКОЙ MARKDOWN (никаких **, _, #, `). Пиши исключительно чистым текстом.\n"
+        "2. ПРАВИЛО ЭМОДЗИ: Не лепи эмодзи внутрь предложений и текста! Используй их СТРОГО как маркеры (буллиты) в начале абзацев, новых разделов или пунктов списков (например: '🔮 Маг в Ведьмовском Таро...', '✨ Ключевые послания:'). Внутри самого повествования смайликов быть не должно.\n"
+        "3. Разделяй логические блоки и абзацы двойным переносом строки (пустой строкой), чтобы текст был структурированным, воздушным и легко читался.\n"
+        "4. ОГРАНИЧЕНИЕ НА РАЗМЕР: Твой ответ должен быть строго меньше 3800 символов. Пиши емко, глубоко, без лишней воды."
+    )
     bot = models.ForeignKey(
         "tg_bot.Bot",
         on_delete=models.CASCADE,
@@ -65,6 +73,12 @@ class AIApiKey(models.Model):
     is_exhausted = models.BooleanField(default=False, verbose_name="Лимит исчерпан")
     exhausted_until = models.DateTimeField(
         null=True, blank=True, verbose_name="Заблокирован до"
+    )
+    
+    system_prompt = models.TextField(
+        default=DEFAULT_SYSTEM_PROMPT,
+        verbose_name="Системный промпт (Инструкция для ИИ)",
+        help_text="Базовая инструкция, определяющая роль ИИ, поведение и правила форматирования текста.",
     )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Добавлен")

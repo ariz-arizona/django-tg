@@ -100,7 +100,7 @@ class UserReadingAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ("Основная информация", {
-            "fields": ("user", "bot", "category", "count")
+            "fields": ("user", "bot", "category", "count", "original_query")
         }),
         ("Настройки расклада", {
             "fields": ("is_flipped_allowed", "is_major_only", "deck_id"),

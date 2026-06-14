@@ -175,10 +175,12 @@ class TarotBot(AbstractBot):
         is_flipped_allowed: bool = False, 
         is_major_only: bool = False,
         card_ids: list = None,
+        **kwargs,
     ):
         # 1. Защита от пустых значений для JSONField
         if card_ids is None:
             card_ids = []
+        original_query = kwargs.pop("original_query", "")
 
         # 2. Создаем запись в новой типизированной модели UserReading
         reading = await UserReading.objects.acreate(
@@ -192,6 +194,7 @@ class TarotBot(AbstractBot):
             text=text,
             message_id=message_id,
             card_ids=card_ids, 
+            original_query=original_query,
         )
         logger.info(f"Результат гадания сохранен: {reading}")
         
@@ -476,8 +479,12 @@ class TarotBot(AbstractBot):
     def parse_reading_options(self, msg_text: str) -> dict:
         """
         Полный парсинг аргументов команды из текста сообщения.
-        Поддерживает: /card3, deck 5, flip, major, c12_15_23
+        Поддерживает: /card3, deck 5, flip, major, c12_15_23.
+        Все, что осталось после очистки служебных флагов — оригинальный запрос.
         """
+        # Сохраняем исходную строку для вырезания флагов
+        clean_text = msg_text
+        
         msg_lower = msg_text.lower()
         options = {}
 
@@ -485,44 +492,64 @@ class TarotBot(AbstractBot):
         counter_found = re.search(r"/[a-zA-Z]+(\d+)", msg_lower)
         options["counter"] = int(counter_found.group(1)) if counter_found else 1
         options["counter"] = max(1, min(options["counter"], 10))
+        
+        # Вырезаем саму команду (например, /card3 или /card)
+        # Ищем команду с необязательными цифрами на конце
+        clean_text = re.sub(r"/[a-zA-Z]+\d*", "", clean_text, flags=re.IGNORECASE)
 
         # 2. Парсинг ID колоды (deck 5)
-        deck_found = re.search(r"deck\s*(\d+)", msg_lower)
-        options["deck"] = int(deck_found.group(1)) if deck_found else None
+        deck_match = re.search(r"deck\s*(\d+)", msg_lower)
+        if deck_match:
+            options["deck"] = int(deck_match.group(1))
+            # Вырезаем 'deck X' или 'deckX' из текста запроса
+            clean_text = re.sub(r"deck\s*\d+", "", clean_text, flags=re.IGNORECASE)
+        else:
+            options["deck"] = None
 
         # 3. Парсинг флага перевернутых позиций (flip)
         options["flip"] = "flip" in msg_lower
+        if options["flip"]:
+            clean_text = re.sub(r"\bflip\b", "", clean_text, flags=re.IGNORECASE)
 
         # 4. Парсинг флага Старших Арканов (major)
         options["major"] = "major" in msg_lower
+        if options["major"]:
+            clean_text = re.sub(r"\bmajor\b", "", clean_text, flags=re.IGNORECASE)
 
         # 5. Парсинг конкретных ID карт (формат: c12_15_23)
-        # Ищем в msg_text (оригинальном, на случай если регистр c/C важен, хотя регулярка покроет)
         card_ids_found = re.findall(r"[cC](\d+(?:_\d+)*)", msg_text)
         
         if card_ids_found:
-            # Вытаскиваем числа из первой найденной группы, делим по модулю 78
             card_ids = [int(c) % 78 for c in card_ids_found[0].split("_")]
-            
-            # Если переданных ID меньше, чем заказано в counter, циклически инкрементируем последний ID
             target_count = options["counter"]
+            
             if len(card_ids) < target_count:
                 temp_id = card_ids[-1]
                 for _ in range(len(card_ids), target_count):
                     temp_id = (temp_id + 1) % 78
                     card_ids.append(temp_id)
             
-            # Отрезаем лишнее, если передали больше, чем counter
             options["card_ids"] = card_ids[:target_count]
             logger.info(f"Парсинг ID карт: card_ids={options['card_ids']}")
+            
+            # Вырезаем блок кастомных ID (например, c12_15_23)
+            clean_text = re.sub(r"[cC]\d+(?:_\d+)*", "", clean_text)
         else:
             options["card_ids"] = None
             logger.info("ID карт не указаны, будут выбраны случайные карты.")
 
+        # 6. ФИНАЛЬНАЯ ОЧИСТКА ОРИГИНАЛЬНОГО ЗАПРОСА
+        # Убираем лишние пробелы, переносы строк и знаки препинания, которые могли остаться по краям
+        clean_text = re.sub(r"\s+", " ", clean_text).strip()
+        
+        # Записываем результат (если пользователь ничего не ввел, будет пустая строка)
+        options["original_query"] = clean_text
+
         logger.info(
             f"Опции расклада полностью собраны: counter={options['counter']}, "
             f"deck={options['deck']}, flip={options['flip']}, "
-            f"major={options['major']}, has_custom_ids={options['card_ids'] is not None}"
+            f"major={options['major']}, has_custom_ids={options['card_ids'] is not None} | "
+            f"Query: '{options['original_query']}'"
         )
         
         return options
@@ -745,6 +772,8 @@ class TarotBot(AbstractBot):
             f"Инструмент/Категория: {reading.get_category_display()}\n"
             f"Выпавшие карты/руны: {reading.text}"
         )
+        if reading.original_query:
+            prompt_user += f"\n\n💬 Вопрос/Контекст пользователя: {reading.original_query.strip()}"
         
         # 3. Создаем предварительную запись в базе со статусом PENDING
         ai_log = await AIReadingInterpretation.objects.acreate(
@@ -985,7 +1014,8 @@ class TarotBot(AbstractBot):
                 deck_id=deck.id if deck else None,
                 is_flipped_allowed=options.get('flip', False),
                 is_major_only=options.get('major', False),
-                card_ids=[c["card_id"] for c in cards]
+                card_ids=[c["card_id"] for c in cards],
+                original_query=options.get('original_query'),
             )
             send_card_kwargs = {}
             

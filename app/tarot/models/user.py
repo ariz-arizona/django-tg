@@ -41,6 +41,13 @@ class UserReading(models.Model):
         default=1, 
         verbose_name="Количество карт/рун"
     )
+    
+    original_query = models.TextField(
+        blank=True, 
+        default="", 
+        verbose_name="Оригинальный запрос",
+        help_text="Вопрос или тема, которую ввел пользователь перед гаданием"
+    )
 
     created_at = models.DateTimeField(
         auto_now_add=True, 

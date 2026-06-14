@@ -1,0 +1,86 @@
+from django.db import models
+from .base import bot_prefix
+
+
+class UserReading(models.Model):
+    # Основной инструмент гадания
+    class ReadingCategory(models.TextChoices):
+        ONE = "one", "Одна карта"                      # Для команды /one
+        TAROT = "tarot", "Таро"                        # Для /card, /card3
+        ORACLE = "oracle", "Оракул"                    # Для /oraculum, /oraculum3
+        RUNES = "runes", "Руны (Футарк)"               # Для /futark, /futark triplet
+        CANVAS_SPREAD = "canvas_spread", "Расклад на холсте" # Для /spread
+
+    user = models.ForeignKey(
+        "tg_bot.TgUser",
+        on_delete=models.SET_NULL,
+        related_name="user_readings",
+        null=True,
+        verbose_name="Пользователь",
+    )
+    
+    # Поля типов
+    category = models.CharField(
+        max_length=20,
+        choices=ReadingCategory.choices,
+        default=ReadingCategory.TAROT,
+        verbose_name="Категория гадания",
+    )
+
+    # Дополнительные настройки расклада (флаги)
+    is_flipped_allowed = models.BooleanField(
+        default=False, verbose_name="С перевернутыми"
+    )  # Для флага flip
+    is_major_only = models.BooleanField(
+        default=False, verbose_name="Только Старшие Арканы"
+    )  # Для флага major
+    deck_id = models.IntegerField(
+        null=True, blank=True, verbose_name="ID колоды"
+    )  # Для аргумента deck НОМЕР
+    count = models.PositiveSmallIntegerField(
+        default=1, 
+        verbose_name="Количество карт/рун"
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True, 
+        verbose_name="Дата гадания"  # Оставляем понятное имя для админки
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, 
+        verbose_name="Дата изменения"
+    )
+    
+    bot = models.ForeignKey(
+        "tg_bot.Bot",
+        on_delete=models.SET_NULL,
+        related_name="user_readings",
+        null=True,
+        blank=True,
+        verbose_name="Бот",
+        help_text="Бот, через который выполнено гадание"
+    )
+    
+    # Основные данные
+    text = models.TextField(blank=True, verbose_name="Текст гадания")
+    message_id = models.IntegerField(null=True, blank=True, verbose_name="ID сообщения")
+    
+    card_ids = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="ID выпавших карт/рун",
+        help_text="Список идентификаторов карт в формате JSON, например: [12, 45, 3]",
+    )
+
+    def __str__(self):
+        name = self.user.username or self.user.first_name or str(self.user.tg_id)
+        return f"{self.get_category_display()} - {name}"
+
+    class Meta:
+        verbose_name = f"{bot_prefix}: Пользовательское гадание"
+        verbose_name_plural = f"{bot_prefix}: Пользовательские гадания"
+        
+        # Индексы для быстрой фильтрации по категориям и датам
+        indexes = [
+            models.Index(fields=["user", "category", "created_at"]),
+        ]

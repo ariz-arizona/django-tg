@@ -127,12 +127,13 @@ class UserReadingAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "user_link",
-        "bot_link",           # Добавляем бота
-        "category_display",   # Красивое отображение категории
-        "card_count",         # Количество карт/рун в раскладе
-        "created_at_short",   # Короткая дата
+        "bot_link",           
+        "category_display",   
+        "card_count",         
+        "has_ai_interpretation",  # <-- НАША НОВАЯ ГАЛОЧКА ТУТ
+        "created_at_short",   
     )
-
+    
     # Боковая панель фильтрации
     list_filter = (
         "category",
@@ -182,6 +183,27 @@ class UserReadingAdmin(admin.ModelAdmin):
             "classes": ("collapse",)
         }),
     )
+    
+    
+    # Добавляем кастомный метод отображения галочки
+    @admin.display(
+        boolean=True,                           # Превращает True/False в красивую иконку галочки/крестика
+        ordering="ai_interpretations__id",       # Позволит сортировать список по наличию ИИ
+        description="Есть ИИ толкование",        # Название колонки в админке
+    )
+    def has_ai_interpretation(self, obj):
+        # Проверяем, есть ли хоть одна УСПЕШНАЯ генерация для этого расклада
+        return obj.ai_interpretations.filter(status="success").exists()
+        
+        # Если нужно выводить галочку вообще при любой попытке (даже ошибочной), 
+        # то замените строку выше на простую проверку:
+        # return obj.ai_interpretations.exists()
+
+    # Оптимизируем SQL-запросы, чтобы админка не легла от N+1 запросов
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        # prefetch_related сделает один быстрый дополнительный запрос для пачки ИИ-связей
+        return queryset.prefetch_related("ai_interpretations")
 
     def user_link(self, obj):
         if obj.user:

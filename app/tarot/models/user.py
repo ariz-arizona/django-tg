@@ -84,3 +84,91 @@ class UserReading(models.Model):
         indexes = [
             models.Index(fields=["user", "category", "created_at"]),
         ]
+
+class AIReadingInterpretation(models.Model):
+    class AIStatus(models.TextChoices):
+        PENDING = "pending", "В очереди / Обрабатывается"
+        SUCCESS = "success", "Успешно завершено"
+        FAILED = "failed", "Ошибка генерации"
+
+    # Связь с основным раскладом (один расклад может иметь несколько ИИ-толкований)
+    reading = models.ForeignKey(
+        "UserReading",
+        on_delete=models.CASCADE,
+        related_name="ai_interpretations",
+        verbose_name="Расклад карт",
+    )
+    
+    # Какой ключ и провайдер выполняли этот запрос
+    ai_key = models.ForeignKey(
+        "AIApiKey",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="interpretations",
+        verbose_name="Использованный API Ключ",
+    )
+    
+    # Название модели, которая фактически ответила (например, 'gemini-2.0-flash')
+    model_used = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Использованная модель",
+    )
+
+    status = models.CharField(
+        max_length=15,
+        choices=AIStatus.choices,
+        default=AIStatus.PENDING,
+        verbose_name="Статус запроса",
+    )
+
+    # --- Слои данных (Промпт / Ответ / Ошибка) ---
+    prompt_system = models.TextField(
+        blank=True, 
+        verbose_name="Системный промпт (Инструкции)",
+    )
+    prompt_user = models.TextField(
+        blank=True, 
+        verbose_name="Пользовательский промпт / Контекст",
+        help_text="Сюда входят выпавшие карты, вопрос юзера и т.д."
+    )
+    response_text = models.TextField(
+        blank=True, 
+        verbose_name="Текст ответа ИИ",
+    )
+    error_message = models.TextField(
+        blank=True, 
+        verbose_name="Текст ошибки",
+        help_text="Traceback или описание ошибки API в случае FAILED"
+    )
+
+    # --- Счетчик токенов ---
+    prompt_tokens = models.PositiveIntegerField(
+        default=0, 
+        verbose_name="Входящие токены (Prompt)"
+    )
+    completion_tokens = models.PositiveIntegerField(
+        default=0, 
+        verbose_name="Исходящие токены (Completion)"
+    )
+    total_tokens = models.PositiveIntegerField(
+        default=0, 
+        verbose_name="Всего токенов"
+    )
+
+    # Временные метки
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Создан запрос")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Обновлен")
+
+    class Meta:
+        verbose_name = "ИИ-Интерпретация расклада"
+        verbose_name_plural = "ИИ-Интерпретации раскладов"
+        indexes = [
+            models.Index(fields=["reading", "status"]),
+            models.Index(fields=["created_at"]),
+        ]
+
+    def __str__(self):
+        return f"Интерпретация #{self.id} для расклада #{self.reading_id} [{self.get_status_display()}]"

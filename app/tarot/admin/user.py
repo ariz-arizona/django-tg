@@ -1,61 +1,120 @@
+import csv
 from django.contrib import admin
-from ..models.user import UserReading
+from django.http import HttpResponse
+from django.urls import reverse
+from django.utils.html import format_html
+
+from ..models.user import UserReading, AIReadingInterpretation
+from ..models.tech import AIApiKey
+
+
+class AIReadingInterpretationInline(admin.TabularInline):
+    """Инлайн для отображения ИИ-генераций прямо внутри расклада карт"""
+    model = AIReadingInterpretation
+    extra = 0
+    # Делаем поля только для чтения, чтобы случайно не сломать логи токенов вручную
+    readonly_fields = (
+        "status_display", 
+        "ai_key_link", 
+        "model_used", 
+        "tokens_summary", 
+        "response_preview", 
+        "created_at"
+    )
+    # Поля, которые будут видны в строке таблицы инлайна
+    fields = ("status_display", "ai_key_link", "model_used", "tokens_summary", "response_preview", "created_at")
+    can_delete = False
+    
+    def has_add_permission(self, request, obj=None):
+        return False  # ИИ-запросы создаются только кодом бота
+
+    def status_display(self, obj):
+        colors = {
+            "pending": "#FF9800",  # Оранжевый
+            "success": "#4CAF50",  # Зеленый
+            "failed": "#F44336",   # Красный
+        }
+        color = colors.get(obj.status, "#757575")
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color, obj.get_status_display()
+        )
+    status_display.short_description = "Статус"
+
+    def ai_key_link(self, obj):
+        if obj.ai_key:
+            url = reverse("admin:tg_bot_aiapikey_change", args=[obj.ai_key.id])
+            return format_html('<a href="{}">{}</a>', url, obj.ai_key.title)
+        return "—"
+    ai_key_link.short_description = "Ключ ИИ"
+
+    def tokens_summary(self, obj):
+        if obj.status == "success":
+            return format_html(
+                "📥 {} / 📤 {} <br><small style='color:#757575'>Всего: {}</small>",
+                obj.prompt_tokens, obj.completion_tokens, obj.total_tokens
+            )
+        return "—"
+    tokens_summary.short_description = "Токены (In/Out)"
+
+    def response_preview(self, obj):
+        if obj.status == "success" and obj.response_text:
+            return obj.response_text[:60] + "..." if len(obj.response_text) > 60 else obj.response_text
+        if obj.status == "failed" and obj.error_message:
+            return format_html('<span style="color: red;">⚠ {}</span>', obj.error_message[:60])
+        return "—"
+    response_preview.short_description = "Результат/Ошибка"
 
 
 @admin.register(UserReading)
 class UserReadingAdmin(admin.ModelAdmin):
-    # Поля, которые будут отображаться в списке записей
+    # Добавляем в инлайны нашу ИИ-модель
+    inlines = [AIReadingInterpretationInline]
+
     list_display = (
         "id",
         "user_link",
-        "bot_link",           # Добавляем бота
-        "category_display",   # Красивое отображение категории
-        "card_count",         # Количество карт/рун в раскладе
-        "created_at_short",   # Короткая дата
+        "bot_link",           
+        "category_display",   
+        "card_count",         
+        "ai_status_summary",  # Добавили агрегированный статус ИИ в общий список
+        "created_at_short",   
     )
 
-    # Боковая панель фильтрации
     list_filter = (
         "category",
-        "bot",                # Фильтр по боту
+        "bot",                
         "is_flipped_allowed",
         "is_major_only",
-        ("created_at", admin.DateFieldListFilter),  # Улучшенный фильтр по дате
+        "ai_interpretations__status",  # Позволяет фильтровать расклады по статусу ИИ-запросов
+        ("created_at", admin.DateFieldListFilter),  
     )
 
-    # Поля поиска
     search_fields = (
         "user__username",
         "user__first_name", 
         "user__last_name",
         "user__tg_id",
-        "bot__username",      # Поиск по юзернейму бота
+        "bot__username",      
         "text",
-        "card_ids",           # Поиск по ID карт
+        "card_ids",  
+        "ai_interpretations__response_text", # Поиск по сгенерированному ИИ тексту
     )
 
-    # Только для чтения
     readonly_fields = ("created_at", "updated_at", "card_ids_preview")
-
-    # Сортировка
     ordering = ("-created_at",)
-
-    # Пагинация
     list_per_page = 50
-    
-    # Действия (можно добавить массовое удаление, экспорт)
     actions = ["export_selected"]
 
-    # Поля для детального просмотра
     fieldsets = (
         ("Основная информация", {
             "fields": ("user", "bot", "category", "count")
         }),
         ("Настройки расклада", {
             "fields": ("is_flipped_allowed", "is_major_only", "deck_id"),
-            "classes": ("collapse",)  # Сворачиваемый блок
+            "classes": ("collapse",)  
         }),
-        ("Результат", {
+        ("Результат карт", {
             "fields": ("text", "card_ids", "card_ids_preview", "message_id")
         }),
         ("Временные метки", {
@@ -66,80 +125,72 @@ class UserReadingAdmin(admin.ModelAdmin):
 
     def user_link(self, obj):
         if obj.user:
-            # Ссылка на пользователя в админке
-            from django.urls import reverse
-            from django.utils.html import format_html
-            
             url = reverse("admin:tg_bot_tguser_change", args=[obj.user.id])
             display_name = obj.user.username or obj.user.first_name or f"ID: {obj.user.tg_id}"
             return format_html('<a href="{}">{}</a>', url, display_name)
         return "—"
-    
     user_link.short_description = "Пользователь"
     user_link.admin_order_field = "user__username"
 
     def bot_link(self, obj):
         if obj.bot:
-            from django.urls import reverse
-            from django.utils.html import format_html
-            
             url = reverse("admin:tg_bot_bot_change", args=[obj.bot.id])
             display_name = obj.bot.username or f"Bot #{obj.bot.id}"
             return format_html('<a href="{}">{}</a>', url, display_name)
         return "—"
-    
     bot_link.short_description = "Бот"
     bot_link.admin_order_field = "bot__username"
 
     def category_display(self, obj):
-        """Цветное отображение категории"""
-        from django.utils.html import format_html
-        
         colors = {
-            "one": "#4CAF50",      # Зеленый
-            "tarot": "#9C27B0",    # Фиолетовый
-            "oracle": "#2196F3",   # Синий
-            "runes": "#FF9800",    # Оранжевый
-            "canvas_spread": "#F44336",  # Красный
+            "one": "#4CAF50",      
+            "tarot": "#9C27B0",    
+            "oracle": "#2196F3",   
+            "runes": "#FF9800",    
+            "canvas_spread": "#F44336",  
         }
         color = colors.get(obj.category, "#757575")
         return format_html(
             '<span style="color: {}; font-weight: bold;">{}</span>',
             color, obj.get_category_display()
         )
-    
     category_display.short_description = "Категория"
     category_display.admin_order_field = "category"
 
+    def ai_status_summary(self, obj):
+        """Выводит в общий список статус последней интерпретации ИИ и тотал токенов"""
+        latest_ai = obj.ai_interpretations.order_by("-created_at").first()
+        if not latest_ai:
+            return format_html('<span style="color: #757575;">Без ИИ</span>')
+        
+        status_colors = {"pending": "#FF9800", "success": "#4CAF50", "failed": "#F44336"}
+        color = status_colors.get(latest_ai.status, "#757575")
+        
+        if latest_ai.status == "success":
+            return format_html(
+                '<span style="color: {}; font-weight: bold;">🤖 OK</span> <small style="color: #757575">({} tkn)</small>',
+                color, latest_ai.total_tokens
+            )
+        return format_html('<span style="color: {}; font-weight: bold;">🤖 {}</span>', color, latest_ai.get_status_display())
+    ai_status_summary.short_description = "ИИ Ответ"
+
     def created_at_short(self, obj):
-        """Короткий формат даты"""
         return obj.created_at.strftime("%d.%m.%Y %H:%M")
-    
     created_at_short.short_description = "Дата"
     created_at_short.admin_order_field = "created_at"
 
     def card_count(self, obj):
-        """Количество карт в раскладе"""
         count = len(obj.card_ids) if obj.card_ids else 0
-        if count > 0:
-            return f"🎴 {count}"
-        return "—"
-    
+        return f"🎴 {count}" if count > 0 else "—"
     card_count.short_description = "Карт"
 
     def card_ids_preview(self, obj):
-        """Предпросмотр ID карт в детальном просмотре"""
         if obj.card_ids:
             return ", ".join(map(str, obj.card_ids[:10]))
         return "—"
-    
     card_ids_preview.short_description = "Предпросмотр карт"
 
     def export_selected(self, request, queryset):
-        """Экспорт выбранных записей в CSV"""
-        import csv
-        from django.http import HttpResponse
-        
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="user_readings.csv"'
         
@@ -165,7 +216,40 @@ class UserReadingAdmin(admin.ModelAdmin):
                 obj.created_at.strftime("%Y-%m-%d %H:%M:%S"),
                 obj.text[:100] if obj.text else ""
             ])
-        
         return response
-    
     export_selected.short_description = "Экспортировать выбранные в CSV"
+
+
+@admin.register(AIReadingInterpretation)
+class AIReadingInterpretationAdmin(admin.ModelAdmin):
+    """Отдельная админка для глубокого анализа ИИ запросов и разбора ошибок"""
+    list_display = ("id", "reading_link", "status", "model_used", "prompt_tokens", "completion_tokens", "total_tokens", "created_at")
+    list_filter = ("status", "model_used", "created_at")
+    search_fields = ("reading__id", "prompt_user", "response_text", "error_message")
+    ordering = ("-created_at",)
+    
+    readonly_fields = ("created_at", "updated_at")
+    
+    fieldsets = (
+        ("Связи и Метаданные", {
+            "fields": ("reading", "ai_key", "model_used", "status")
+        }),
+        ("Слои Промптов", {
+            "fields": ("prompt_system", "prompt_user"),
+        }),
+        ("Результат выполнения", {
+            "fields": ("response_text", "error_message"),
+        }),
+        ("Статистика токенов", {
+            "fields": ("prompt_tokens", "completion_tokens", "total_tokens"),
+        }),
+        ("Логи времени", {
+            "fields": ("created_at", "updated_at"),
+            "classes": ("collapse",)
+        }),
+    )
+
+    def reading_link(self, obj):
+        url = reverse("admin:tg_bot_userreading_change", args=[obj.reading.id])
+        return format_html('<a href="{}">Расклад #{}</a>', url, obj.reading.id)
+    reading_link.short_description = "Расклад"

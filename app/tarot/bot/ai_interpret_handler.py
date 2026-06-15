@@ -3,7 +3,7 @@ import json
 import os
 from typing import List, Optional, Dict
 import redis.asyncio as aioredis
-
+import tiktoken
 import time
 import random
 from openai import AsyncOpenAI
@@ -51,12 +51,20 @@ REDIS_TTL_SECONDS = 10
 REDIS_KEY_TEMPLATE = "user:{user_id}:{category}"
 
 def is_markup_identical(markup1, markup2):
+    # Если оба None — они идентичны
     if markup1 is None and markup2 is None:
         return True
+    # Если один None, а другой нет — они разные
     if markup1 is None or markup2 is None:
         return False
-    # Сравниваем словари, полученные из объектов
-    return json.dumps(markup1.to_dict(), sort_keys=True) == json.dumps(markup2.to_dict(), sort_keys=True)
+    
+    # Большинство объектов в python-telegram-bot поддерживают прямое сравнение
+    return markup1 == markup2
+
+encoding = tiktoken.get_encoding("o200k_base") 
+
+def count_tokens(text: str) -> int:
+    return len(encoding.encode(text))
 
 class AIInterpretHandler:
     """Обработчик для запуска ИИ-интерпретации раскладов."""
@@ -137,7 +145,6 @@ class AIInterpretHandler:
         keyboard = InlineKeyboardMarkup(inline_keyboard=[[left_btn, center_btn, right_btn]])
         
         return text, keyboard
-    
 
     async def should_add_ai_button(self) -> bool:
         """
@@ -257,6 +264,11 @@ class AIInterpretHandler:
             extra_headers = {}
             if active_key.project_identifier:
                 extra_headers["X-Goog-User-Project"] = active_key.project_identifier
+                
+            prompt_text = prompt_system + prompt_user
+            prompt_tokens = len(encoding.encode(prompt_text))
+            
+            full_response_text = ""
 
             # 5. Делаем асинхронный запрос с параметром stream=True
             response_stream = await client.chat.completions.create(
@@ -278,6 +290,10 @@ class AIInterpretHandler:
             TG_UPDATE_INTERVAL = 1
             last_tg_update_time = time.time()
             
+            prompt_tokens = 0
+            completion_tokens = 0
+            total_tokens = 0
+            
             system_snippet = prompt_system[:100]
             if len(prompt_system) > 100:
                 system_snippet += "..."
@@ -293,6 +309,7 @@ class AIInterpretHandler:
             async for chunk in response_stream:
                 if chunk.choices and chunk.choices[0].delta.content:
                     content = chunk.choices[0].delta.content
+                    full_response_text += content
                     
                     buffer_text += content
                     chunk_counter += 1
@@ -338,8 +355,16 @@ class AIInterpretHandler:
                     elif page_counter > 0 and is_first_chunk_of_page:
                         text, keyboard = await self.get_ai_paged_data(ai_log, page_number)
                         
-                        if not is_markup_identical(message.reply_markup, keyboard):
-                            await message.edit_reply_markup(reply_markup=keyboard)
+                        try:
+                            if not is_markup_identical(message.reply_markup, keyboard):
+                                await message.edit_reply_markup(reply_markup=keyboard)
+                        except BadRequest as e:
+                            if "Message is not modified" not in str(e):
+                                raise e
+                if chunk.usage:
+                    prompt_tokens = chunk.usage.prompt_tokens
+                    completion_tokens = chunk.usage.completion_tokens
+                    total_tokens = chunk.usage.total_tokens
 
             if buffer_text:
                 await AIReadingPage.objects.acreate(
@@ -347,12 +372,10 @@ class AIInterpretHandler:
                     content=buffer_text,
                     page_number=page_counter
                 )
-
-            # При стриминге некоторые провайдеры/прокси не отдают usage в конце.
-            # На всякий случай считаем приблизительно или берем из последнего чанка, если он там есть
-            prompt_tokens = 0
-            completion_tokens = 0
-            total_tokens = 0
+            
+            if not completion_tokens:
+                completion_tokens = len(encoding.encode(full_response_text))
+                total_tokens = prompt_tokens + completion_tokens
             
             # 8. Обновляем лог — УСПЕХ
             ai_log.prompt_tokens = prompt_tokens

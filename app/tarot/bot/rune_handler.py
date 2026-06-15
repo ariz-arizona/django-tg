@@ -103,7 +103,18 @@ class RuneHandler:
         
         # Если позиция не передана, показываем общую информацию о раскладе
         if position is None:
-            full_text = f"Расклад №{reading.id}. Выберите руну для просмотра значения."
+            # Сначала собираем названия/символы для текста
+            rune_list_text = []
+            for item in reading.card_ids:
+                r = await Rune.objects.aget(id=item["id"])
+                # Добавляем эмодзи переворота, если нужно
+                emoji = " 🔄" if item.get("inverted") else ""
+                rune_list_text.append(f"{r.symbol} {r.type}{emoji}")
+            
+            full_text = (
+                f"Выберите руну для просмотра подробного значения:\n\n"
+                f"{chr(10).join(rune_list_text)}"
+            )
             pages = [full_text]
             keyboard = []
         else:

@@ -179,9 +179,19 @@ class UserReadingAdmin(admin.ModelAdmin):
     created_at_short.admin_order_field = "created_at"
 
     def card_count(self, obj):
-        count = len(obj.card_ids) if obj.card_ids else 0
-        return f"🎴 {count}" if count > 0 else "—"
-    card_count.short_description = "Карт"
+        """Количество карт в раскладе"""
+        # Если это список, берем len, если число (одна карта) — значит 1, иначе 0
+        if isinstance(obj.card_ids, list):
+            count = len(obj.card_ids)
+        elif isinstance(obj.card_ids, (int, str)): 
+            # Если там просто ID (число) или строка с ID
+            count = 1 if obj.card_ids else 0
+        else:
+            count = 0
+            
+        if count > 0:
+            return f"🎴 {count}"
+        return "—"
 
     def card_ids_preview(self, obj):
         if obj.card_ids:

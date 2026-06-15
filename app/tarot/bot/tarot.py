@@ -1,7 +1,8 @@
 import re
 import os
 from typing import List, Optional, Dict
-
+            
+import textwrap
 import time
 import json
 import asyncio
@@ -51,6 +52,7 @@ from django.conf import settings
 from tarot.utils.image_utils import create_spread_image
 from tarot.bot.allcard_handler import AllCardHandler
 from tarot.bot.ai_interpret_handler import AIInterpretHandler
+from tarot.bot.rune_handler import RuneHandler
 
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(
@@ -73,6 +75,7 @@ class TarotBot(AbstractBot):
     def __init__(self):
         self.allcard_handler = AllCardHandler(self)
         self.ai_interpret_handler = AIInterpretHandler(self)
+        self.rune_handler = RuneHandler(self)
         self.handlers = self.get_handlers()
 
     def get_handlers(self):
@@ -82,19 +85,7 @@ class TarotBot(AbstractBot):
             CommandHandler("help", self.handle_help),
             
             *self.allcard_handler.get_handlers(),
-            
-            MessageHandler(
-                filters.COMMAND
-                & filters.TEXT
-                & filters.ChatType.PRIVATE
-                & filters.Regex(r"^\/fut(h?)ark( triplet)?$"),
-                self.handle_futark,
-            ),
-            CallbackQueryHandler(
-                self.handle_futark_callback,
-                pattern=r"^futhark_",
-            ),
-            
+            *self.rune_handler.get_handlers(),
             *self.ai_interpret_handler.get_handlers(),
             
             MessageHandler(
@@ -1501,169 +1492,6 @@ class TarotBot(AbstractBot):
                 parse_mode="HTML",
                 disable_web_page_preview=True,
             )
-        except Exception as e:
-            logger.error(f"Ошибка при обработке callback-запроса: {e}", exc_info=True)
-            await query.edit_message_text(
-                "Произошла ошибка. Пожалуйста, попробуйте снова."
-            )
-
-    async def handle_futark(self, update: Update, context: CallbackContext):
-        """
-        Обработчик команды /futark.
-        """
-        msg_text = update.message.text
-        user = await self.get_or_create_tg_user(update)
-        logger.info(f"Обработка команды /futark с текстом: {msg_text[:100]}")
-        
-        category = UserReading.ReadingCategory.RUNES
-        is_locked = await self.check_reading_cooldown(update, category)
-        if is_locked:
-            return
-
-        try:
-            # Получаем все руны из базы данных
-            runes = [rune async for rune in Rune.objects.all()]
-
-            if "triplet" in msg_text.lower():
-                # Выбираем 3 случайные руны
-                raw_selected = random.sample(runes, 3)
-                
-                selected_runes_full_data = []
-                for i, rune in enumerate(raw_selected):
-                    selected_runes_full_data.append({
-                        "id": rune.id,
-                        "inverted": random.choice([True, False]),
-                        "rune_obj": rune,
-                        "position": i + 1
-                    })
-
-                # 3. Подготавливаем данные для JSON (только ID и статус)
-                ids_for_db = [
-                    {"id": item["id"], "inverted": item["inverted"], "position": item["position"]} 
-                    for item in selected_runes_full_data
-                ]
-                
-                rune_texts = []
-                keyboard = []
-                
-                reading = await self.save_reading(
-                    user=user,
-                    message_id=update.effective_message.message_id,
-                    text=" ".join(rune_texts),
-                    category=category,
-                    card_ids=ids_for_db,
-                    ids_for_db=True,
-                    count=3
-                )
-
-
-                for i, item in enumerate(selected_runes_full_data):
-                    rune = item["rune_obj"]
-                    inverted = item["inverted"]
-                    position = item["position"]
-                    
-                    # Формируем текст сообщения
-                    rune_texts.append(
-                        f"<b>{rune.symbol}</b> {rune.type}{' (Перевернутая)' if inverted else ''}"
-                    )
-                    
-                    # Формируем кнопку
-                    keyboard.append(
-                        InlineKeyboardButton(
-                            text=f"{rune.symbol} {rune.type}{' 🔄' if inverted else ''}",
-                            callback_data=f"futhark_{reading.id}_{position}",
-                        )
-                    )
-
-                # Отправляем сообщение с рунами и inline-клавиатурой
-                await update.message.reply_text(
-                    "\n".join(rune_texts),
-                    parse_mode=ParseMode.HTML,
-                    reply_markup=InlineKeyboardMarkup([keyboard]),
-                )
-            else:
-                # Выбираем одну случайную руну
-                random_rune = random.choice(runes)
-                inverted = "flip" in msg_text.lower() and random.choice([True, False])
-                
-                # Формируем текст сообщения
-                text_parts = [f"<b>{random_rune.symbol}</b>", random_rune.type]
-                if inverted:
-                    text_parts.append("Перевернуто")
-
-                reading = await self.save_reading(
-                    user=user,
-                    message_id=update.effective_message.message_id,
-                    text=" ".join(text_parts),
-                    category=UserReading.ReadingCategory.RUNES,
-                    card_ids=random_rune.id,
-                    is_flipped_allowed=True,
-                    count=1
-                )
-
-                # Отправляем текст и стикер
-                await update.message.reply_text(
-                    "\n".join(text_parts), parse_mode=ParseMode.HTML
-                )
-                await update.message.reply_sticker(random_rune.sticker)
-
-        except Exception as e:
-            logger.error(f"Ошибка при обработке команды /futark: {e}", exc_info=True)
-            await update.message.reply_text(
-                "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
-            )
-
-    async def handle_futark_callback(self, update: Update, context: CallbackContext):
-        """
-        Обработчик callback-запросов для рун.
-        """
-        query = update.callback_query
-        await query.answer()
-
-        try:
-            # Парсим callback_data
-            callback_data = query.data
-            _, reading_id, position = query.data.split("_")
-            position = int(position)
-            
-            reading = await UserReading.objects.aget(id=reading_id)
-            
-            rune_data = next((item for item in reading.card_ids if item["position"] == position), None)
-            if not rune_data:
-                await query.answer("Ошибка данных: руна не найдена.")
-                return
-            
-            rune_id = rune_data["id"]
-            inverted = rune_data["inverted"]
-        
-            logger.info(
-                f"Обработка футарк колбэка {callback_data}: руна {rune_id}, перевернуто {inverted} на позиции {position}"
-            )
-
-            # Получаем описание руны
-            rune = await Rune.objects.aget(id=rune_id)
-
-            if not inverted:
-                keys = rune.straight_keys
-                meaning = rune.straight_meaning
-                # Динамически выбираем нужное поле позиции
-                position_text = getattr(rune, f"straight_pos_{position}")
-            else:
-                keys = rune.inverted_keys or f"для прямой руны: {rune.straight_keys}"
-                meaning = rune.inverted_meaning or f"для прямой руны: {rune.straight_meaning}"
-                position_text = getattr(rune, f"inverted_pos_{position}", None) or f"для прямой руны: {getattr(rune, f'straight_pos_{position}')}"
-
-            # 5. Редактируем сообщение (или отправляем новое)
-            # Лучше редактировать, чтобы не спамить в чат
-            text = (
-                f"<b>{rune.symbol}</b> {rune.type}{' (Перевернуто)' if inverted else ''}"
-                f"\n\n<b>Ключи</b>: {keys if len(keys) else 'Не указаны'}"
-                f"\n\n<b>Значение</b>: {meaning}"
-                f"\n\n<b>Положение</b>: {position_text}"
-            )
-
-            # Отправляем описание руны
-            await query.edit_message_text(text, reply_markup=query.message.reply_markup, parse_mode=ParseMode.HTML)
         except Exception as e:
             logger.error(f"Ошибка при обработке callback-запроса: {e}", exc_info=True)
             await query.edit_message_text(

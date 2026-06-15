@@ -1526,36 +1526,59 @@ class TarotBot(AbstractBot):
 
             if "triplet" in msg_text.lower():
                 # Выбираем 3 случайные руны
-                selected_runes = random.sample(runes, 3)
+                raw_selected = random.sample(runes, 3)
+                
+                selected_runes_full_data = []
+                for i, rune in enumerate(raw_selected):
+                    selected_runes_full_data.append({
+                        "id": rune.id,
+                        "inverted": random.choice([True, False]),
+                        "rune_obj": rune,
+                        "position": i + 1
+                    })
+
+                # 3. Подготавливаем данные для JSON (только ID и статус)
+                ids_for_db = [
+                    {"id": item["id"], "inverted": item["inverted"], "position": item["position"]} 
+                    for item in selected_runes_full_data
+                ]
+                
                 rune_texts = []
                 keyboard = []
-
-                for i, rune in enumerate(selected_runes):
-                    inverted = random.choice(
-                        [True, False]
-                    )  # Случайно определяем, перевернута ли руна
-                    rune_texts.append(
-                        f"<b>{rune.symbol}</b> {rune.type}{' (Перевернутая)' if inverted else ''}"
-                    )
-                    keyboard.append(
-                        InlineKeyboardButton(
-                            text=f"{rune.symbol} {rune.type}{' 🔄' if inverted else ''}",
-                            callback_data=f"futhark_{rune.id}_{int(bool(inverted))}_{i + 1}",
-                        )
-                    )
-                await self.save_reading(
+                
+                reading = await self.save_reading(
                     user=user,
                     message_id=update.effective_message.message_id,
                     text=" ".join(rune_texts),
                     category=category,
-                    is_flipped_allowed=True,
+                    card_ids=ids_for_db,
+                    ids_for_db=True,
                     count=3
                 )
+
+
+                for i, item in enumerate(selected_runes_full_data):
+                    rune = item["rune_obj"]
+                    inverted = item["inverted"]
+                    position = item["position"]
+                    
+                    # Формируем текст сообщения
+                    rune_texts.append(
+                        f"<b>{rune.symbol}</b> {rune.type}{' (Перевернутая)' if inverted else ''}"
+                    )
+                    
+                    # Формируем кнопку
+                    keyboard.append(
+                        InlineKeyboardButton(
+                            text=f"{rune.symbol} {rune.type}{' 🔄' if inverted else ''}",
+                            callback_data=f"futhark_{reading.id}_{position}",
+                        )
+                    )
 
                 # Отправляем сообщение с рунами и inline-клавиатурой
                 await update.message.reply_text(
                     "\n".join(rune_texts),
-                    parse_mode="HTML",
+                    parse_mode=ParseMode.HTML,
                     reply_markup=InlineKeyboardMarkup([keyboard]),
                 )
             else:
@@ -1568,18 +1591,19 @@ class TarotBot(AbstractBot):
                 if inverted:
                     text_parts.append("Перевернуто")
 
-                await self.save_reading(
+                reading = await self.save_reading(
                     user=user,
                     message_id=update.effective_message.message_id,
                     text=" ".join(text_parts),
                     category=UserReading.ReadingCategory.RUNES,
+                    card_ids=random_rune.id,
                     is_flipped_allowed=True,
                     count=1
                 )
 
                 # Отправляем текст и стикер
                 await update.message.reply_text(
-                    "\n".join(text_parts), parse_mode="HTML"
+                    "\n".join(text_parts), parse_mode=ParseMode.HTML
                 )
                 await update.message.reply_sticker(random_rune.sticker)
 
@@ -1599,11 +1623,19 @@ class TarotBot(AbstractBot):
         try:
             # Парсим callback_data
             callback_data = query.data
-            rune_id, inverted, position = callback_data.split("_")[1:]
-
-            inverted = bool(int(inverted))
+            _, reading_id, position = query.data.split("_")
             position = int(position)
-
+            
+            reading = await UserReading.objects.aget(id=reading_id)
+            
+            rune_data = next((item for item in reading.card_ids if item["position"] == position), None)
+            if not rune_data:
+                await query.answer("Ошибка данных: руна не найдена.")
+                return
+            
+            rune_id = rune_data["id"]
+            inverted = rune_data["inverted"]
+        
             logger.info(
                 f"Обработка футарк колбэка {callback_data}: руна {rune_id}, перевернуто {inverted} на позиции {position}"
             )
@@ -1611,38 +1643,27 @@ class TarotBot(AbstractBot):
             # Получаем описание руны
             rune = await Rune.objects.aget(id=rune_id)
 
-            if inverted == False:
+            if not inverted:
                 keys = rune.straight_keys
                 meaning = rune.straight_meaning
-                pos_1 = rune.straight_pos_1
-                pos_2 = rune.straight_pos_2
-                pos_3 = rune.straight_pos_3
-            elif inverted == True:
+                # Динамически выбираем нужное поле позиции
+                position_text = getattr(rune, f"straight_pos_{position}")
+            else:
                 keys = rune.inverted_keys or f"для прямой руны: {rune.straight_keys}"
-                meaning = (
-                    rune.inverted_meaning or f"для прямой руны: {rune.straight_meaning}"
-                )
-                pos_1 = rune.inverted_pos_1 or f"для прямой руны: {rune.straight_pos_1}"
-                pos_2 = rune.inverted_pos_2 or f"для прямой руны: {rune.straight_pos_2}"
-                pos_3 = rune.inverted_pos_3 or f"для прямой руны: {rune.straight_pos_3}"
+                meaning = rune.inverted_meaning or f"для прямой руны: {rune.straight_meaning}"
+                position_text = getattr(rune, f"inverted_pos_{position}", None) or f"для прямой руны: {getattr(rune, f'straight_pos_{position}')}"
 
-            if position == 1:
-                position_text = pos_1
-            elif position == 2:
-                position_text = pos_2
-            elif position == 3:
-                position_text = pos_3
+            # 5. Редактируем сообщение (или отправляем новое)
+            # Лучше редактировать, чтобы не спамить в чат
+            text = (
+                f"<b>{rune.symbol}</b> {rune.type}{' (Перевернуто)' if inverted else ''}"
+                f"\n\n<b>Ключи</b>: {keys if len(keys) else 'Не указаны'}"
+                f"\n\n<b>Значение</b>: {meaning}"
+                f"\n\n<b>Положение</b>: {position_text}"
+            )
 
             # Отправляем описание руны
-            await update.effective_message.reply_html(
-                (
-                    f"<b>{rune.symbol}</b> {rune.type}{' (Перевернуто)' if inverted else ''}"
-                    f"\n\nКлючи: {keys}"
-                    f"\n\nЗначение: {meaning}"
-                    f"\n\nПоложение: {position_text}"
-                ),
-                reply_to_message_id=update.effective_message.message_id,
-            )
+            await query.edit_message_text(text, reply_markup=query.message.reply_markup, parse_mode=ParseMode.HTML)
         except Exception as e:
             logger.error(f"Ошибка при обработке callback-запроса: {e}", exc_info=True)
             await query.edit_message_text(

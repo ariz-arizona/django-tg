@@ -8,7 +8,10 @@ import aiohttp
 import random
 from bs4 import BeautifulSoup
 
-from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Message
+from telegram import (
+    Update, InputMediaPhoto, InlineKeyboardButton,
+    InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove,
+    )
 from telegram.ext import (
     CommandHandler,
     MessageHandler,
@@ -621,6 +624,15 @@ class TarotBot(AbstractBot):
 
                 message = "\n\n".join(message_parts)
                 
+                command_text = update.message.text
+                reply_markup = None
+                if command_text:
+                    reply_markup = ReplyKeyboardMarkup(
+                        [[KeyboardButton(command_text[:100])]],
+                        resize_keyboard=True,
+                        one_time_keyboard=True
+                    )
+                
                 # === ОБНОВЛЕНИЕ ИЛИ ОТПРАВКА СООБЩЕНИЯ ===
                 # Проверяем, есть ли уже отправленное сообщение об этом кулдауне
                 existing_msg_id = await redis_client.get(msg_ttl_key)
@@ -630,6 +642,7 @@ class TarotBot(AbstractBot):
                         # Используем update.get_bot() для вызова edit_message_text
                         await update.get_bot().edit_message_text(
                             chat_id=update.effective_chat.id,
+                            reply_markup=reply_markup,
                             message_id=int(existing_msg_id),
                             text=message
                         )
@@ -645,7 +658,7 @@ class TarotBot(AbstractBot):
                         
                 if not existing_msg_id:
                     # Если сообщения не было или не удалось отредактировать — отправляем новое
-                    sent_msg = await update.effective_message.reply_text(message)
+                    sent_msg = await update.effective_message.reply_text(message, reply_markup=reply_markup,)
                     # Сохраняем ID сообщения в Redis с TTL, равным остатку кулдауна
                     await redis_client.set(msg_ttl_key, sent_msg.message_id, ex=time_left)
                     
@@ -655,6 +668,12 @@ class TarotBot(AbstractBot):
             # Если Redis упал, не блокируем пользователя, а логируем ошибку
             import logging
             logging.error(f"Ошибка проверки TTL в Redis: {e}")
+            
+        hide_msg = await update.effective_message.reply_text(
+            ".",
+            reply_markup=ReplyKeyboardRemove()
+        )
+        await hide_msg.delete()
         return False
 
     async def handle_card(self, update: Update, context: CallbackContext):
@@ -814,6 +833,12 @@ class TarotBot(AbstractBot):
             # Сохраняем обновленный лог в базу
             await reading.asave()
             logger.info(f"Запись Таро {reading.id} успешно обновлена в БД. Карты: {reading.card_ids}")
+            
+            send_card_kwargs = {}
+            ai_button_enabled = await self.ai_interpret_handler.should_add_ai_button()
+            if ai_button_enabled:
+                send_card_kwargs["add_ai_button"] = "🔮 Растолковать расклад (ИИ)"
+                send_card_kwargs["reading_id"] = reading.id
 
             # Отправляем карту пользователю в чат
             # Обрати внимание на порядок аргументов bool(flip) и bool(major), как было в твоем исходнике
@@ -824,7 +849,9 @@ class TarotBot(AbstractBot):
                 deck,
                 bool(flip),
                 bool(major),
+                **send_card_kwargs
             )
+            await update.effective_message.edit_reply_markup(reply_markup=InlineKeyboardMarkup([]))
             logger.info(f"Карта добора Таро успешно отправлена: {new_card_text}")
 
         except Exception as e:

@@ -82,14 +82,13 @@ class RuneHandler:
     def get_handlers(self):
         return [
             MessageHandler(
-                filters.COMMAND
-                & filters.TEXT
+                filters.TEXT 
                 & filters.ChatType.PRIVATE
-                & filters.Regex(r"^\/fut(h?)ark( triplet)?$"),
-                self.handle_futark,
+                & filters.Regex(r"^(?i)(/futhark(?:_triplet)?|рун[аы](?:\s+триплет)?)$"),
+                self.handle_rune_reading, # Ваш новый метод в RuneHandler
             ),
             CallbackQueryHandler(
-                self.handle_futark_callback,
+                self.handle_rune_callback, # Ваш новый метод в RuneHandler
                 pattern=r"^futhark_",
             ),
         ]
@@ -98,82 +97,72 @@ class RuneHandler:
         # Разбиваем текст по 600 символов, стараясь не разрывать слова
         return textwrap.wrap(text, chunk_size, replace_whitespace=False, drop_whitespace=False)
     
-    async def get_rune_paged_and_keyboard(self, reading_id, position, page):
-        """
-        Автономная функция: сама идет в БД, получает данные и формирует всё для ответа.
-        """
+    async def get_rune_paged_and_keyboard(self, reading_id, position=None, page=0):
         # 1. Забираем расклад из БД
         reading = await UserReading.objects.aget(id=reading_id)
         
-        # 2. Находим данные текущей руны
-        rune_data = next((item for item in reading.card_ids if item["position"] == position), None)
-        if not rune_data:
-            return "Ошибка: руна не найдена.", None
-            
-        rune = await Rune.objects.aget(id=rune_data["id"])
-        inverted = rune_data["inverted"]
-
-        # 3. Формируем текст
-        if not inverted:
-            keys = rune.straight_keys
-            meaning = rune.straight_meaning
-            position_text = getattr(rune, f"straight_pos_{position}")
+        # Если позиция не передана, показываем общую информацию о раскладе
+        if position is None:
+            full_text = f"Расклад №{reading.id}. Выберите руну для просмотра значения."
+            pages = [full_text]
+            keyboard = []
         else:
-            keys = rune.inverted_keys or f"для прямой руны: {rune.straight_keys}"
-            meaning = rune.inverted_meaning or f"для прямой руны: {rune.straight_meaning}"
-            position_text = getattr(rune, f"inverted_pos_{position}", None) or f"для прямой руны: {getattr(rune, f'straight_pos_{position}')}"
+            # 2. Находим данные текущей руны (только если позиция есть)
+            rune_data = next((item for item in reading.card_ids if item["position"] == position), None)
+            rune = await Rune.objects.aget(id=rune_data["id"])
+            inverted = rune_data["inverted"]
 
-        full_text = (
-            f"<b>{rune.symbol}</b> {rune.type}{' (Перевернуто)' if inverted else ''}"
-            f"\n\nКлючи: {keys}"
-            f"\n\nЗначение: {meaning}"
-            f"\n\nПоложение: {position_text}"
-        )
+            # 3. Формируем текст руны
+            keys = rune.straight_keys if not inverted else (rune.inverted_keys or f"прямая: {rune.straight_keys}")
+            meaning = rune.straight_meaning if not inverted else (rune.inverted_meaning or f"прямая: {rune.straight_meaning}")
+            pos_attr = f"straight_pos_{position}" if not inverted else f"inverted_pos_{position}"
+            pos_text = getattr(rune, pos_attr, None) or f"прямая: {getattr(rune, f'straight_pos_{position}')}"
 
-        # 4. Пагинация
-        pages = textwrap.wrap(full_text, 600, replace_whitespace=False, drop_whitespace=False)
-        current_page = max(0, min(page, len(pages) - 1))
-        
-        # 5. Формируем клавиатуру
-        keyboard = []
-        
-        # Ряд 1: Навигация по тексту
-        nav_row = [
-            InlineKeyboardButton("⬅️" if current_page > 0 else "⚪", 
-                                callback_data=f"futhark_{reading_id}_{position}_{current_page-1}" if current_page > 0 else "futhark_ignore"),
-            InlineKeyboardButton(f"{current_page + 1} / {len(pages)}", callback_data="futhark_ignore"),
-            InlineKeyboardButton("➡️" if current_page < len(pages) - 1 else "⚪", 
-                                callback_data=f"futhark_{reading_id}_{position}_{current_page+1}" if current_page < len(pages) - 1 else "futhark_ignore")
-        ]
-        keyboard.append(nav_row)
+            full_text = (
+                f"<b>{rune.symbol}</b> {rune.type}{' (Перевернуто)' if inverted else ''}"
+                f"\n\n<b>Ключи</b>: {keys}"
+                f"\n\n<b>Значение</b>: {meaning}"
+                f"\n\n<b>Положение</b>: {pos_text}"
+            )
+            pages = self.paginate_text(full_text)
+            current_page = max(0, min(page, len(pages) - 1))
+            
+            # Навигация есть только если руна выбрана
+            keyboard = []
+            nav_row = [
+                InlineKeyboardButton("⬅️" if current_page > 0 else "⚪", callback_data=f"futhark_{reading_id}_{position}_{current_page-1}" if current_page > 0 else "futhark_ignore"),
+                InlineKeyboardButton(f"{current_page + 1} / {len(pages)}", callback_data="futhark_ignore"),
+                InlineKeyboardButton("➡️" if current_page < len(pages) - 1 else "⚪", callback_data=f"futhark_{reading_id}_{position}_{current_page+1}" if current_page < len(pages) - 1 else "futhark_ignore")
+            ]
+            keyboard.append(nav_row)
 
-        # Ряд 2: Выбор руны (идём по списку card_ids из расклада)
+        # 4. Ряд кнопок с рунами (формируется всегда)
         runes_row = []
         for item in reading.card_ids:
-            pos = item["position"]
             r = await Rune.objects.aget(id=item["id"])
-            # Определяем символ: если это текущая позиция, выделяем скобками
-            symbol_text = f"[{r.symbol}]" if item["position"] == position else r.symbol
             
-            # Добавляем эмодзи 🔄, если руна перевернута
+            # НЕТ ВЫДЕЛЕНИЯ, если position is None
+            symbol_text = r.symbol
+            if position is not None and item["position"] == position:
+                symbol_text = f"[{r.symbol}]"
+            
             is_inverted = item.get("inverted", False)
             emoji = " 🔄" if is_inverted else ""
-            
-            # Формируем итоговый текст кнопки: [Символ] Название 🔄
             btn_text = f"{symbol_text} {r.type}{emoji}"
             
-            runes_row.append(InlineKeyboardButton(btn_text, callback_data=f"futhark_{reading_id}_{pos}_0"))
+            runes_row.append(InlineKeyboardButton(btn_text, callback_data=f"futhark_{reading_id}_{item['position']}_0"))
         
         keyboard.append(runes_row)
 
-        return pages[current_page], InlineKeyboardMarkup(keyboard)
+        return pages[0] if position is None else pages[current_page], InlineKeyboardMarkup(keyboard)
     
-    async def handle_futark(self, update: Update, context: CallbackContext):
+    async def handle_rune_reading(self, update: Update, context: CallbackContext):
         """
         Обработчик команды /futark.
         """
         msg_text = update.message.text
         user = await self.bot.get_or_create_tg_user(update)
+        is_triplet = "triplet" in msg_text or "триплет" in msg_text
         logger.info(f"Обработка команды /futark с текстом: {msg_text[:100]}")
         
         category = UserReading.ReadingCategory.RUNES
@@ -185,7 +174,7 @@ class RuneHandler:
             # Получаем все руны из базы данных
             runes = [rune async for rune in Rune.objects.all()]
 
-            if "triplet" in msg_text.lower():
+            if is_triplet:
                 # Выбираем 3 случайные руны
                 raw_selected = random.sample(runes, 3)
                 
@@ -216,24 +205,12 @@ class RuneHandler:
                     count=3
                 )
 
-
-                for i, item in enumerate(selected_runes_full_data):
-                    rune = item["rune_obj"]
-                    inverted = item["inverted"]
-                    
-                    # Формируем текст сообщения
-                    rune_texts.append(
-                        f"<b>{rune.symbol}</b> {rune.type}{' (Перевернутая)' if inverted else ''}"
-                    )
-                    
-                _, reply_markup = await self.get_rune_paged_and_keyboard(reading.id, 1, 0)
-                rows = reply_markup.inline_keyboard
-                second_row_markup = InlineKeyboardMarkup([rows[1]])
+                text, markup = await self.get_rune_paged_and_keyboard(reading.id, position=None)
                 # Отправляем сообщение с рунами и inline-клавиатурой
                 await update.message.reply_text(
-                    "\n".join(rune_texts),
+                    text,
                     parse_mode=ParseMode.HTML,
-                    reply_markup=second_row_markup,
+                    reply_markup=markup,
                 )
             else:
                 # Выбираем одну случайную руну
@@ -267,11 +244,12 @@ class RuneHandler:
                 "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
             )
 
-    async def handle_futark_callback(self, update: Update, context: CallbackContext):
+    async def handle_rune_callback(self, update: Update, context: CallbackContext):
         """
         Обработчик callback-запросов для рун.
         """
         query = update.callback_query
+        logger.info(f"Получен callback-запрос: {query.data}")
         await query.answer()
         if query.data == 'futhark_ignore':
             return

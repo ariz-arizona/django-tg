@@ -141,10 +141,6 @@ class AIReadingInterpretation(models.Model):
         verbose_name="Пользовательский промпт / Контекст",
         help_text="Сюда входят выпавшие карты, вопрос юзера и т.д."
     )
-    response_text = models.TextField(
-        blank=True, 
-        verbose_name="Текст ответа ИИ",
-    )
     error_message = models.TextField(
         blank=True, 
         verbose_name="Текст ошибки",
@@ -179,3 +175,24 @@ class AIReadingInterpretation(models.Model):
 
     def __str__(self):
         return f"Интерпретация #{self.id} для расклада #{self.reading_id} [{self.get_status_display()}]"
+    
+class AIReadingPage(models.Model):
+    interpretation = models.ForeignKey(
+        "AIReadingInterpretation",
+        on_delete=models.CASCADE,
+        related_name="pages",
+        verbose_name="ИИ-Интерпретация",
+    )
+    content = models.TextField(verbose_name="Часть текста")
+    page_number = models.PositiveIntegerField(verbose_name="Порядковый номер чанка")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Часть текста ответа"
+        ordering = ["page_number"]
+        indexes = [
+            models.Index(fields=["interpretation", "page_number"]),
+        ]
+
+    def __str__(self):
+        return f"Чанк {self.page_number} для интерпретации {self.interpretation_id}"

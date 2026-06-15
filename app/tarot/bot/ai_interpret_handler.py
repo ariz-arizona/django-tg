@@ -1,56 +1,37 @@
 # ai_interpret_handler.py
-import re
+import json
 import os
 from typing import List, Optional, Dict
+import redis.asyncio as aioredis
 
 import time
-import json
-import asyncio
-import redis.asyncio as aioredis
-import aiohttp
 import random
-from io import BytesIO
-from bs4 import BeautifulSoup
 from openai import AsyncOpenAI
 
-from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Message
+from telegram import Update,  Message, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import (
-    CommandHandler,
-    MessageHandler,
     CallbackQueryHandler,
     CallbackContext,
-    filters,
 )
 from telegram.constants import ParseMode
 from telegram.error import BadRequest, RetryAfter
 
 from django.utils.timezone import now, timedelta
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models.functions import Cast
-from django.db.models import IntegerField
 
 from tg_bot.bot.abstract import AbstractBot
 from tg_bot.models import (
     TgUser, Bot
 )
 from tarot.models import (
-    TarotDeck,
-    TarotCardItem,
-    TarotCard,
-    ExtendedMeaning,
-    OraculumDeck,
-    OraculumItem,
-    Rune,
+    AIReadingPage,
     UserReading,
     AIReadingInterpretation,
     AIApiKey
 )
-from tg_bot.models import BotFileCache
 from server.logger import logger
 from django.conf import settings
 
-from tarot.utils.image_utils import create_spread_image
-from tarot.bot.allcard_handler import AllCardHandler
 
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(
@@ -68,6 +49,14 @@ redis_client_bot = aioredis.StrictRedis(
 
 REDIS_TTL_SECONDS = 10
 REDIS_KEY_TEMPLATE = "user:{user_id}:{category}"
+
+def is_markup_identical(markup1, markup2):
+    if markup1 is None and markup2 is None:
+        return True
+    if markup1 is None or markup2 is None:
+        return False
+    # Сравниваем словари, полученные из объектов
+    return json.dumps(markup1.to_dict(), sort_keys=True) == json.dumps(markup2.to_dict(), sort_keys=True)
 
 class AIInterpretHandler:
     """Обработчик для запуска ИИ-интерпретации раскладов."""
@@ -94,7 +83,61 @@ class AIInterpretHandler:
                 self.handle_ai_reading_callback,
                 pattern=r"^aireading_",
             ),
+            # Навигация по уже сгенерированным страницам
+            CallbackQueryHandler(
+                self.handle_ai_navigation_callback, 
+                pattern=r"^aipaged_",
+            ),
         ]
+        
+    async def get_ai_paged_data(self, ai_log: AIReadingInterpretation, page_number: int):
+        """
+        Возвращает текст страницы и соответствующую клавиатуру.
+        """
+        await ai_log.arefresh_from_db()
+        is_pending = (ai_log.status == AIReadingInterpretation.AIStatus.PENDING)
+        
+        # 1. Получаем все страницы из базы
+        pages_qs = AIReadingPage.objects.filter(interpretation=ai_log).order_by("page_number")
+        pages = []
+        async for p in pages_qs:
+            pages.append(p)
+        total_pages = len(pages)
+        
+        # 2. Определение текста
+        # Если страница существует в БД — берем ее
+        if page_number < total_pages:
+            text = pages[page_number].content
+        else:
+            # Если мы запрашиваем "будущую" страницу во время стриминга
+            text = "⏳ Трактовка дополняется..."
+
+        # 3. Генерация клавиатуры
+        icons = ["✨", "🔮", "🌙", "🃏", "🕯️", "🌌"]
+        random_icon = random.choice(icons)
+        
+        # Левая кнопка
+        left_btn = (
+            InlineKeyboardButton("◀", callback_data=f"aipaged_{ai_log.id}_{page_number - 1}") 
+            if page_number > 0 
+            else InlineKeyboardButton(random_icon, callback_data="aipaged_ignore")
+        )
+
+        # Средняя кнопка
+        center_text = f"стр. {page_number + 1} из {total_pages if not is_pending else '...'}"
+        center_btn = InlineKeyboardButton(center_text, callback_data="aipaged_ignore")
+
+        # Правая кнопка
+        # Если идет генерация или есть еще страницы — добавляем кнопку "Вперед"
+        if is_pending or (page_number < total_pages - 1):
+            right_btn = InlineKeyboardButton("▶", callback_data=f"aipaged_{ai_log.id}_{page_number + 1}")
+        else:
+            right_btn = InlineKeyboardButton(random_icon, callback_data="aipaged_ignore")
+
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[[left_btn, center_btn, right_btn]])
+        
+        return text, keyboard
+    
 
     async def should_add_ai_button(self) -> bool:
         """
@@ -226,83 +269,84 @@ class AIInterpretHandler:
                 stream=True  
             )
 
-            # Переменные для сборки текста и контроля частоты отправки в Telegram
-            full_text = ""
+            # Переменные для сборки текста
+            buffer_text = ""          # Накапливаем текст для текущей страницы
+            page_number = 0          
+            page_counter = 0          
+            chunk_counter = 0
+            LEN_LIMIT = 500
+            TG_UPDATE_INTERVAL = 1
             last_tg_update_time = time.time()
-            # Символ "мигающего курсора" для красоты, пока текст пишется
-            cursor = " ⏳" 
+            
+            system_snippet = prompt_system[:100]
+            if len(prompt_system) > 100:
+                system_snippet += "..."
+            
+            # Если пользовательский запрос пустой, пишем "Пусто"
+            user_text = prompt_user if prompt_user.strip() else "пусто"
 
-            # 6. Читаем чанки по мере их поступления от API
+            await message.edit_text(
+                text=f"Системный промпт: {system_snippet}\n\nЗапрос: {user_text}"
+            )
+
+            # Читаем чанки по мере их поступления от API
             async for chunk in response_stream:
                 if chunk.choices and chunk.choices[0].delta.content:
-                    full_text += chunk.choices[0].delta.content
+                    content = chunk.choices[0].delta.content
                     
+                    buffer_text += content
+                    chunk_counter += 1
+                    
+                    # 1. Проверка лимита: если накопили 1000 — фиксируем страницу в БД
+                    if len(buffer_text) >= LEN_LIMIT:
+                        split_index = buffer_text.rfind(' ', 0, LEN_LIMIT)
+                        split_index = split_index if split_index != -1 else LEN_LIMIT
+                        
+                        page_content = buffer_text[:split_index].strip()
+                        buffer_text = buffer_text[split_index:].lstrip()
+                        
+                        await AIReadingPage.objects.acreate(
+                            interpretation=ai_log,
+                            content=page_content,
+                            page_number=page_counter
+                        )
+                        page_counter += 1
+                        chunk_counter = 0
+                        # Теперь page_counter указывает на следующую (пустую) страницу
+
+                    # 2. Обновление Telegram
                     current_time = time.time()
-                    # Обновляем Telegram только если прошло больше 1.5 секунд
-                    if current_time - last_tg_update_time > 1.5:
-                        
-                        # 1. РУЧНАЯ ПРОВЕРКА ДЛИНЫ СТРОКИ (> 3000 символов)
-                        # Если текст уже большой, принудительно переносим его в новое сообщение,
-                        # не дожидаясь ошибки от самого Telegram.
-                        LEN_LIMIT = 1000
-                        if len(full_text) > LEN_LIMIT:
-                            logger.info(f"Длина текста превысила {LEN_LIMIT} символов. Принудительный перенос.")
+                    time_since_last_update = current_time - last_tg_update_time
+                    is_first_chunk_of_page = (chunk_counter == 1)
+
+                    if (
+                            page_counter == 0 and
+                            time_since_last_update > TG_UPDATE_INTERVAL and
+                            len(buffer_text) > 10
+                        ):
+                        if buffer_text.strip():
                             try:
-                                await message.edit_text(text=full_text)  # Фиксируем без курсора
-                            except Exception:
-                                pass
-                            
-                            # Открываем новое сообщение для стриминга (без Markdown)
-                            message = await message.reply_text(text="⏳ Продолжение расклада...\n" + cursor)
-                            full_text = chunk.choices[0].delta.content  # Сбрасываем буфер
-                            last_tg_update_time = current_time
-                            continue  # Переходим к следующему чанку
-
-                        # 2. ОТПРАВКА ОБНОВЛЕНИЯ С ОБРАБОТКОЙ ОШИБОК
-                        try:
-                            await message.edit_text(text=full_text + cursor)
+                                text, keyboard = await self.get_ai_paged_data(ai_log, page_number)
+                                await message.edit_text(
+                                    text=buffer_text.strip(), 
+                                    reply_markup=keyboard
+                                )
+                                last_tg_update_time = current_time
+                            except Exception as e:
+                                if "message is not modified" not in str(e).lower():
+                                    logger.warning(f"Ошибка обновления TG: {e}")
+                    elif page_counter > 0 and is_first_chunk_of_page:
+                        text, keyboard = await self.get_ai_paged_data(ai_log, page_number)
                         
-                        except RetryAfter as flood_err:
-                            # Ловим 429 ошибку (Too Many Requests). 
-                            # Спим столько секунд, сколько просит Telegram, и продолжаем
-                            logger.warning(f"Поймали 429 Flood Control. Спим {flood_err.retry_after} сек.")
-                            await asyncio.sleep(flood_err.retry_after)
-                            
-                        except BadRequest as tg_err:
-                            err_msg = str(tg_err).lower()
-                            
-                            # На всякий случай оставляем авто-подстраховку от лимита Telegram
-                            if "message is too long" in err_msg or "message_too_long" in err_msg:
-                                logger.info("Текст превысил лимит Telegram (авто-перехват). Перенос.")
-                                try:
-                                    await message.edit_text(text=full_text)
-                                except Exception:
-                                    pass
-                                
-                                message = await message.reply_text(text="⏳ Продолжение расклада...\n" + cursor)
-                                full_text = chunk.choices[0].delta.content
-                            
-                            elif "too many requests" in err_msg or "retry after" in err_msg:
-                                # Дополнительный перехват 429, если она прилетела как BadRequest
-                                logger.warning("Поймали 429 ошибку в блоке BadRequest. Пропускаем итерацию.")
-                                await asyncio.sleep(2)
-                                
-                            elif "message is not modified" in err_msg:
-                                pass
-                            
-                            else:
-                                logger.warning(f"Ошибка редактирования TG: {tg_err}")
-                        
-                        last_tg_update_time = current_time
+                        if not is_markup_identical(message.reply_markup, keyboard):
+                            await message.edit_reply_markup(reply_markup=keyboard)
 
-            # 7. Финальное обновление ПОСЛЕДНЕГО сообщения (убираем курсор)
-            try:
-                await message.edit_text(text=full_text, parse_mode="Markdown")
-            except BadRequest as tg_err:
-                if "message is not modified" not in str(tg_err).lower():
-                    # Если Markdown всё-таки упал в конце (например, ИИ не закрыл *),
-                    # отправляем как обычный текст, чтобы пользователь не остался без ответа
-                    await message.edit_text(text=full_text, parse_mode=None)
+            if buffer_text:
+                await AIReadingPage.objects.acreate(
+                    interpretation=ai_log,
+                    content=buffer_text,
+                    page_number=page_counter
+                )
 
             # При стриминге некоторые провайдеры/прокси не отдают usage в конце.
             # На всякий случай считаем приблизительно или берем из последнего чанка, если он там есть
@@ -311,15 +355,17 @@ class AIInterpretHandler:
             total_tokens = 0
             
             # 8. Обновляем лог — УСПЕХ
-            ai_log.response_text = full_text
             ai_log.prompt_tokens = prompt_tokens
             ai_log.completion_tokens = completion_tokens
             ai_log.total_tokens = total_tokens
             ai_log.status = AIReadingInterpretation.AIStatus.SUCCESS
             await ai_log.asave()
+            
+            text, keyboard = await self.get_ai_paged_data(ai_log, page_number)
+            await message.edit_text(text=text, reply_markup=keyboard)
 
             logger.info(f"Стриминг ИИ #{ai_log.id} успешно завершен.")
-            return full_text
+            return ai_log
 
         except Exception as e:
             # 9. Обновляем лог — ОШИБКА
@@ -361,59 +407,111 @@ class AIInterpretHandler:
         await query.answer()
         logger.info(f"Получен callback-запрос ИИ: {query.data}")
 
-        reply_markup = query.message.reply_markup
-
-        # Внутренняя функция для быстрого обновления текста текущей кнопки
-        async def update_button_text(new_text: str):
-            if reply_markup and reply_markup.inline_keyboard:
-                for row in reply_markup.inline_keyboard:
-                    for button in row:
-                        if button.callback_data == query.data:
-                            button.text = new_text
-                await query.edit_message_reply_markup(reply_markup=reply_markup)
-
-        try:
-            # 1. Проверяем валидность callback_data
-            try:
-                _, reading_id_str = query.data.split("_")
-                reading_id = int(reading_id_str)
-            except (ValueError, IndexError):
-                raise ValueError("❌ Неверный формат данных")
-
-            # 2. Проверяем наличие записи в базе
-            try:
-                reading = await UserReading.objects.aget(id=reading_id)
-            except ObjectDoesNotExist:
-                raise ValueError("❌ Расклад не найден")
-
-            # 3. Проверяем доступность ИИ
-            ai_enabled = await self.should_add_ai_button()
-            if not ai_enabled:
-                raise ValueError("⏳ ИИ занят")
-
-            if not reply_markup or not reply_markup.inline_keyboard:
-                return  # Если клавиатуры нет, делать нечего
-            
-            # СЛУЧАЙ, КОГДА ВСЕ ОК: удаляем кнопку и запускаем генерацию
+        # Функция возвращает InlineKeyboardMarkup или None
+        def get_keyboard_without_button() -> Optional[InlineKeyboardMarkup]:
+            if not query.message.reply_markup or not query.message.reply_markup.inline_keyboard:
+                return None
+                
             new_keyboard = []
-            for row in reply_markup.inline_keyboard:
-                new_row = [button for button in row if button.callback_data != query.data]
+            for row in query.message.reply_markup.inline_keyboard:
+                new_row = [btn for btn in row if btn.callback_data != query.data]
                 if new_row:
                     new_keyboard.append(new_row)
-                    
-            updated_markup = InlineKeyboardMarkup(new_keyboard)
-            await query.edit_message_reply_markup(reply_markup=updated_markup)
             
+            return InlineKeyboardMarkup(new_keyboard) if new_keyboard else None
+
+        # Функция возвращает InlineKeyboardMarkup
+        def get_keyboard_with_error(error_text: str, message: Message = None) -> Optional[InlineKeyboardMarkup]:
+            if not query.message.reply_markup or not query.message.reply_markup.inline_keyboard:
+                return None
+
+            new_keyboard = []
+            for row in query.message.reply_markup.inline_keyboard:
+                new_row = []
+                for btn in row:
+                    if btn.callback_data == query.data:
+                        new_callback = f"{btn.callback_data}_{message.message_id}" if message else btn.callback_data
+                        new_row.append(InlineKeyboardButton(text=error_text, callback_data=new_callback))
+                    else:
+                        new_row.append(btn)
+                new_keyboard.append(new_row)
+            
+            return InlineKeyboardMarkup(new_keyboard)
+
+        async def handle_error(e: Exception, is_critical: bool):
+            # 1. Логирование
+            if is_critical:
+                logger.error(f"Критическая ошибка: {e}", exc_info=True)
+                display_btn_text = "💥 Ошибка"
+                error_text = "❌ Произошел технический сбой. Пожалуйста, попробуйте создать новый расклад позже."
+            else:
+                logger.warning(f"Бизнес-ошибка ({query.data}): {e}")
+                display_btn_text = "⏳ ИИ занят" if "занят" in str(e).lower() else "🔄 Ошибка обработки"
+                error_text = "⚠️ К сожалению, ИИ сейчас не может выполнить запрос. Попробуйте чуть позже."
+
+            # 2. Обновление клавиатуры
+            error_markup = get_keyboard_with_error(display_btn_text, message)
+            if not is_markup_identical(query.message.reply_markup, error_markup):
+                await query.message.edit_reply_markup(reply_markup=error_markup)
+
+            # 3. Обновление текста сообщения
+            try:
+                if message:
+                    await message.edit_text(error_text)
+                elif message_id:
+                    await context.bot.edit_message_text(error_text, chat_id=query.message.chat_id, message_id=message_id)
+                else:
+                    await query.message.reply_text(error_text)
+            except BadRequest as br:
+                if "Message is not modified" not in str(br):
+                    raise br
+                
+        message = None
+        try:
+            # 1. Валидация и проверка ИИ
+            parts = query.data.split("_", 2)
+        
+            if len(parts) < 2:
+                raise ValueError("❌ Неверный формат данных")
+                
+            reading_id = int(parts[1])
+            message_id = int(parts[2]) if len(parts) > 2 else None
+            
+            reading = await UserReading.objects.aget(id=reading_id)
+                
+            if not await self.should_add_ai_button():
+                raise ValueError("⏳ ИИ занят")
+
+            # 2. УСПЕХ: Удаляем кнопку и запускаем процесс
+            new_markup = get_keyboard_without_button()
+            await query.edit_message_reply_markup(reply_markup=new_markup)
             message = await query.message.reply_text('⏳ Начинаем генерацию...')
+            
             await self.run_ai_interpretation(reading, message)
 
         except ValueError as e:
-            logger.warning(f"Бизнес-ошибка в callback ИИ ({query.data}): {e}")
-            # Вызываем внутреннюю функцию
-            await update_button_text(str(e))
-
+            await handle_error(e, is_critical=False)
         except Exception as e:
-            logger.error(f"Критическая ошибка при обработке запроса к ИИ: {e}", exc_info=True)
-            # Вызываем внутреннюю функцию для системной ошибки
-            await update_button_text("💥 Ошибка ИИ")
+            await handle_error(e, is_critical=True)
+    
+    async def handle_ai_navigation_callback(self, update: Update, context: CallbackContext):
+        """Обработка кнопок пагинации (aipaged_)."""
+        query = update.callback_query
+        
+        if query.data == 'aipaged_ignore':
+            await query.answer()
+            return
             
+        _, ai_log_id, page_num = query.data.split("_")
+        page_number = int(page_num)
+        
+        ai_log = await AIReadingInterpretation.objects.aget(id=ai_log_id)
+        
+        # Если статус PENDING, просто уведомляем
+        if ai_log.status == AIReadingInterpretation.AIStatus.PENDING:
+            await query.answer("⏳ Подождите, генерация еще идет...", show_alert=False)
+            return
+
+        text, keyboard = await self.get_ai_paged_data(ai_log, page_number)
+        await query.edit_message_text(text=text, reply_markup=keyboard)
+        await query.answer()

@@ -4,7 +4,7 @@ from django.http import HttpResponse
 from django.urls import reverse
 from django.utils.html import format_html
 
-from ..models.user import UserReading, AIReadingInterpretation
+from ..models.user import UserReading, AIReadingInterpretation, AIReadingPage
 from ..models.tech import AIApiKey
 
 
@@ -50,12 +50,20 @@ class AIReadingInterpretationInline(admin.TabularInline):
     tokens_summary.short_description = "Токены (In/Out)"
 
     def response_preview(self, obj):
-        if obj.status == "success" and obj.response_text:
-            return obj.response_text[:60] + "..." if len(obj.response_text) > 60 else obj.response_text
+        # Получаем склеенный текст из связанных чанков
+        # Используем values_list flat=True для эффективности
+        chunks = obj.pages.values_list('content', flat=True)
+        full_text = "".join(chunks)
+        
+        if obj.status == "success" and full_text:
+            return full_text[:60] + ("..." if len(full_text) > 60 else "")
+        
         if obj.status == "failed" and obj.error_message:
             return format_html('<span style="color: red;">⚠ {}</span>', obj.error_message[:60])
+        
         return "—"
-    response_preview.short_description = "Результат/Ошибка"
+    
+    response_preview.short_description = "Превью ответа"
 
 
 @admin.register(UserReading)
@@ -90,7 +98,6 @@ class UserReadingAdmin(admin.ModelAdmin):
         "bot__username",      
         "text",
         "card_ids",  
-        "ai_interpretations__response_text", # Поиск по сгенерированному ИИ тексту
     )
 
     readonly_fields = ("created_at", "updated_at", "card_ids_preview")
@@ -212,13 +219,23 @@ class UserReadingAdmin(admin.ModelAdmin):
     export_selected.short_description = "Экспортировать выбранные в CSV"
 
 
+class AIReadingPageInline(admin.TabularInline):
+    model = AIReadingPage
+    extra = 0  # Не показывать пустые поля для новых записей по умолчанию
+    readonly_fields = ("page_number", "content", "created_at")
+    can_delete = False  # Обычно чанки не стоит удалять отдельно от интерпретации
+    show_change_link = False
+    ordering = ("page_number",)
+    
 @admin.register(AIReadingInterpretation)
 class AIReadingInterpretationAdmin(admin.ModelAdmin):
     """Отдельная админка для глубокого анализа ИИ запросов и разбора ошибок"""
     list_display = ("id", "status", "model_used", "prompt_tokens", "completion_tokens", "total_tokens", "created_at")
     list_filter = ("status", "model_used", "created_at")
-    search_fields = ("reading__id", "prompt_user", "response_text", "error_message")
+    search_fields = ("reading__id", "prompt_user", "error_message")
     ordering = ("-created_at",)
+    
+    inlines = [AIReadingPageInline]
     
     readonly_fields = ("created_at", "updated_at")
     
@@ -230,7 +247,7 @@ class AIReadingInterpretationAdmin(admin.ModelAdmin):
             "fields": ("prompt_system", "prompt_user"),
         }),
         ("Результат выполнения", {
-            "fields": ("response_text", "error_message"),
+            "fields": ("error_message",),
         }),
         ("Статистика токенов", {
             "fields": ("prompt_tokens", "completion_tokens", "total_tokens"),

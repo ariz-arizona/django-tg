@@ -3,60 +3,29 @@ import os
 from typing import List, Optional, Dict
 
 import textwrap
-import time
-import json
-import asyncio
 import redis.asyncio as aioredis
-import aiohttp
 import random
-from io import BytesIO
-from bs4 import BeautifulSoup
-from openai import AsyncOpenAI
 
 from telegram import (
     Update,
-    InputMediaPhoto,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
-    ReplyKeyboardMarkup,
-    Message,
 )
 from telegram.ext import (
-    CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
     CallbackContext,
     filters,
 )
 from telegram.constants import ParseMode
-from telegram.error import BadRequest, RetryAfter
 
-from django.utils.timezone import now, timedelta
-from django.core.exceptions import ObjectDoesNotExist
-from django.db.models.functions import Cast
-from django.db.models import IntegerField
-
-from tg_bot.bot.abstract import AbstractBot
 from tg_bot.models import TgUser, Bot
 from tarot.models import (
-    TarotDeck,
-    TarotCardItem,
-    TarotCard,
-    ExtendedMeaning,
-    OraculumDeck,
-    OraculumItem,
     Rune,
     UserReading,
-    AIReadingInterpretation,
-    AIApiKey,
 )
-from tg_bot.models import BotFileCache
 from server.logger import logger
 from django.conf import settings
-
-from tarot.utils.image_utils import create_spread_image
-from tarot.bot.allcard_handler import AllCardHandler
-from tarot.bot.ai_interpret_handler import AIInterpretHandler
 
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(

@@ -725,7 +725,112 @@ class TarotBot(AbstractBot):
             await update.message.reply_text(
                 "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
             )
+            
+    async def handle_more_button(self, update: Update, context: CallbackContext):
+        query = update.callback_query
+        await query.answer()
+        logger.info(f"Получен callback-запрос: {query.data}")
 
+        # === ШАГ 1: Разбираем входящие данные и сразу грузим колоду ===
+        try:
+            _, deck_id, major, flip = query.data.split("_")
+            major = int(major)
+            flip = int(flip)
+            deck_id_int = int(deck_id)
+            deck = await self.get_deck(deck_id_int)
+            logger.info(f"Выражение {query.data} разобрано. Загружена колода Таро: {deck}")
+            
+        except ValueError as e:
+            logger.error(f"Ошибка при разборе query.data: {query.data}, ошибка: {e}")
+            await query.edit_message_text("Ошибка обработки запроса.")
+            return
+        except Exception as e:
+            logger.error(f"Ошибка загрузки колоды {deck_id}: {e}")
+            await query.edit_message_text("Ошибка загрузки колоды.")
+            return
+
+        # Находим пользователя и исходный ID сообщения
+        user = await self.get_or_create_tg_user(update)
+        if not update.effective_message.reply_to_message:
+            logger.warning("Не найдено исходное сообщение reply_to_message для добора.")
+            initial_message_id = update.effective_message.message_id
+        else:
+            initial_message_id = update.effective_message.reply_to_message.message_id
+
+        try:
+            # === ШАГ 2: Получаем или создаем прошлую запись в БД ===
+            reading, created = await UserReading.objects.aget_or_create(
+                message_id=initial_message_id,
+                user=user,
+                defaults={
+                    "category": UserReading.ReadingCategory.TAROT,
+                    "deck_id": deck.id if deck else None,
+                    "text": f"{deck.name if deck else 'Таро'}: ",
+                    "count": 0,
+                    "card_ids": []
+                }
+            )
+
+            # === ШАГ 3: Берем список исключений СТРОГО из базы данных ===
+            exclude_cards = [str(cid) for cid in (reading.card_ids or [])]
+            logger.info(f"Получаем карты с major {bool(major)} flip {bool(flip)}. Исключаем из БД: {exclude_cards}")
+
+            # Вызываем генератор карт Таро
+            new_card = await self.get_cards(
+                deck_id=deck_id_int,
+                counter=1,
+                card_ids=None,
+                exclude_cards=exclude_cards,
+                major=bool(major),
+                flip=bool(flip)
+            )
+
+            if not new_card:
+                logger.info("Нет доступных карт для выбора.")
+                await update.effective_message.reply_text("Нет доступных карт для выбора (колода закончилась).")
+                await update.effective_message.edit_reply_markup(reply_markup=InlineKeyboardMarkup([]))
+                return
+
+            # Форматируем имя новой карты для текста
+            new_card_text = ", ".join([await self.format_card_name(c) for c in new_card])
+            new_card_ids = [c["card_id"] for c in new_card]
+            logger.info(f"Выбраны новые карты: {[c['name'] + ' ' + str(c['flipped']) for c in new_card]}")
+
+            # === ШАГ 4: Обновляем запись в БД новыми данными ===
+            if created:
+                # Если запись была создана в defaults с нуля
+                reading.text = f"{deck.name if deck else 'Таро'}: {new_card_text}"
+                reading.count = 1
+                reading.card_ids = new_card_ids
+            else:
+                # Если запись уже существовала — дописываем текст, инкрементируем счетчик и дополняем ID
+                reading.text = f"{reading.text}, {new_card_text}"
+                reading.count += 1
+                
+                current_ids = reading.card_ids or []
+                current_ids.extend(new_card_ids)
+                reading.card_ids = current_ids
+
+            # Сохраняем обновленный лог в базу
+            await reading.asave()
+            logger.info(f"Запись Таро {reading.id} успешно обновлена в БД. Карты: {reading.card_ids}")
+
+            # Отправляем карту пользователю в чат
+            # Обрати внимание на порядок аргументов bool(flip) и bool(major), как было в твоем исходнике
+            await self.send_card(
+                update,
+                new_card,
+                new_card_ids,
+                deck,
+                bool(flip),
+                bool(major),
+            )
+            logger.info(f"Карта добора Таро успешно отправлена: {new_card_text}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при обработке добора карты Таро: {e}", exc_info=True)
+            await query.edit_message_text("Ошибка при обработке добора карты.")
+            
     async def handle_oraculum(self, update: Update, context: CallbackContext):
         msg_text = update.message.text
         logger.info(f"Обработка команды /oraculum с текстом: {msg_text[:100]}")
@@ -884,111 +989,6 @@ class TarotBot(AbstractBot):
 
         except Exception as e:
             logger.error(f"Ошибка при обработке добора карты: {e}", exc_info=True)
-            await query.edit_message_text("Ошибка при обработке добора карты.")
-            
-    async def handle_more_button(self, update: Update, context: CallbackContext):
-        query = update.callback_query
-        await query.answer()
-        logger.info(f"Получен callback-запрос: {query.data}")
-
-        # === ШАГ 1: Разбираем входящие данные и сразу грузим колоду ===
-        try:
-            _, deck_id, major, flip = query.data.split("_")
-            major = int(major)
-            flip = int(flip)
-            deck_id_int = int(deck_id)
-            deck = await self.get_deck(deck_id_int)
-            logger.info(f"Выражение {query.data} разобрано. Загружена колода Таро: {deck}")
-            
-        except ValueError as e:
-            logger.error(f"Ошибка при разборе query.data: {query.data}, ошибка: {e}")
-            await query.edit_message_text("Ошибка обработки запроса.")
-            return
-        except Exception as e:
-            logger.error(f"Ошибка загрузки колоды {deck_id}: {e}")
-            await query.edit_message_text("Ошибка загрузки колоды.")
-            return
-
-        # Находим пользователя и исходный ID сообщения
-        user = await self.get_or_create_tg_user(update)
-        if not update.effective_message.reply_to_message:
-            logger.warning("Не найдено исходное сообщение reply_to_message для добора.")
-            initial_message_id = update.effective_message.message_id
-        else:
-            initial_message_id = update.effective_message.reply_to_message.message_id
-
-        try:
-            # === ШАГ 2: Получаем или создаем прошлую запись в БД ===
-            reading, created = await UserReading.objects.aget_or_create(
-                message_id=initial_message_id,
-                user=user,
-                defaults={
-                    "category": UserReading.ReadingCategory.TAROT,
-                    "deck_id": deck.id if deck else None,
-                    "text": f"{deck.name if deck else 'Таро'}: ",
-                    "count": 0,
-                    "card_ids": []
-                }
-            )
-
-            # === ШАГ 3: Берем список исключений СТРОГО из базы данных ===
-            exclude_cards = [str(cid) for cid in (reading.card_ids or [])]
-            logger.info(f"Получаем карты с major {bool(major)} flip {bool(flip)}. Исключаем из БД: {exclude_cards}")
-
-            # Вызываем генератор карт Таро
-            new_card = await self.get_cards(
-                deck_id=deck_id_int,
-                counter=1,
-                card_ids=None,
-                exclude_cards=exclude_cards,
-                major=bool(major),
-                flip=bool(flip)
-            )
-
-            if not new_card:
-                logger.info("Нет доступных карт для выбора.")
-                await update.effective_message.reply_text("Нет доступных карт для выбора (колода закончилась).")
-                await update.effective_message.edit_reply_markup(reply_markup=InlineKeyboardMarkup([]))
-                return
-
-            # Форматируем имя новой карты для текста
-            new_card_text = ", ".join([await self.format_card_name(c) for c in new_card])
-            new_card_ids = [c["card_id"] for c in new_card]
-            logger.info(f"Выбраны новые карты: {[c['name'] + ' ' + str(c['flipped']) for c in new_card]}")
-
-            # === ШАГ 4: Обновляем запись в БД новыми данными ===
-            if created:
-                # Если запись была создана в defaults с нуля
-                reading.text = f"{deck.name if deck else 'Таро'}: {new_card_text}"
-                reading.count = 1
-                reading.card_ids = new_card_ids
-            else:
-                # Если запись уже существовала — дописываем текст, инкрементируем счетчик и дополняем ID
-                reading.text = f"{reading.text}, {new_card_text}"
-                reading.count += 1
-                
-                current_ids = reading.card_ids or []
-                current_ids.extend(new_card_ids)
-                reading.card_ids = current_ids
-
-            # Сохраняем обновленный лог в базу
-            await reading.asave()
-            logger.info(f"Запись Таро {reading.id} успешно обновлена в БД. Карты: {reading.card_ids}")
-
-            # Отправляем карту пользователю в чат
-            # Обрати внимание на порядок аргументов bool(flip) и bool(major), как было в твоем исходнике
-            await self.send_card(
-                update,
-                new_card,
-                new_card_ids,
-                deck,
-                bool(flip),
-                bool(major),
-            )
-            logger.info(f"Карта добора Таро успешно отправлена: {new_card_text}")
-
-        except Exception as e:
-            logger.error(f"Ошибка при обработке добора карты Таро: {e}", exc_info=True)
             await query.edit_message_text("Ошибка при обработке добора карты.")
             
     def split_text(self, text, chunk_size=1024):

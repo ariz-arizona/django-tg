@@ -1,13 +1,23 @@
 import re
 import os
 from typing import List, Optional, Dict
-            
+
+import asyncio
 import json
 import redis.asyncio as aioredis
-import aiohttp
+from aiohttp import ClientError, ClientTimeout, ClientSession
 import random
 from bs4 import BeautifulSoup
+import logging
 
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    before_sleep_log,
+    after_log
+)
 from telegram import (
     Update, InputMediaPhoto, InlineKeyboardButton,
     InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove,
@@ -624,14 +634,17 @@ class TarotBot(AbstractBot):
 
                 message = "\n\n".join(message_parts)
                 
-                command_text = update.message.text
-                reply_markup = None
-                if command_text:
-                    reply_markup = ReplyKeyboardMarkup(
-                        [[KeyboardButton(command_text[:100])]],
-                        resize_keyboard=True,
-                        one_time_keyboard=True
-                    )
+                # command_text = update.message.text
+                # if command_text:
+                #     hide_msg = await update.effective_message.reply_text(
+                #         ".",
+                #         reply_markup=ReplyKeyboardMarkup(
+                #             [[KeyboardButton(command_text[:100])]],
+                #             resize_keyboard=True,
+                #             one_time_keyboard=True
+                #         )
+                #     )
+                #     await hide_msg.delete()
                 
                 # === ОБНОВЛЕНИЕ ИЛИ ОТПРАВКА СООБЩЕНИЯ ===
                 # Проверяем, есть ли уже отправленное сообщение об этом кулдауне
@@ -642,7 +655,6 @@ class TarotBot(AbstractBot):
                         # Используем update.get_bot() для вызова edit_message_text
                         await update.get_bot().edit_message_text(
                             chat_id=update.effective_chat.id,
-                            reply_markup=reply_markup,
                             message_id=int(existing_msg_id),
                             text=message
                         )
@@ -653,12 +665,14 @@ class TarotBot(AbstractBot):
                         
                     except Exception as edit_err:
                         # Если сообщение удалено или текст совпадает, отправляем заново
-                        logger.warning(f"Не удалось отредактировать сообщение {existing_msg_id}: {edit_err}")
+                        logger.warning(
+                            f"Не удалось отредактировать сообщение {existing_msg_id}: {edit_err}"
+                        )
                         existing_msg_id = None
                         
                 if not existing_msg_id:
                     # Если сообщения не было или не удалось отредактировать — отправляем новое
-                    sent_msg = await update.effective_message.reply_text(message, reply_markup=reply_markup,)
+                    sent_msg = await update.effective_message.reply_text(message)
                     # Сохраняем ID сообщения в Redis с TTL, равным остатку кулдауна
                     await redis_client.set(msg_ttl_key, sent_msg.message_id, ex=time_left)
                     
@@ -1279,8 +1293,17 @@ class TarotBot(AbstractBot):
         text = card.name + "\n" + card.meaning
         await self.send_paginated_text(update, [int(x) for x in cards], 0, text)
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((ClientError, asyncio.TimeoutError)),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        after=after_log(logger, logging.DEBUG),
+        reraise=True
+    )
     async def load_page(self, url):
-        async with aiohttp.ClientSession() as session:
+        timeout = ClientTimeout(total=5) 
+        async with ClientSession(timeout=timeout) as session:
             async with session.get(url) as response:
                 return await response.text()
 

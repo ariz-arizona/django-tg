@@ -9,6 +9,7 @@ from aiohttp import ClientError, ClientTimeout, ClientSession
 import random
 from bs4 import BeautifulSoup
 import logging
+from html import escape
 
 from tenacity import (
     retry,
@@ -109,7 +110,7 @@ class TarotBot(AbstractBot):
                 & filters.Regex(r"^\/card(\d+)?"),
                 self.handle_card,
             ),
-            CallbackQueryHandler(self.handle_more_button, pattern=r"^more_\d+_.+$"),
+            CallbackQueryHandler(self.handle_more_button, pattern=r"^more_"),
             CallbackQueryHandler(
                 self.handle_desc_button, pattern=r"^desc_(\d+(?:#\d+)*)$"
             ),
@@ -134,7 +135,7 @@ class TarotBot(AbstractBot):
                 self.handle_spread,
             ),
         ]
-    
+
     async def get_or_create_tg_user(self, update: Update) -> TgUser:
         """
         Получает или создает пользователя TgUser на основе данных из Telegram Update.
@@ -188,7 +189,7 @@ class TarotBot(AbstractBot):
             original_query=original_query,
         )
         logger.info(f"Результат гадания сохранен: {reading}")
-        
+
         # 3. Сохраняем отметку в Redis
         try:
             # Формируем ключ, например: "user:123456789:tarot"
@@ -197,9 +198,9 @@ class TarotBot(AbstractBot):
             logger.info(f"Ключ {redis_key} успешно записан в Redis на {REDIS_TTL_SECONDS} сек.")
         except Exception as e:
             logger.error(f"Ошибка записи в Redis для пользователя {user.id}: {e}")
-            
+
         return reading
-    
+
     async def get_deck(self, deck_id=None, deck_type="tarot"):
         # Получаем список всех ID колод
         model = TarotDeck.objects
@@ -373,16 +374,16 @@ class TarotBot(AbstractBot):
         except Exception as e:
             raise RuntimeError(f"Ошибка: {str(e)}") from e
 
-    async def format_card_name(self, card):
+    async def format_card_name(self, card, text_join = '\n'):
         instance = card.get("card_instance")
         flipped = card.get("flipped", False)
-        
+
         # Основное описание (название или описание из модели)
         main_desc = ""
         if isinstance(instance, OraculumItem):
             # Если description пустой, берем name
             main_desc = (instance.description or "")
-        
+
         # Текст значения (прямое или перевернутое)
         value_text = ""
         if isinstance(instance, OraculumItem):
@@ -397,76 +398,114 @@ class TarotBot(AbstractBot):
             "Перевернуто" if flipped else None,
             (f"{main_desc} {value_text}".strip() if isinstance(instance, OraculumItem) else None)
         ]
-        
-        return "\n".join(str(p) for p in parts if p)
 
+        return text_join.join(str(p) for p in parts if p)
+    
     async def send_card(self, update: Update, cards, meaning_cards, deck, flip, major, **kwargs):
         logger.info(
-            (f"Отправка значений  и клавиатуры: meaning_cards={meaning_cards}, deck={deck}, cards_count={len(cards)},"
-                f"flip={flip}, major={major}")
-            )
+            f"Отправка значений и клавиатуры: meaning_cards={meaning_cards}, deck={deck}, "
+            f"cards_count={len(cards)}, flip={flip}, major={major}"
+        )
+
+        reading_id = kwargs.get("reading_id")
+        send_type = kwargs.get("send_type")  # Может быть 'tarot'
+        params = {"disable_web_page_preview": True}
+
+        # 1. Отправка фото
         await update.effective_message.reply_media_group(
             [
-                InputMediaPhoto(
-                    (c["img_id"]),
-                    await self.format_card_name(c),
-                )
+                InputMediaPhoto(c["img_id"], await self.format_card_name(c))
                 for c in cards
             ],
             reply_to_message_id=update.effective_message.message_id,
         )
 
-        text = [deck.name]
-        reply_markup = [
-            [
+        # 2. Логика клавиатуры и текста (Поддержка двух вариантов)
+        if send_type in ['tarot']:
+            reading = await UserReading.objects.aget(id=reading_id)
+            # Если deck передан как None, берем из reading
+            current_deck = deck or await TarotDeck.objects.aget(id=reading.deck_id)
+            order_list = [str(item.get("id")) for item in (reading.card_ids or [])]
+            # Формируем карту флипов
+            flip_map = {
+                str(item.get("id") if isinstance(item, dict) else item): 
+                (item.get("flip", False) if isinstance(item, dict) else False)
+                for item in (reading.card_ids or [])
+            }
+
+            all_cards_qs = TarotCardItem.objects.filter(
+                deck_id=current_deck.id,
+                tarot_card__card_id__in=flip_map.keys()
+            ).prefetch_related("tarot_card")
+            
+            cards_dict = {}
+            async for c in all_cards_qs:
+                card_id_str = str(c.tarot_card.card_id)
+                cards_dict[card_id_str] = {
+                    "card_instance": c,
+                    "name": c.tarot_card.name,
+                    "flipped": flip_map.get(card_id_str, False)
+                }
+            all_cards = [cards_dict[card_id] for card_id in order_list if card_id in cards_dict]
+
+            deck_name = escape(current_deck.name)
+            card_names = [await self.format_card_name(c, ' // ') for c in all_cards]
+            text = [
+                f"<b>Расклад из колоды</b>: <a href='{current_deck.link}'>{deck_name}</a>\n",
+                f"<b>Карты:</b> {escape(', '.join(card_names))}",
+            ]
+
+            # 1. Получаем список всех card_id, которые уже выпали
+            # (ключи flip_map — это те самые строки из TarotCard.card_id)
+            used_card_ids = list(flip_map.keys())
+
+            # 2. Формируем запрос для проверки остатка карт
+            # Мы идем через TarotCardItem -> TarotCard
+            query = TarotCardItem.objects.filter(deck_id=current_deck.id)
+            
+            # Если расклад "только старшие", фильтруем связанную модель
+            if bool(reading.is_major_only):
+                query = query.filter(tarot_card__is_major=True)
+                
+            # Исключаем карты, чей tarot_card.card_id уже есть в нашем списке
+            can_draw_more = await query.exclude(
+                tarot_card__card_id__in=used_card_ids
+            ).aexists()
+            
+            params["parse_mode"] = ParseMode.HTML
+            reply_markup = []
+            row = []
+            
+            if can_draw_more:
+                row.append(InlineKeyboardButton("Еще карту", callback_data=f"more_{reading_id}"))
+            
+            row.append(InlineKeyboardButton(f"Трактовка карт ({len(all_cards)})", callback_data=f"desc_{reading_id}"))
+            reply_markup.append(row)
+            
+            if ai_btn_text := kwargs.get("add_ai_button"):
+                reply_markup.append([InlineKeyboardButton(text=ai_btn_text, callback_data=f"aireading_{reading_id}")])
+                logger.info(f"Добавлена ИИ-кнопка: {ai_btn_text}")
+
+        else:
+            # ОБРАТНАЯ СОВМЕСТИМОСТЬ (Старый вариант для оракулов и т.д.)
+            text = [deck.name if deck else "Карта"]
+            reply_markup = [[
                 InlineKeyboardButton(
                     "Еще карту",
-                    callback_data=f"moreoracle_{deck.id}_{int(major)}_{int(flip)}",
+                    callback_data=f"moreoracle_{deck.id if deck else 0}_{int(major)}_{int(flip)}",
                 )
-            ]
-        ]
-        if isinstance(deck, TarotDeck):
-            text.append(deck.link)
-            reply_markup = [
-                [
-                    InlineKeyboardButton(
-                        "Еще карту",
-                        callback_data=f"more_{deck.id}_{int(major)}_{int(flip)}",
-                    ),
-                    InlineKeyboardButton(
-                        f"Базовые значения (для {len(meaning_cards)} карт)",
-                        callback_data=f"desc_{'#'.join(meaning_cards)}",
-                    ),
-                ]
-            ]
-            
-        ai_btn_text = kwargs.get("add_ai_button")
-        reading_id = kwargs.get("reading_id")
+            ]]
 
-        if isinstance(ai_btn_text, str) and reading_id:
-            # Добавляем кнопку ИИ отдельной строкой в самый низ клавиатуры
-            reply_markup.append([
-                InlineKeyboardButton(
-                    text=ai_btn_text,
-                    callback_data=f"aireading_{reading_id}"
-                )
-            ])
-            logger.info(f"В клавиатуру успешно добавлена ИИ-кнопка: [{ai_btn_text}] для расклада #{reading_id}")
-            
-        reply_id = update.effective_message.message_id
-        if update.effective_message.reply_to_message:
-            reply_id = update.effective_message.reply_to_message.message_id
-            
-        params = {
-            "text": "\n".join(text),
-            "reply_to_message_id": reply_id,
-            "disable_web_page_preview": True,
-        }
+        # 3. Финальная отправка
+        params["text"] = "\n".join(text)
+        params["reply_to_message_id"] = update.effective_message.reply_to_message.message_id \
+            if update.effective_message.reply_to_message else update.effective_message.message_id
+        
         if reply_markup:
             params["reply_markup"] = InlineKeyboardMarkup(reply_markup)
 
         await update.effective_message.reply_text(**params)
-
+        
     def parse_reading_options(self, msg_text: str) -> dict:
         """
         Полный парсинг аргументов команды из текста сообщения.
@@ -475,7 +514,7 @@ class TarotBot(AbstractBot):
         """
         # Сохраняем исходную строку для вырезания флагов
         clean_text = msg_text
-        
+
         msg_lower = msg_text.lower()
         options = {}
 
@@ -483,7 +522,7 @@ class TarotBot(AbstractBot):
         counter_found = re.search(r"/[a-zA-Z]+(\d+)", msg_lower)
         options["counter"] = int(counter_found.group(1)) if counter_found else 1
         options["counter"] = max(1, min(options["counter"], 10))
-        
+
         # Вырезаем саму команду (например, /card3 или /card)
         # Ищем команду с необязательными цифрами на конце
         clean_text = re.sub(r"/[a-zA-Z]+\d*", "", clean_text, flags=re.IGNORECASE)
@@ -509,20 +548,20 @@ class TarotBot(AbstractBot):
 
         # 5. Парсинг конкретных ID карт (формат: c12_15_23)
         card_ids_found = re.findall(r"[cC](\d+(?:_\d+)*)", msg_text)
-        
+
         if card_ids_found:
             card_ids = [int(c) % 78 for c in card_ids_found[0].split("_")]
             target_count = options["counter"]
-            
+
             if len(card_ids) < target_count:
                 temp_id = card_ids[-1]
                 for _ in range(len(card_ids), target_count):
                     temp_id = (temp_id + 1) % 78
                     card_ids.append(temp_id)
-            
+
             options["card_ids"] = card_ids[:target_count]
             logger.info(f"Парсинг ID карт: card_ids={options['card_ids']}")
-            
+
             # Вырезаем блок кастомных ID (например, c12_15_23)
             clean_text = re.sub(r"[cC]\d+(?:_\d+)*", "", clean_text)
         else:
@@ -532,7 +571,7 @@ class TarotBot(AbstractBot):
         # 6. ФИНАЛЬНАЯ ОЧИСТКА ОРИГИНАЛЬНОГО ЗАПРОСА
         # Убираем лишние пробелы, переносы строк и знаки препинания, которые могли остаться по краям
         clean_text = re.sub(r"\s+", " ", clean_text).strip()
-        
+
         # Записываем результат (если пользователь ничего не ввел, будет пустая строка)
         options["original_query"] = clean_text
 
@@ -542,9 +581,9 @@ class TarotBot(AbstractBot):
             f"major={options['major']}, has_custom_ids={options['card_ids'] is not None} | "
             f"Query: '{options['original_query']}'"
         )
-        
+
         return options
-    
+
     async def check_reading_cooldown(self, update: Update, category: str) -> bool:
         """
         Проверяет, есть ли активный кулдаун на гадание для пользователя.
@@ -553,33 +592,33 @@ class TarotBot(AbstractBot):
         """
         user_id = update.effective_user.id
         user = update.effective_user
-        
+
         # Формируем ключ по тому же шаблону, что и при сохранении
         redis_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=category)
         # Ключ для хранения ID сообщения кулдауна
         msg_ttl_key = f"user:ttl:message:{user_id}:{category}"
-        
+
         try:
             # Запрашиваем оставшееся время жизни ключа (в секундах)
             time_left = await redis_client.ttl(redis_key)
-            
+
             # Redis возвращает:
             # -1, если ключ существует, но у него нет TTL (бессрочный)
             # -2, если ключа нет в базе (кулдауна нет, можно гадать)
             if time_left > 0:
                 # Красиво форматируем категорию (например, tarot -> ТАРОТ)
                 category_upper = category.upper() 
-                
+
                 user_name = user.username or user.first_name or str(user_id)
                 logger.info(
                     f"Пользователь {user_name} (id: {user_id}) "
                     f"пытается пойти раньше кулдауна на {time_left} секунд "
                     f"для категории {category_upper}"
                 )
-                
+
                 # Проверяем все остальные категории на наличие активного кулдауна
                 available_commands = []
-                
+
                 # Словарь соответствия категорий командам
                 category_to_command = {
                     UserReading.ReadingCategory.ONE: "/one",
@@ -588,26 +627,26 @@ class TarotBot(AbstractBot):
                     UserReading.ReadingCategory.RUNES: "/futark",
                     UserReading.ReadingCategory.CANVAS_SPREAD: "/spread",
                 }
-                
+
                 # Проверяем каждую категорию
                 for cat_choice in UserReading.ReadingCategory.values:
                     if cat_choice == category:
                         continue  # Пропускаем текущую заблокированную категорию
-                    
+
                     # Формируем ключ для проверки
                     check_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=cat_choice)
                     check_ttl = await redis_client.ttl(check_key)
-                    
+
                     # Если ключа нет (time_left == -2) - категория доступна
                     if check_ttl == -2:
                         command = category_to_command.get(cat_choice)
                         if command:
                             available_commands.append(command)
-                            
+
                 # === ИЩЕМ ДРУГИХ БОТОВ В REDIS ===
                 all_bots = await redis_client_bot.hgetall("running_bots")
                 other_bots = set() 
-                
+
                 for bot_id, bot_info_json in all_bots.items():
                     bot_info = json.loads(bot_info_json)
                     # Ищем ботов типа TarotBot
@@ -618,7 +657,7 @@ class TarotBot(AbstractBot):
                         bot_username = bot_info.get('username')
                         if bot_username:
                             other_bots.add(f"@{bot_username}")
-                    
+
                 message_parts = [f"⚠️ Подождите {time_left} секунд до гадания {category_upper}"]
 
                 if available_commands:
@@ -633,7 +672,7 @@ class TarotBot(AbstractBot):
                     message_parts.append("❌ Все команды на кулдауне")
 
                 message = "\n\n".join(message_parts)
-                
+
                 # command_text = update.message.text
                 # if command_text:
                 #     hide_msg = await update.effective_message.reply_text(
@@ -645,11 +684,11 @@ class TarotBot(AbstractBot):
                 #         )
                 #     )
                 #     await hide_msg.delete()
-                
+
                 # === ОБНОВЛЕНИЕ ИЛИ ОТПРАВКА СООБЩЕНИЯ ===
                 # Проверяем, есть ли уже отправленное сообщение об этом кулдауне
                 existing_msg_id = await redis_client.get(msg_ttl_key)
-                
+
                 if existing_msg_id:
                     try:
                         # Используем update.get_bot() для вызова edit_message_text
@@ -662,225 +701,179 @@ class TarotBot(AbstractBot):
                         # чтобы ключ в Redis не удалился раньше времени
                         await redis_client.set(msg_ttl_key, existing_msg_id, ex=time_left)
                         await update.effective_message.delete()
-                        
+
                     except Exception as edit_err:
                         # Если сообщение удалено или текст совпадает, отправляем заново
                         logger.warning(
                             f"Не удалось отредактировать сообщение {existing_msg_id}: {edit_err}"
                         )
                         existing_msg_id = None
-                        
+
                 if not existing_msg_id:
                     # Если сообщения не было или не удалось отредактировать — отправляем новое
                     sent_msg = await update.effective_message.reply_text(message)
                     # Сохраняем ID сообщения в Redis с TTL, равным остатку кулдауна
                     await redis_client.set(msg_ttl_key, sent_msg.message_id, ex=time_left)
-                    
+
                 return True # Блокировка активна
-                
+
         except Exception as e:
             # Если Redis упал, не блокируем пользователя, а логируем ошибку
             import logging
             logging.error(f"Ошибка проверки TTL в Redis: {e}")
-            
-        hide_msg = await update.effective_message.reply_text(
-            ".",
-            reply_markup=ReplyKeyboardRemove()
-        )
-        await hide_msg.delete()
-        return False
 
+        return False
+    
     async def handle_card(self, update: Update, context: CallbackContext):
         """
         Обработчик команды /card.
         """
         msg_text = update.message.text
         logger.info(f"Обработка команды /card с текстом: {msg_text[:100]}")
-        
+
         category = UserReading.ReadingCategory.TAROT
-        is_locked = await self.check_reading_cooldown(update, category)
-        if is_locked:
+        if await self.check_reading_cooldown(update, category):
             return
-        
+
         try:
             options = self.parse_reading_options(msg_text)
+            logger.info(f"Опции расклада разобраны: {options}")
 
-            # Получение колоды
+            # 1. Получение колоды
             deck = await self.get_deck(options.get("deck"))
-            logger.info(f"Используемая колода: {deck.id if deck else 'не указана'}")
+            logger.info(f"Используемая колода ID: {deck.id if deck else 'None'}")
 
-            # Получение карт
+            # 2. Генерация карт
             cards = await self.get_cards(
-                deck.id if deck else None,
-                options.get("counter", 1),
-                options.get("card_ids"),
-                options.get("major", False),
-                options.get('flip')
+                deck_id=deck.id if deck else None,
+                counter=options.get("counter", 1),
+                card_ids=options.get("card_ids"),
+                major=options.get("major", False),
+                flip=options.get('flip')
             )
+            
+            # Формируем список словарей для БД
+            card_records = [{"id": str(c["card_id"]), "flip": c["flipped"]} for c in cards]
+            logger.info(f"Получены карты {card_records}")
+            
+            # 3. Сохранение расклада
             user = await self.get_or_create_tg_user(update)
             reading = await self.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,
-                text=f"{deck.name if deck else 'Дефолтная колода'}: " + ", ".join(
-                    [await self.format_card_name(c) for c in cards]
-                ),
+                text=f"{deck.name if deck else 'Дефолтная колода'}: " + 
+                     ", ".join([await self.format_card_name(c) for c in cards]),
                 category=category,
                 count=options.get("counter", 1),
                 deck_id=deck.id if deck else None,
                 is_flipped_allowed=options.get('flip', False),
                 is_major_only=options.get('major', False),
-                card_ids=[c["card_id"] for c in cards],
+                card_ids=card_records,
                 original_query=options.get('original_query'),
             )
-            send_card_kwargs = {}
+            logger.info(f"Результат гадания сохранен в БД, ID записи: {reading.id}")
+
+            # 4. Подготовка клавиатуры и отправка
+            send_card_kwargs = {
+                "reading_id": reading.id,
+                "send_type": "tarot",
+                "deck": deck,
+                "flip": options.get("flip", False),
+                "major": options.get("major", False)
+            }
             
-            ai_button_enabled = await self.ai_interpret_handler.should_add_ai_button()
-            if ai_button_enabled:
+            if await self.ai_interpret_handler.should_add_ai_button():
                 send_card_kwargs["add_ai_button"] = "🔮 Растолковать расклад (ИИ)"
-                send_card_kwargs["reading_id"] = reading.id
-            
-            # Отправка карт
+                logger.info("ИИ-кнопка добавлена в параметры отправки.")
+
+            # Отправка карт пользователю
             await self.send_card(
                 update,
                 cards,
-                [c["card_id"] for c in cards],
-                deck,
-                options["flip"],
-                options['major'],
+                [str(c["card_id"]) for c in cards],
                 **send_card_kwargs
             )
-            logger.info(
-                f"Карта отправлена: {[str(n.get(k)) for k in ['card_id', 'name'] for n in cards]}"
-            )
+            
+            # Логируем результат
+            card_names_info = [f"{c['name']} {c['card_id']} ({'Flipped' if c['flipped'] else 'Direct'})" for c in cards]
+            logger.info(f"Карты успешно отправлены: {card_names_info}")
 
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /card: {e}", exc_info=True)
-            await update.message.reply_text(
-                "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
-            )
-            
+            await update.message.reply_text("Произошла ошибка при выполнении расклада.")
+
     async def handle_more_button(self, update: Update, context: CallbackContext):
         query = update.callback_query
         await query.answer()
         logger.info(f"Получен callback-запрос: {query.data}")
 
-        # === ШАГ 1: Разбираем входящие данные и сразу грузим колоду ===
         try:
-            _, deck_id, major, flip = query.data.split("_")
-            major = int(major)
-            flip = int(flip)
-            deck_id_int = int(deck_id)
-            deck = await self.get_deck(deck_id_int)
-            logger.info(f"Выражение {query.data} разобрано. Загружена колода Таро: {deck}")
-            
-        except ValueError as e:
-            logger.error(f"Ошибка при разборе query.data: {query.data}, ошибка: {e}")
-            await query.edit_message_text("Ошибка обработки запроса.")
-            return
-        except Exception as e:
-            logger.error(f"Ошибка загрузки колоды {deck_id}: {e}")
-            await query.edit_message_text("Ошибка загрузки колоды.")
-            return
+            _, reading_id = query.data.split("_")
+            user = await self.get_or_create_tg_user(update)
 
-        # Находим пользователя и исходный ID сообщения
-        user = await self.get_or_create_tg_user(update)
-        if not update.effective_message.reply_to_message:
-            logger.warning("Не найдено исходное сообщение reply_to_message для добора.")
-            initial_message_id = update.effective_message.message_id
-        else:
-            initial_message_id = update.effective_message.reply_to_message.message_id
+            # Ищем существующий расклад
+            reading = await UserReading.objects.filter(id=reading_id, user=user).afirst()
 
-        try:
-            # === ШАГ 2: Получаем или создаем прошлую запись в БД ===
-            reading, created = await UserReading.objects.aget_or_create(
-                message_id=initial_message_id,
-                user=user,
-                defaults={
-                    "category": UserReading.ReadingCategory.TAROT,
-                    "deck_id": deck.id if deck else None,
-                    "text": f"{deck.name if deck else 'Таро'}: ",
-                    "count": 0,
-                    "card_ids": []
-                }
-            )
+            # УСЛОВИЕ: Если расклада нет — чистим кнопки и выходим
+            if not reading:
+                logger.warning(f"Расклад {reading_id} не найден.")
+                await query.edit_message_text("Этот расклад больше не доступен.")
+                await query.edit_message_reply_markup(reply_markup=None)
+                return
 
-            # === ШАГ 3: Берем список исключений СТРОГО из базы данных ===
-            exclude_cards = [str(cid) for cid in (reading.card_ids or [])]
-            logger.info(f"Получаем карты с major {bool(major)} flip {bool(flip)}. Исключаем из БД: {exclude_cards}")
+            # === Подготовка данных ===
+            exclude_cards = [str(item.get("id") if isinstance(item, dict) else item) for item in (reading.card_ids or [])]
+            logger.info(f"Получаем карты с major {bool(reading.is_major_only)} flip {bool(reading.is_flipped_allowed)}. Исключаем: {exclude_cards}")
 
-            # Вызываем генератор карт Таро
             new_card = await self.get_cards(
-                deck_id=deck_id_int,
+                deck_id=reading.deck_id,
                 counter=1,
-                card_ids=None,
                 exclude_cards=exclude_cards,
-                major=bool(major),
-                flip=bool(flip)
+                major=bool(reading.is_major_only),
+                flip=bool(reading.is_flipped_allowed)
             )
 
             if not new_card:
-                logger.info("Нет доступных карт для выбора.")
-                await update.effective_message.reply_text("Нет доступных карт для выбора (колода закончилась).")
-                await update.effective_message.edit_reply_markup(reply_markup=InlineKeyboardMarkup([]))
+                await query.edit_message_text("Больше карт в колоде нет.")
+                await query.edit_message_reply_markup(reply_markup=None)
                 return
 
-            # Форматируем имя новой карты для текста
+            # === Обновление записи ===
             new_card_text = ", ".join([await self.format_card_name(c) for c in new_card])
-            new_card_ids = [c["card_id"] for c in new_card]
+            new_card_data = [{"id": c["card_id"], "flip": c["flipped"]} for c in new_card]
             logger.info(f"Выбраны новые карты: {[c['name'] + ' ' + str(c['flipped']) for c in new_card]}")
 
-            # === ШАГ 4: Обновляем запись в БД новыми данными ===
-            if created:
-                # Если запись была создана в defaults с нуля
-                reading.text = f"{deck.name if deck else 'Таро'}: {new_card_text}"
-                reading.count = 1
-                reading.card_ids = new_card_ids
-            else:
-                # Если запись уже существовала — дописываем текст, инкрементируем счетчик и дополняем ID
-                reading.text = f"{reading.text}, {new_card_text}"
-                reading.count += 1
-                
-                current_ids = reading.card_ids or []
-                current_ids.extend(new_card_ids)
-                reading.card_ids = current_ids
-
-            # Сохраняем обновленный лог в базу
+            reading.text = f"{reading.text}, {new_card_text}"
+            reading.count += 1
+            reading.card_ids.extend(new_card_data)
             await reading.asave()
-            logger.info(f"Запись Таро {reading.id} успешно обновлена в БД. Карты: {reading.card_ids}")
-            
-            send_card_kwargs = {}
-            ai_button_enabled = await self.ai_interpret_handler.should_add_ai_button()
-            if ai_button_enabled:
-                send_card_kwargs["add_ai_button"] = "🔮 Растолковать расклад (ИИ)"
-                send_card_kwargs["reading_id"] = reading.id
 
-            # Отправляем карту пользователю в чат
-            # Обрати внимание на порядок аргументов bool(flip) и bool(major), как было в твоем исходнике
+            # === Отправка результата ===
+            send_card_kwargs = {"reading_id": reading.id, "send_type": "tarot"}
+            if await self.ai_interpret_handler.should_add_ai_button():
+                send_card_kwargs["add_ai_button"] = "🔮 Растолковать расклад (ИИ)"
+
             await self.send_card(
-                update,
-                new_card,
-                new_card_ids,
-                deck,
-                bool(flip),
-                bool(major),
-                **send_card_kwargs
+                update, new_card, [c["card_id"] for c in new_card], None,
+                bool(reading.is_flipped_allowed), bool(reading.is_major_only), **send_card_kwargs
             )
-            await update.effective_message.edit_reply_markup(reply_markup=InlineKeyboardMarkup([]))
-            logger.info(f"Карта добора Таро успешно отправлена: {new_card_text}")
+
+            # Очистка кнопок у старого сообщения
+            await query.edit_message_reply_markup(reply_markup=None)
 
         except Exception as e:
-            logger.error(f"Ошибка при обработке добора карты Таро: {e}", exc_info=True)
-            await query.edit_message_text("Ошибка при обработке добора карты.")
-            
+            logger.error(f"Ошибка при обработке добора карты: {e}", exc_info=True)
+            await query.edit_message_text("Произошла ошибка при доборе карты.")
+
     async def handle_oraculum(self, update: Update, context: CallbackContext):
         msg_text = update.message.text
         logger.info(f"Обработка команды /oraculum с текстом: {msg_text[:100]}")
-        
+
         category = UserReading.ReadingCategory.ORACLE
         is_locked = await self.check_reading_cooldown(update, category)
         if is_locked:
             return
-        
+
         try:
             options = self.parse_reading_options(msg_text)
 
@@ -947,12 +940,11 @@ class TarotBot(AbstractBot):
             logger.error(f"Ошибка при разборе query.data: {query.data}, ошибка: {e}")
             await query.edit_message_text("Ошибка обработки запроса.")
             return
-        
+
         except Exception as e:
             logger.error(f"Ошибка загрузки колоды {deck_id}: {e}")
             await query.edit_message_text("Ошибка загрузки колоды.")
             return
-        
 
         # Находим пользователя и исходный ID сообщения
         user = await self.get_or_create_tg_user(update)
@@ -1009,7 +1001,7 @@ class TarotBot(AbstractBot):
                 # Если запись уже существовала — дописываем текст и ID карт
                 reading.text = f"{reading.text}, {new_card_text}"
                 reading.count += 1
-                
+
                 current_ids = reading.card_ids or []
                 current_ids.extend(new_card_ids)
                 reading.card_ids = current_ids
@@ -1031,7 +1023,7 @@ class TarotBot(AbstractBot):
         except Exception as e:
             logger.error(f"Ошибка при обработке добора карты: {e}", exc_info=True)
             await query.edit_message_text("Ошибка при обработке добора карты.")
-            
+
     def split_text(self, text, chunk_size=1024):
         # Шаг 1: разбиваем по строкам (как у тебя)
         lines = text.split("\n")
@@ -1312,7 +1304,7 @@ class TarotBot(AbstractBot):
         is_locked = await self.check_reading_cooldown(update, category)
         if is_locked:
             return
-                
+
         tarot_url = "https://www.tarot.com"
         decks_url = "/tarot/decks"
 
@@ -1381,7 +1373,7 @@ class TarotBot(AbstractBot):
 
             user_readings = []
             count = 5
-            
+
             # 2. Выбираем последние 5 записей из новой модели
             # Используем префикс даты для вывода в чат
             async for item in (
@@ -1402,7 +1394,7 @@ class TarotBot(AbstractBot):
                 parse_mode=ParseMode.HTML,
                 reply_to_message_id=update.effective_message.message_id,
             )
-            
+
         except Exception as e:
             logger.error(f"Ошибка при получении истории гаданий: {e}", exc_info=True)
 
@@ -1538,16 +1530,16 @@ class TarotBot(AbstractBot):
         msg_text = update.message.text
         user = await self.get_or_create_tg_user(update)
         logger.info(f"Обработка команды /spread с текстом: {msg_text[:100]}")
-        
+
         category = UserReading.ReadingCategory.CANVAS_SPREAD
         is_locked = await self.check_reading_cooldown(update, category)
         if is_locked:
             return
-        
+
         try:
             # Если все проверки пройдены
             tech_msg = await update.message.reply_text("Выбор карт")
-            
+
             options = self.parse_reading_options(msg_text)
 
             deck = await self.get_deck(options.get("deck"))
@@ -1570,7 +1562,7 @@ class TarotBot(AbstractBot):
                 cards_description.append(" ".join(parts))
 
             logger.info(f"Получено карт: {len(cards)}")
-            
+
             await self.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,

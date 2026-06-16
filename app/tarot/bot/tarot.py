@@ -191,6 +191,17 @@ class TarotBot(AbstractBot):
         Все, что осталось после очистки служебных флагов — оригинальный запрос.
         """
         # Сохраняем исходную строку для вырезания флагов
+        def hide_ids(match):
+            return match.group(0).replace("_", "|||") # Заменяем _ на уникальный разделитель
+        
+        msg_text = re.sub(r"[cC]\d+(?:_\d+)*", hide_ids, msg_text)
+        
+        # 2. Теперь безопасно меняем остальные подчеркивания на пробелы
+        msg_text = msg_text.replace("_", " ")
+        
+        # 3. Возвращаем ID карт обратно (меняем наш временный токен на _)
+        msg_text = msg_text.replace("|||", "_")
+        
         clean_text = msg_text
 
         msg_lower = msg_text.lower()
@@ -956,50 +967,40 @@ class TarotBot(AbstractBot):
         logger.info(update)
 
     async def handle_help(self, update: Update, context: CallbackContext):
-        """
-        Обработчик команды /help.
-        """
         help_text = """
 📜 <b>Доступные команды:</b>
 
-<code>/one</code> - самая простая одна карта
+/one - самая простая одна карта
 
 🔮 <b>Таро:</b>
-<code>/card</code> - Сделать расклад Таро (1 карта по умолчанию).
-<code>/card3</code> - Сделать расклад из 3 карт.
-<code>/card deck НОМЕР КОЛОДЫ</code> - Выбрать колоду для расклада.
-<code>/card flip</code> - Сделать расклад с возможностью перевернутых карт.
-<code>/card major</code> - Сделать расклад с использованием только старших арканов.
-Команды можно комбинировать: <code>/card3 deck 5 major flip</code>
+/card - Сделать расклад Таро.
+/card3 - Сделать расклад из 3 карт.
+/card_deck_1 - Расклад из выбранной колоды.
+/card_flip - С возможностью перевернутых карт.
+/card_major - Только старшие арканы.
+Комбинируй: /card3_deck_5_major_flip
 
 🌟 <b>Оракул:</b>
-<code>/oraculum</code> - Сделать расклад Оракула (1 карта по умолчанию).
-<code>/oraculum3</code> - Сделать расклад из 3 карт.
-<code>/oraculum flip</code> - Сделать расклад с возможностью перевернутых карт.
+/oraculum - Расклад Оракула.
+/oraculum3 - Расклад из 3 карт.
+/oraculum_flip - С перевернутыми картами.
 
 🛡️ <b>Футарк:</b>
-<code>/futark</code> - Сделать расклад одной руны.
-<code>/futark triplet</code> - Сделать расклад из 3 рун.
-<code>/futark flip</code> - Сделать расклад с возможностью перевернутых рун.
+/futark - Одной руны.
+/futark_triplet - Из 3 рун.
+/futark_flip - С перевернутыми рунами.
 
 📚 <b>Колоды:</b>
-<code>/decks</code> - Показать список колод Таро.
-<code>/decks oraculum</code> - Показать список колод Оракула.
+/decks - Список колод Таро.
+/decks_oraculum - Список колод Оракула.
 
 🖼️ <b>Расклад на холсте:</b>
-<code>/spread</code> - Сделать расклад из 3 карт с генерацией изображения на холсте.
-<code>/spread deck НОМЕР КОЛОДЫ</code> - Расклад из выбранной колоды.
-<code>/spread flip ТЕКСТ</code> - Расклад с возможностью перевернутых карт.
-Пример: <code>/spread deck 3 flip что меня ждёт завтра?</code>
-Бот скачает карты, отрисует их на едином холсте и отправит изображением.
+/canvas - Расклад из 3 карт на холсте.
+/canvas6_deck_3_flip - Расклад с настройками.
+Пример: /canvas6_deck_3_flip
 
 ❓ <b>Помощь:</b>
-<code>/help</code> - Показать это сообщение.
-
-📌 <b>Примеры:</b>
-<code>/card deck 1</code> - Сделать расклад из колоды Таро с ID 1.
-<code>/oraculum3 flip</code> - Сделать расклад из 3 карт Оракула с возможностью перевернутых карт.
-<code>/futark triplet</code> - Сделать расклад из 3 рун.
+/help - Показать это сообщение.
 """
 
         await update.message.reply_text(help_text, parse_mode="HTML")

@@ -54,6 +54,8 @@ from tarot.bot.ai_interpret_handler import AIInterpretHandler
 from tarot.bot.rune_handler import RuneHandler
 from tarot.bot.meaning_handler import MeaningHandler
 
+from tarot.messages import SpreadMessages
+
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(
     host=os.getenv("REDIS_HOST", "localhost"), 
@@ -430,6 +432,16 @@ class CardsHandler:
                 f"<b>Карты:</b> {escape(', '.join(card_names))}",
                 f"\n<i>Всего в колоде: {current_count}/{total_cards}</i>"
             ]
+            
+            if current_count > 10:
+                # Подготавливаем параметры для команды
+                flag = "_flip" if reading.is_flipped_allowed else ""
+                text.append('')
+                text.append(SpreadMessages.TRY_ALL_DECK.format(
+                    deck_id=current_deck.id, 
+                    flip_flag=flag
+                ))
+                
             params["parse_mode"] = ParseMode.HTML
             
             row = [InlineKeyboardButton("Еще карту", callback_data=f"more_{reading_id}")] if can_draw else []

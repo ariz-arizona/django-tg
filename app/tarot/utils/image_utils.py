@@ -5,9 +5,9 @@ from io import BytesIO
 from typing import List, Dict, Optional
 from PIL import Image, ImageDraw
 import logging
+import math
 
-logger = logging.getLogger(__name__)
-
+from server.logger import logger
 
 async def download_image_aiohttp(url: str) -> Optional[bytes]:
     """Скачивает изображение по URL."""
@@ -100,44 +100,45 @@ async def load_card_images(
     
     return card_images
 
-
 def create_canvas_from_images(
     images_data: List[Dict],
     spacing: int = 30
 ) -> Optional[Image.Image]:
     """
-    Создаёт холст и размещает на нём изображения в ряд.
-    
-    Args:
-        images_data: список словарей с ключами 'image', 'original_width', 'original_height'
-        spacing: отступ между изображениями и по краям
-        
-    Returns:
-        Собранное изображение или None при ошибке
+    Размещает изображения сеткой (до 3 в ряд).
     """
     if not images_data:
-        logger.error("Нет изображений для размещения")
         return None
+
+    # Константы сетки
+    items_per_row = 3
+    num_images = len(images_data)
+    num_rows = math.ceil(num_images / items_per_row)
+
+    # Рассчитываем размеры: 
+    # Ширина = (ширина 3 картинок + отступы между ними) + внешние поля
+    # Но так как картинки могут быть разными, берем макс. ширину в ряду
+    # Для простоты предположим, что все карты примерно одного размера
+    img_w = images_data[0]['original_width']
+    img_h = images_data[0]['original_height']
     
-    # Рассчитываем размеры холста
-    total_width = sum(img['original_width'] for img in images_data) + spacing * (len(images_data) - 1)
-    max_height = max(img['original_height'] for img in images_data)
+    # Ширина холста = (ширина * 3) + (отступы: 2 внутри + 2 по краям)
+    canvas_width = (img_w * items_per_row) + (spacing * (items_per_row + 1))
+    # Высота холста = (высота * ряды) + (отступы: (ряды - 1) + 2 по краям)
+    canvas_height = (img_h * num_rows) + (spacing * (num_rows + 1))
     
-    canvas_width = total_width + (spacing * 2)
-    canvas_height = (spacing * 2) + max_height
-    
-    logger.info(f"Рассчитан размер холста: {canvas_width}x{canvas_height}")
-    
-    # Создаём холст
     canvas = Image.new('RGB', (canvas_width, canvas_height), color='white')
     
-    # Размещаем изображения
-    current_x = spacing
-    y_position = spacing
-    
-    for img_data in images_data:
-        canvas.paste(img_data['image'], (current_x, y_position))
-        current_x += img_data['original_width'] + spacing
+    for index, img_data in enumerate(images_data):
+        # Вычисляем ряд и колонку
+        row = index // items_per_row
+        col = index % items_per_row
+        
+        # Вычисляем координаты
+        x = spacing + col * (img_w + spacing)
+        y = spacing + row * (img_h + spacing)
+        
+        canvas.paste(img_data['image'], (x, y))
     
     return canvas
 

@@ -223,6 +223,12 @@ class AllCardHandler:
             
     async def handle_all_by_reading(self, update: Update, context: CallbackContext):
         msg_text = update.message.text
+        logger.info(f"Обработка команды /all с текстом: {msg_text[:100]}")
+        
+        category = UserReading.ReadingCategory.ALL
+        if await self.bot.check_reading_cooldown(update, category):
+            return
+        
         options = self.bot.parse_reading_options(msg_text)
         deck = await self.bot.get_deck(options.get("deck"))
         
@@ -244,7 +250,7 @@ class AllCardHandler:
             user=user, 
             message_id=update.effective_message.message_id,
             text="Полная колода", 
-            category=UserReading.ReadingCategory.ALL, 
+            category=category, 
             count=1,
             deck_id=deck.id if deck else None,
             is_flipped_allowed=options.get('flip', False),

@@ -414,6 +414,15 @@ class TarotBot(AbstractBot):
 
         reply_markup = []
         text = []
+        
+        def format_card_name(card_name: str, is_flipped: bool) -> str:
+            """
+            Форматирует имя карты оракула с учетом переворота.
+            Пример: "Младенец ⬇️" или "Младенец"
+            """
+            if is_flipped:
+                return f"{card_name} ⬇️"
+            return card_name
 
         # 2. Логика для ТАРО
         if send_type == 'tarot':
@@ -439,23 +448,22 @@ class TarotBot(AbstractBot):
             
             # Собираем список с сохраненным флагом flipped
             all_cards = [cards_dict[cid] for cid in order_list if cid in cards_dict]
+            
+            total_query = TarotCardItem.objects.filter(deck_id=current_deck.id)
+            if reading.is_major_only:
+                total_query = total_query.filter(tarot_card__is_major=True)
+            total_cards = await total_query.acount()
+            can_draw_query = total_query.exclude(tarot_card__card_id__in=order_list)
+            can_draw = await can_draw_query.aexists()
+            current_count = len(all_cards)
 
-            # Теперь format_card_name будет видеть поле 'flipped'
-            card_names = [await self.format_card_name(c, ' // ') for c in all_cards]
+            card_names = [format_card_name(c['name'], c['flipped']) for c in all_cards]
             text = [
                 f"<b>Расклад из колоды</b>: <a href='{current_deck.link}'>{escape(current_deck.name)}</a>\n",
                 f"<b>Карты:</b> {escape(', '.join(card_names))}",
+                f"\n<i>Всего в колоде: {current_count}/{total_cards}</i>"
             ]
             params["parse_mode"] = ParseMode.HTML
-
-            # Кнопки Таро
-            query = TarotCardItem.objects.filter(deck_id=current_deck.id)
-            query = query.exclude(tarot_card__card_id__in=order_list)
-            if reading.is_major_only:
-                query = query.filter(tarot_card__is_major=True)
-            
-            # Выполняем проверку наличия хотя бы одной подходящей карты
-            can_draw = await query.aexists()
             
             row = [InlineKeyboardButton("Еще карту", callback_data=f"more_{reading_id}")] if can_draw else []
             row.append(InlineKeyboardButton(f"Трактовка карт ({len(all_cards)})", callback_data=f"desc_{reading_id}"))
@@ -490,7 +498,7 @@ class TarotBot(AbstractBot):
             total_cards = await OraculumItem.objects.filter(deck_id=current_deck.id).acount()
             current_count = len(all_cards)
             
-            card_names = [f"{c['name']} ({'пер.' if c['flipped'] else 'пр.'})" for c in all_cards]
+            card_names = [format_card_name(c['name'], c['flipped']) for c in all_cards]
             text = [
                 f"<b>{escape(current_deck.name)}</b>",
                 f"<b>Карты:</b> {', '.join(card_names)}",

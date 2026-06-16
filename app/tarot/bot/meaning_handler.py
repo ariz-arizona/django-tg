@@ -261,16 +261,23 @@ class MeaningHandler:
         # 5. Имя карты для заголовка
         base_card = await TarotCard.objects.aget(card_id=card_id)
         
+        if meaning_type == "base":
+            header = "Базовый смысл"
+        else:
+            category_obj = await TarotMeaningCategory.objects.aget(id=meaning_type)
+            header = category_obj.name
+        
         # Отправка
         await update.effective_message.reply_text(
             text=(
                 f"<b>{base_card.name}</b>\n"
-                f"{meaning_type.capitalize()}\n"
+                f"{header}\n"
                 f"стр {page}/{len(text_parts)}\n\n"
                 f"{text_parts[page - 1]}"
             ),
             reply_markup=keyboard,
-            parse_mode="HTML",
+            reply_to_message_id=reading.message_id,
+            parse_mode=ParseMode.HTML,
         )
     
     async def get_card_meaning(self, card_id: str, meaning_type: str) -> str:
@@ -304,6 +311,7 @@ class MeaningHandler:
             return
             
         await query.answer()
+        
         _, reading_id, card_idx, meaning_type, page = data
         
         card_idx, page = int(card_idx), int(page)
@@ -356,6 +364,22 @@ class MeaningHandler:
         card_ids = [str(item.get("id")) for item in (reading.card_ids or [])]
         
         logger.info(f"Запуск трактовки для расклада {reading_id}, карт: {len(card_ids)}")
+        
+                # 1. Получаем текущую клавиатуру
+        keyboard = query.message.reply_markup.inline_keyboard
+        new_keyboard = []
+        found = False
+
+        # 2. Ищем и удаляем кнопку
+        for row in keyboard:
+            new_row = [btn for btn in row if btn.callback_data != query.data]
+            # Добавляем строку в новую клавиатуру, только если она не стала пустой
+            if new_row:
+                new_keyboard.append(new_row)
+            if len(new_row) < len(row):
+                found = True
+        if found:
+            await query.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(new_keyboard))
         
         # Запускаем пагинацию с 0-й карты
         await self.send_paginated_text(update, reading_id, 0, "base", 1)

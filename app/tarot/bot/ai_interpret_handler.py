@@ -505,7 +505,10 @@ class AIInterpretHandler:
             # 2. УСПЕХ: Удаляем кнопку и запускаем процесс
             new_markup = get_keyboard_without_button()
             await query.edit_message_reply_markup(reply_markup=new_markup)
-            message = await query.message.reply_text('⏳ Начинаем генерацию...')
+            message = await query.message.reply_text(
+                '⏳ Начинаем генерацию...', 
+                reply_to_message_id=reading.message_id,
+            )
             
             await self.run_ai_interpretation(reading, message)
 

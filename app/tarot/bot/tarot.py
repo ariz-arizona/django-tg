@@ -666,7 +666,8 @@ class TarotBot(AbstractBot):
             user=user,
             message_id=update.effective_message.message_id,
             text=f"{random_card['name']}\n{random_card['url']}",
-            category=category
+            category=category,
+            count=1
         )
 
         await update.effective_message.reply_photo(
@@ -883,7 +884,8 @@ class TarotBot(AbstractBot):
                     parts.append("<i>перевернуто</i>")
                 cards_description.append(" ".join(parts))
 
-            logger.info(f"Получено карт: {len(cards)}")
+            card_records = [{"id": str(c["card_id"]), "flip": c["flipped"]} for c in cards]
+            logger.info(f"Получены карты {card_records}")
 
             await self.save_reading(
                 user=user,
@@ -895,7 +897,8 @@ class TarotBot(AbstractBot):
                 count=options["counter"],                             # Передаем точное количество карт
                 deck_id=deck.id if deck else None,
                 is_flipped_allowed=options.get('flip', False),
-                is_major_only=options.get('major', False)
+                is_major_only=options.get('major', False),
+                card_ids=card_records
             )
 
             description_text = SpreadMessages.format_description(

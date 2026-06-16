@@ -17,9 +17,6 @@ from telegram.constants import ParseMode
 from telegram.error import BadRequest, RetryAfter
 
 from django.utils.timezone import now, timedelta
-from django.core.exceptions import ObjectDoesNotExist
-
-from tg_bot.bot.abstract import AbstractBot
 from tg_bot.models import (
     TgUser, Bot
 )
@@ -32,6 +29,7 @@ from tarot.models import (
 from server.logger import logger
 from django.conf import settings
 
+from tarot.utils.random import get_random_icon
 
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(
@@ -121,8 +119,7 @@ class AIInterpretHandler:
             text = "⏳ Трактовка дополняется..."
 
         # 3. Генерация клавиатуры
-        icons = ["✨", "🔮", "🌙", "🃏", "🕯️", "🌌"]
-        random_icon = random.choice(icons)
+        random_icon = get_random_icon()
         
         # Левая кнопка
         left_btn = (

@@ -40,12 +40,9 @@ from tg_bot.models import (
 from tarot.models import (
     TarotDeck,
     TarotCardItem,
-    TarotCard,
-    ExtendedMeaning,
     OraculumDeck,
     OraculumItem,
     UserReading,
-    TarotMeaningCategory,
 )
 from tg_bot.models import BotFileCache
 from server.logger import logger
@@ -56,8 +53,7 @@ from tarot.bot.allcard_handler import AllCardHandler
 from tarot.bot.ai_interpret_handler import AIInterpretHandler
 from tarot.bot.rune_handler import RuneHandler
 from tarot.bot.meaning_handler import MeaningHandler
-
-from tarot.utils.random import get_random_icon
+from tarot.bot.cards_handler import CardsHandler
 
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(
@@ -82,6 +78,7 @@ class TarotBot(AbstractBot):
         self.ai_interpret_handler = AIInterpretHandler(self)
         self.rune_handler = RuneHandler(self)
         self.meaning_handler = MeaningHandler(self)
+        self.cards_handler = CardsHandler(self)
         self.handlers = self.get_handlers()
 
     def get_handlers(self):
@@ -94,6 +91,7 @@ class TarotBot(AbstractBot):
             *self.rune_handler.get_handlers(),
             *self.ai_interpret_handler.get_handlers(),
             *self.meaning_handler.get_handlers(),
+            *self.cards_handler.get_handlers(),
             
             MessageHandler(
                 filters.COMMAND
@@ -109,25 +107,7 @@ class TarotBot(AbstractBot):
             CommandHandler("last", self.handle_last_readings, filters.ChatType.PRIVATE),
             
             CommandHandler("one", self.handle_one_command, filters.ChatType.PRIVATE),
-            MessageHandler(
-                filters.COMMAND
-                & filters.TEXT
-                & filters.ChatType.PRIVATE
-                & filters.Regex(r"^\/card(\d+)?"),
-                self.handle_card,
-            ),
-            CallbackQueryHandler(self.handle_more_button, pattern=r"^more_"),
             
-            MessageHandler(
-                filters.COMMAND
-                & filters.TEXT
-                & filters.ChatType.PRIVATE
-                & filters.Regex(r"^\/oraculum(\d+)?"),
-                self.handle_oraculum,
-            ),
-            CallbackQueryHandler(
-                self.handle_moreoracle_button, pattern=r"^moreoracle_"
-            ),
             MessageHandler(
                 filters.COMMAND
                 & filters.TEXT
@@ -202,327 +182,6 @@ class TarotBot(AbstractBot):
 
         return reading
 
-    async def get_deck(self, deck_id=None, deck_type="tarot"):
-        # Получаем список всех ID колод
-        model = TarotDeck.objects
-        if deck_type == "oraculum":
-            model = OraculumDeck.objects
-        deck_ids: List[int] = [deck.id async for deck in model.all()]
-        logger.info(f"Получаем колоду с ID {deck_id}")
-
-        if not deck_ids:
-            raise ValueError("Нет доступных колод.")
-
-        if deck_id is not None and deck_id not in deck_ids:
-            logger.error("Указанный ID колоды не существует.")
-            deck_id = None
-
-        if deck_id is None:
-            deck_id = random.choice(deck_ids)
-
-        # Получаем колоду по ID
-        try:
-            return await model.aget(id=deck_id)
-        except Exception:
-            # На случай, если колода была удалена между получением списка ID и запросом
-            raise ValueError("Не удалось получить колоду.")
-
-    async def get_cards(
-        self,
-        deck_id: int,
-        counter: int = 1,
-        card_ids: Optional[List[str]] = None,  # Используем card_id (str)
-        major: bool = False,
-        flip: bool = False,
-        exclude_cards: Optional[List[str]] = None,
-    ) -> List[dict]:
-        try:
-            if card_ids is None:
-                card_ids = []
-
-            # 1. Проверка существования колоды
-            if not await TarotDeck.objects.filter(id=deck_id).aexists():
-                raise ValueError(f"Колода {deck_id} не найдена")
-            # 2. Базовый запрос карт колоды
-            filters = {"deck_id": deck_id}
-            if major and not len(card_ids):
-                filters["tarot_card__is_major"] = major
-
-            base_query = TarotCardItem.objects.filter(**filters).prefetch_related(
-                "tarot_card", "files"
-            )
-
-            # 3. Обработка ручного выбора карт
-            manual_cards = []
-            if card_ids:
-                card_ids = [str(cid) for cid in card_ids]
-                unique_ids = list(dict.fromkeys(card_ids))
-
-                existing_cards = [
-                    card
-                    async for card in base_query.filter(
-                        tarot_card__card_id__in=card_ids
-                    )
-                ]
-
-                id_to_card = {card.tarot_card.card_id: card for card in existing_cards}
-                manual_cards = [
-                    id_to_card[cid] for cid in unique_ids if cid in id_to_card
-                ]
-
-            # 4. Получаем все доступные card_id
-            all_card_ids = [
-                card_id
-                async for card_id in base_query.values_list(
-                    "tarot_card__card_id", flat=True
-                )
-            ]
-
-            if exclude_cards:
-                exclude_cards = [
-                    str(cid) for cid in exclude_cards
-                ]  # Преобразуем в строки
-                all_card_ids = [cid for cid in all_card_ids if cid not in exclude_cards]
-
-            # 5. Вычисляем оставшиеся карты
-            remaining = max(0, counter - len(manual_cards))
-            exclude_ids = {card.tarot_card.card_id for card in manual_cards}
-            available_ids = [cid for cid in all_card_ids if cid not in exclude_ids]
-
-            if len(available_ids) < remaining:
-                return []
-
-            # 6. Случайная выборка через Python
-            random_ids = random.sample(available_ids, remaining) if remaining else []
-
-            # 7. Получаем случайные карты
-            random_cards = [
-                await base_query.aget(tarot_card__card_id=cid) for cid in random_ids
-            ]
-
-            # 8. Формируем результат
-            combined = manual_cards + random_cards
-
-            result = []
-
-            # Обычный цикл for, который отлично работает с await
-            for card in combined[:counter]:
-                # Получаем img_id через ваш асинхронный метод
-                img_id = await card.aget_file_id(self.app_bot_id)
-
-                result.append({
-                    "card_instance": card,
-                    "card_id": card.tarot_card.card_id,
-                    "img_id": img_id,
-                    "name": card.tarot_card.name,
-                    "flipped": random.choice([True, False]) if flip else False,
-                })
-            logger.info(f"Получено карт: {len(result)}")
-            return result
-
-        except ObjectDoesNotExist as e:
-            raise ValueError("Карта не найдена") from e
-        except Exception as e:
-            raise RuntimeError(f"Ошибка: {str(e)}") from e
-
-    async def get_oraculum_cards(self, deck_id, counter, exclude_cards, flip):
-        try:
-            # 1. Проверка существования колоды
-            if not await OraculumDeck.objects.filter(id=deck_id).aexists():
-                raise ValueError(f"Колода {deck_id} не найдена")
-
-            # 2. Базовый запрос карт колоды
-            base_query = OraculumItem.objects.filter(deck_id=deck_id).prefetch_related("files")
-
-            # 3. Исключение указанных карт
-            if exclude_cards:
-                base_query = base_query.exclude(id__in=exclude_cards)
-
-            # 4. Получаем все доступные ID карт
-            all_card_ids: List[int] = [
-                card_id async for card_id in base_query.values_list("id", flat=True)
-            ]
-
-            if len(all_card_ids) < counter:
-                return []
-
-            # 5. Выборка случайных ID карт
-            random_ids: List[int] = random.sample(all_card_ids, counter)
-
-            # 6. Получение карт по выбранным ID
-            random_cards: List[OraculumItem] = [
-                await base_query.aget(id=cid) for cid in random_ids
-            ]
-
-            result = []
-
-            for card in random_cards:
-                # Используем тот же асинхронный метод из миксина
-                img_id = await card.aget_file_id(self.app_bot_id)
-
-                result.append({
-                    "card_instance": card,
-                    "card_id": card.id,
-                    "img_id": img_id,
-                    "name": card.name,
-                    "flipped": random.choice([True, False]) if flip else False,
-                })
-
-            return result
-
-        except ObjectDoesNotExist as e:
-            raise ValueError("Карта не найдена") from e
-        except Exception as e:
-            raise RuntimeError(f"Ошибка: {str(e)}") from e
-
-    async def format_card_name(self, card, text_join = '\n'):
-        instance = card.get("card_instance")
-        flipped = card.get("flipped", False)
-
-        # Основное описание (название или описание из модели)
-        main_desc = ""
-        if isinstance(instance, OraculumItem):
-            # Если description пустой, берем name
-            main_desc = (instance.description or "")
-
-        # Текст значения (прямое или перевернутое)
-        value_text = ""
-        if isinstance(instance, OraculumItem):
-            if flipped and instance.inverted:
-                value_text = f"Перевернуто: {instance.inverted}"
-            else:
-                value_text = instance.direct or ""
-
-        # Собираем все части
-        parts = [
-            card.get("name"),
-            "Перевернуто" if flipped else None,
-            (f"{main_desc} {value_text}".strip() if isinstance(instance, OraculumItem) else None)
-        ]
-
-        return text_join.join(str(p) for p in parts if p)
-    
-    async def send_card(self, update: Update, cards, **kwargs):
-        reading_id = kwargs.get("reading_id")
-        send_type = kwargs.get("send_type") # 'tarot' или 'oracle'
-        params = {"disable_web_page_preview": True}
-
-        # 1. Отправка фото
-        await update.effective_message.reply_media_group(
-            [InputMediaPhoto(c["img_id"], await self.format_card_name(c)) for c in cards],
-            reply_to_message_id=update.effective_message.message_id,
-        )
-
-        reply_markup = []
-        text = []
-        
-        def format_card_name(card_name: str, is_flipped: bool) -> str:
-            """
-            Форматирует имя карты оракула с учетом переворота.
-            Пример: "Младенец ⬇️" или "Младенец"
-            """
-            if is_flipped:
-                return f"{card_name} ⬇️"
-            return card_name
-
-        # 2. Логика для ТАРО
-        if send_type == 'tarot':
-            reading = await UserReading.objects.aget(id=reading_id)
-            current_deck = await TarotDeck.objects.aget(id=reading.deck_id)
-            
-            # Сортировка и сбор данных (как мы делали раньше)
-            order_list = [str(item.get("id")) for item in (reading.card_ids or [])]
-            flip_map = {str(item.get("id")): item.get("flip", False) for item in (reading.card_ids or [])}
-            
-            all_cards_qs = TarotCardItem.objects.filter(
-                deck_id=current_deck.id, tarot_card__card_id__in=order_list
-            ).prefetch_related("tarot_card")
-            
-            cards_dict = {}
-            async for c in all_cards_qs:
-                card_id_str = str(c.tarot_card.card_id)
-                cards_dict[card_id_str] = {
-                    "card_instance": c,
-                    "name": c.tarot_card.name,
-                    "flipped": flip_map.get(card_id_str, False) # Возвращаем flip сюда!
-                }
-            
-            # Собираем список с сохраненным флагом flipped
-            all_cards = [cards_dict[cid] for cid in order_list if cid in cards_dict]
-            
-            total_query = TarotCardItem.objects.filter(deck_id=current_deck.id)
-            if reading.is_major_only:
-                total_query = total_query.filter(tarot_card__is_major=True)
-            total_cards = await total_query.acount()
-            can_draw_query = total_query.exclude(tarot_card__card_id__in=order_list)
-            can_draw = await can_draw_query.aexists()
-            current_count = len(all_cards)
-
-            card_names = [format_card_name(c['name'], c['flipped']) for c in all_cards]
-            text = [
-                f"<b>Расклад из колоды</b>: <a href='{current_deck.link}'>{escape(current_deck.name)}</a>\n",
-                f"<b>Карты:</b> {escape(', '.join(card_names))}",
-                f"\n<i>Всего в колоде: {current_count}/{total_cards}</i>"
-            ]
-            params["parse_mode"] = ParseMode.HTML
-            
-            row = [InlineKeyboardButton("Еще карту", callback_data=f"more_{reading_id}")] if can_draw else []
-            row.append(InlineKeyboardButton(f"Трактовка карт ({len(all_cards)})", callback_data=f"desc_{reading_id}"))
-            reply_markup.append(row)
-            if ai_btn := kwargs.get("add_ai_button"):
-                reply_markup.append([InlineKeyboardButton(text=ai_btn, callback_data=f"aireading_{reading_id}")])
-
-        # 3. Логика для ОРАКУЛА
-        elif send_type == 'oracle':
-            reading = await UserReading.objects.aget(id=reading_id)
-            current_deck = await OraculumDeck.objects.aget(id=reading.deck_id)
-            
-            order_list = [str(item.get("id")) for item in (reading.card_ids or [])]
-            flip_map = {str(item.get("id")): item.get("flip", False) for item in (reading.card_ids or [])}
-            
-            all_cards_qs = OraculumItem.objects.filter(
-                deck_id=current_deck.id, 
-                id__in=order_list # Тут ID — это первичный ключ OraculumItem
-            )
-            
-            cards_dict = {str(c.id): c async for c in all_cards_qs}
-            all_cards = []
-            for cid in order_list:
-                if cid in cards_dict:
-                    card_obj = cards_dict[cid]
-                    is_flipped = flip_map.get(cid, False)
-                    all_cards.append({
-                        "name": card_obj.name,
-                        "flipped": is_flipped
-                    })
-                    
-            total_cards = await OraculumItem.objects.filter(deck_id=current_deck.id).acount()
-            current_count = len(all_cards)
-            
-            card_names = [format_card_name(c['name'], c['flipped']) for c in all_cards]
-            text = [
-                f"<b>{escape(current_deck.name)}</b>",
-                f"<b>Карты:</b> {', '.join(card_names)}",
-                f"\n<i>Всего в колоде: {current_count}/{total_cards}</i>"
-            ]
-            params["parse_mode"] = ParseMode.HTML
-            
-            if current_count < total_cards:
-                reply_markup.append([InlineKeyboardButton("Еще карту", callback_data=f"moreoracle_{reading_id}")])
-
-        # 4. Финальная отправка
-        params["text"] = "\n".join(text)
-        
-        reply_target = update.effective_message.reply_to_message
-        params["reply_to_message_id"] = (
-            reply_target.message_id if reply_target else update.effective_message.message_id
-        )
-        
-        if reply_markup:
-            params["reply_markup"] = InlineKeyboardMarkup(reply_markup)
-
-        await update.effective_message.reply_text(**params)
-        
     def parse_reading_options(self, msg_text: str) -> dict:
         """
         Полный парсинг аргументов команды из текста сообщения.
@@ -740,260 +399,206 @@ class TarotBot(AbstractBot):
             logging.error(f"Ошибка проверки TTL в Redis: {e}")
 
         return False
-    
-    async def handle_card(self, update: Update, context: CallbackContext):
-        """
-        Обработчик команды /card.
-        """
-        msg_text = update.message.text
-        logger.info(f"Обработка команды /card с текстом: {msg_text[:100]}")
 
-        category = UserReading.ReadingCategory.TAROT
-        if await self.check_reading_cooldown(update, category):
-            return
-
+    async def get_cards(
+        self,
+        deck_id: int,
+        counter: int = 1,
+        card_ids: Optional[List[str]] = None,  # Используем card_id (str)
+        major: bool = False,
+        flip: bool = False,
+        exclude_cards: Optional[List[str]] = None,
+    ) -> List[dict]:
         try:
-            options = self.parse_reading_options(msg_text)
-            logger.info(f"Опции расклада разобраны: {options}")
+            if card_ids is None:
+                card_ids = []
 
-            # 1. Получение колоды
-            deck = await self.get_deck(options.get("deck"))
-            logger.info(f"Используемая колода ID: {deck.id if deck else 'None'}")
+            # 1. Проверка существования колоды
+            if not await TarotDeck.objects.filter(id=deck_id).aexists():
+                raise ValueError(f"Колода {deck_id} не найдена")
+            # 2. Базовый запрос карт колоды
+            filters = {"deck_id": deck_id}
+            if major and not len(card_ids):
+                filters["tarot_card__is_major"] = major
 
-            # 2. Генерация карт
-            cards = await self.get_cards(
-                deck_id=deck.id if deck else None,
-                counter=options.get("counter", 1),
-                card_ids=options.get("card_ids"),
-                major=options.get("major", False),
-                flip=options.get('flip')
-            )
-            
-            # Формируем список словарей для БД
-            card_records = [{"id": str(c["card_id"]), "flip": c["flipped"]} for c in cards]
-            logger.info(f"Получены карты {card_records}")
-            
-            # 3. Сохранение расклада
-            user = await self.get_or_create_tg_user(update)
-            reading = await self.save_reading(
-                user=user,
-                message_id=update.effective_message.message_id,
-                text=f"{deck.name if deck else 'Дефолтная колода'}: " + 
-                     ", ".join([await self.format_card_name(c) for c in cards]),
-                category=category,
-                count=options.get("counter", 1),
-                deck_id=deck.id if deck else None,
-                is_flipped_allowed=options.get('flip', False),
-                is_major_only=options.get('major', False),
-                card_ids=card_records,
-                original_query=options.get('original_query'),
-            )
-            logger.info(f"Результат гадания сохранен в БД, ID записи: {reading.id}")
-
-            # 4. Подготовка клавиатуры и отправка
-            send_card_kwargs = {
-                "reading_id": reading.id,
-                "send_type": "tarot",
-            }
-            
-            if await self.ai_interpret_handler.should_add_ai_button():
-                send_card_kwargs["add_ai_button"] = "🔮 Растолковать расклад (ИИ)"
-                logger.info("ИИ-кнопка добавлена в параметры отправки.")
-
-            # Отправка карт пользователю
-            await self.send_card(
-                update,
-                cards,
-                **send_card_kwargs
-            )
-            
-            # Логируем результат
-            card_names_info = [f"{c['name']} {c['card_id']} ({'Flipped' if c['flipped'] else 'Direct'})" for c in cards]
-            logger.info(f"Карты успешно отправлены: {card_names_info}")
-
-        except Exception as e:
-            logger.error(f"Ошибка при обработке команды /card: {e}", exc_info=True)
-            await update.message.reply_text("Произошла ошибка при выполнении расклада.")
-
-    async def handle_more_button(self, update: Update, context: CallbackContext):
-        query = update.callback_query
-        await query.answer()
-        logger.info(f"Получен callback-запрос: {query.data}")
-
-        try:
-            _, reading_id = query.data.split("_")
-            user = await self.get_or_create_tg_user(update)
-
-            # Ищем существующий расклад
-            reading = await UserReading.objects.filter(id=reading_id, user=user).afirst()
-
-            # УСЛОВИЕ: Если расклада нет — чистим кнопки и выходим
-            if not reading:
-                logger.warning(f"Расклад {reading_id} не найден.")
-                await query.edit_message_text("Этот расклад больше не доступен.")
-                await query.edit_message_reply_markup(reply_markup=None)
-                return
-
-            # === Подготовка данных ===
-            exclude_cards = [str(item.get("id") if isinstance(item, dict) else item) for item in (reading.card_ids or [])]
-            logger.info(f"Получаем карты с major {bool(reading.is_major_only)} flip {bool(reading.is_flipped_allowed)}. Исключаем: {exclude_cards}")
-
-            new_card = await self.get_cards(
-                deck_id=reading.deck_id,
-                counter=1,
-                exclude_cards=exclude_cards,
-                major=bool(reading.is_major_only),
-                flip=bool(reading.is_flipped_allowed)
+            base_query = TarotCardItem.objects.filter(**filters).prefetch_related(
+                "tarot_card", "files"
             )
 
-            if not new_card:
-                await query.edit_message_text("Больше карт в колоде нет.")
-                await query.edit_message_reply_markup(reply_markup=None)
-                return
+            # 3. Обработка ручного выбора карт
+            manual_cards = []
+            if card_ids:
+                card_ids = [str(cid) for cid in card_ids]
+                unique_ids = list(dict.fromkeys(card_ids))
 
-            # === Обновление записи ===
-            new_card_text = ", ".join([await self.format_card_name(c) for c in new_card])
-            new_card_data = [{"id": c["card_id"], "flip": c["flipped"]} for c in new_card]
-            logger.info(f"Выбраны новые карты: {[c['name'] + ' ' + str(c['flipped']) for c in new_card]}")
+                existing_cards = [
+                    card
+                    async for card in base_query.filter(
+                        tarot_card__card_id__in=card_ids
+                    )
+                ]
 
-            reading.text = f"{reading.text}, {new_card_text}"
-            reading.count += 1
-            reading.card_ids.extend(new_card_data)
-            await reading.asave()
+                id_to_card = {card.tarot_card.card_id: card for card in existing_cards}
+                manual_cards = [
+                    id_to_card[cid] for cid in unique_ids if cid in id_to_card
+                ]
 
-            # === Отправка результата ===
-            send_card_kwargs = {"reading_id": reading.id, "send_type": "tarot"}
-            if await self.ai_interpret_handler.should_add_ai_button():
-                send_card_kwargs["add_ai_button"] = "🔮 Растолковать расклад (ИИ)"
-
-            await self.send_card(update, new_card, **send_card_kwargs)
-
-            # Очистка кнопок у старого сообщения
-            await query.edit_message_reply_markup(reply_markup=None)
-
-        except Exception as e:
-            logger.error(f"Ошибка при обработке добора карты: {e}", exc_info=True)
-            await query.edit_message_text("Произошла ошибка при доборе карты.")
-
-    async def handle_oraculum(self, update: Update, context: CallbackContext):
-        msg_text = update.message.text
-        logger.info(f"Обработка команды /oraculum: {msg_text[:100]}")
-
-        category = UserReading.ReadingCategory.ORACLE
-        if await self.check_reading_cooldown(update, category):
-            return
-
-        try:
-            options = self.parse_reading_options(msg_text)
-            
-            # 1. Получение колоды
-            deck = await self.get_deck(options.get("deck"), "oraculum")
-            
-            # 2. Получение карт
-            cards = await self.get_oraculum_cards(
-                deck.id if deck else None, 
-                options.get("counter", 1), 
-                [],
-                options.get('flip', False)
-            )
-            
-            # 3. Сохранение расклада (используем консистентный формат card_ids)
-            user = await self.get_or_create_tg_user(update)
-            # Для оракула тоже используем формат списка словарей для единства БД
-            card_records = [{"id": str(c["card_id"]), "flip": c["flipped"]} for c in cards]
-            
-            reading = await self.save_reading(
-                user=user,
-                message_id=update.effective_message.message_id,
-                text=f"{deck.name if deck else 'Дефолтный оракул'}: " + 
-                     ", ".join([await self.format_card_name(c) for c in cards]),
-                category=category,
-                count=options.get("counter", 1),
-                deck_id=deck.id if deck else None,
-                is_flipped_allowed=options.get('flip', False),
-                is_major_only=False,
-                card_ids=card_records
-            )
-            logger.info(f"Результат оракула сохранен в БД, ID: {reading.id}")
-
-            # 4. Отправка карт через обновленный send_card
-            send_card_kwargs = {
-                "reading_id": reading.id,
-                "send_type": "oracle", # Новый тип отправки
-            }
-
-            await self.send_card(
-                update,
-                cards,
-                **send_card_kwargs
-            )
-            
-            logger.info(f"Карты оракула успешно отправлены: {[c['name'] for c in cards]}")
-
-        except Exception as e:
-            logger.error(f"Ошибка при обработке команды /oraculum: {e}", exc_info=True)
-            await update.message.reply_text("Произошла ошибка при обработке запроса.")
-            
-    async def handle_moreoracle_button(self, update: Update, context: CallbackContext):
-        query = update.callback_query
-        await query.answer()
-        logger.info(f"Получен callback-запрос: {query.data}")
-        
-        try:
-            # Получаем reading_id напрямую из callback_data
-            _, reading_id = query.data.split("_")
-            
-            # 1. Поиск расклада по ID
-            reading = await UserReading.objects.filter(id=reading_id).afirst()
-            
-            if not reading:
-                logger.warning(f"Расклад с ID {reading_id} не найден.")
-                await query.edit_message_text("Этот расклад больше не доступен.")
-                return
-            
-            # 2. Подготовка исключений (извлекаем card_ids из БД)
-            exclude_cards = [
-                str(item.get("id") if isinstance(item, dict) else item) 
-                for item in (reading.card_ids or [])
+            # 4. Получаем все доступные card_id
+            all_card_ids = [
+                card_id
+                async for card_id in base_query.values_list(
+                    "tarot_card__card_id", flat=True
+                )
             ]
-            logger.info(f"Получаем карты оракула с major {bool(reading.is_major_only)} flip {bool(reading.is_flipped_allowed)}. Исключаем: {exclude_cards}")
 
-            # 3. Генерация карты (используем настройки из самого расклада)
-            new_card = await self.get_oraculum_cards(
-                deck_id=reading.deck_id,
-                counter=1,
-                exclude_cards=exclude_cards,
-                flip=reading.is_flipped_allowed
-            )
+            if exclude_cards:
+                exclude_cards = [
+                    str(cid) for cid in exclude_cards
+                ]  # Преобразуем в строки
+                all_card_ids = [cid for cid in all_card_ids if cid not in exclude_cards]
 
-            if not new_card:
-                await query.edit_message_text("Больше карт в колоде нет.")
-                return
+            # 5. Вычисляем оставшиеся карты
+            remaining = max(0, counter - len(manual_cards))
+            exclude_ids = {card.tarot_card.card_id for card in manual_cards}
+            available_ids = [cid for cid in all_card_ids if cid not in exclude_ids]
 
-            # 4. Обновление БД
-            new_card_data = [{"id": str(c["card_id"]), "flip": c["flipped"]} for c in new_card]
-            new_card_text = ", ".join([await self.format_card_name(c) for c in new_card])
-            logger.info(f"Выбраны новые карты: {[c['name'] + ' ' + str(c['flipped']) for c in new_card]}")
-            
-            reading.text = f"{reading.text}, {new_card_text}"
-            reading.count += 1
-            reading.card_ids.extend(new_card_data)
-            await reading.asave()
+            if len(available_ids) < remaining:
+                return []
 
-            # 5. Отправка карты через унифицированный send_card
-            await self.send_card(
-                update,
-                new_card,
-                send_type="oracle",
-                reading_id=reading.id
-            )
-            
-            await query.edit_message_reply_markup(reply_markup=None)
-            logger.info(f"Карта добора Оракула #{reading_id} успешно отправлена.")
+            # 6. Случайная выборка через Python
+            random_ids = random.sample(available_ids, remaining) if remaining else []
 
+            # 7. Получаем случайные карты
+            random_cards = [
+                await base_query.aget(tarot_card__card_id=cid) for cid in random_ids
+            ]
+
+            # 8. Формируем результат
+            combined = manual_cards + random_cards
+
+            result = []
+
+            # Обычный цикл for, который отлично работает с await
+            for card in combined[:counter]:
+                # Получаем img_id через ваш асинхронный метод
+                img_id = await card.aget_file_id(self.app_bot_id)
+
+                result.append({
+                    "card_instance": card,
+                    "card_id": card.tarot_card.card_id,
+                    "img_id": img_id,
+                    "name": card.tarot_card.name,
+                    "flipped": random.choice([True, False]) if flip else False,
+                })
+            logger.info(f"Получено карт: {len(result)}")
+            return result
+
+        except ObjectDoesNotExist as e:
+            raise ValueError("Карта не найдена") from e
         except Exception as e:
-            logger.error(f"Ошибка при доборе карты Оракула: {e}", exc_info=True)
-            await query.edit_message_text("Ошибка при обработке запроса.")
+            raise RuntimeError(f"Ошибка: {str(e)}") from e
+
+    async def get_deck(self, deck_id=None, deck_type="tarot"):
+        # Получаем список всех ID колод
+        model = TarotDeck.objects
+        if deck_type == "oraculum":
+            model = OraculumDeck.objects
+        deck_ids: List[int] = [deck.id async for deck in model.all()]
+        logger.info(f"Получаем колоду с ID {deck_id}")
+
+        if not deck_ids:
+            raise ValueError("Нет доступных колод.")
+
+        if deck_id is not None and deck_id not in deck_ids:
+            logger.error("Указанный ID колоды не существует.")
+            deck_id = None
+
+        if deck_id is None:
+            deck_id = random.choice(deck_ids)
+
+        # Получаем колоду по ID
+        try:
+            return await model.aget(id=deck_id)
+        except Exception:
+            # На случай, если колода была удалена между получением списка ID и запросом
+            raise ValueError("Не удалось получить колоду.")
+
+    async def get_oraculum_cards(self, deck_id, counter, exclude_cards, flip):
+        try:
+            # 1. Проверка существования колоды
+            if not await OraculumDeck.objects.filter(id=deck_id).aexists():
+                raise ValueError(f"Колода {deck_id} не найдена")
+
+            # 2. Базовый запрос карт колоды
+            base_query = OraculumItem.objects.filter(deck_id=deck_id).prefetch_related("files")
+
+            # 3. Исключение указанных карт
+            if exclude_cards:
+                base_query = base_query.exclude(id__in=exclude_cards)
+
+            # 4. Получаем все доступные ID карт
+            all_card_ids: List[int] = [
+                card_id async for card_id in base_query.values_list("id", flat=True)
+            ]
+
+            if len(all_card_ids) < counter:
+                return []
+
+            # 5. Выборка случайных ID карт
+            random_ids: List[int] = random.sample(all_card_ids, counter)
+
+            # 6. Получение карт по выбранным ID
+            random_cards: List[OraculumItem] = [
+                await base_query.aget(id=cid) for cid in random_ids
+            ]
+
+            result = []
+
+            for card in random_cards:
+                # Используем тот же асинхронный метод из миксина
+                img_id = await card.aget_file_id(self.app_bot_id)
+
+                result.append({
+                    "card_instance": card,
+                    "card_id": card.id,
+                    "img_id": img_id,
+                    "name": card.name,
+                    "flipped": random.choice([True, False]) if flip else False,
+                })
+
+            return result
+
+        except ObjectDoesNotExist as e:
+            raise ValueError("Карта не найдена") from e
+        except Exception as e:
+            raise RuntimeError(f"Ошибка: {str(e)}") from e
+
+    async def format_card_name(self, card, text_join = '\n'):
+        instance = card.get("card_instance")
+        flipped = card.get("flipped", False)
+
+        # Основное описание (название или описание из модели)
+        main_desc = ""
+        if isinstance(instance, OraculumItem):
+            # Если description пустой, берем name
+            main_desc = (instance.description or "")
+
+        # Текст значения (прямое или перевернутое)
+        value_text = ""
+        if isinstance(instance, OraculumItem):
+            if flipped and instance.inverted:
+                value_text = f"Перевернуто: {instance.inverted}"
+            else:
+                value_text = instance.direct or ""
+
+        # Собираем все части
+        parts = [
+            card.get("name"),
+            "Перевернуто" if flipped else None,
+            (f"{main_desc} {value_text}".strip() if isinstance(instance, OraculumItem) else None)
+        ]
+
+        return text_join.join(str(p) for p in parts if p)
 
     @retry(
         stop=stop_after_attempt(3),

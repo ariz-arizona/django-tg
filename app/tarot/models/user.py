@@ -10,6 +10,7 @@ class UserReading(models.Model):
         ORACLE = "oracle", "Оракул"                    # Для /oraculum, /oraculum3
         RUNES = "runes", "Руны (Футарк)"               # Для /futark, /futark triplet
         CANVAS_SPREAD = "canvas_spread", "Расклад на холсте" # Для /spread
+        ALL = "all", "Вся колода"
 
     user = models.ForeignKey(
         "tg_bot.TgUser",

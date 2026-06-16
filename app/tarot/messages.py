@@ -13,6 +13,7 @@ class SpreadMessages:
         "💡 <b>Большие расклады удобнее смотреть в режиме «Вся колода»: </b>\n"
         "/all_deck_{deck_id}{flip_flag}"
     )
+    FAVORITE_COMMAND = "❤️ <b>Повторить расклад:</b> {command}"
     
     @staticmethod
     def format_description(deck_name, cards_description, stats_str=None, try_all_str=None):

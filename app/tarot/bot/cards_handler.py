@@ -1,6 +1,7 @@
 import re
 import os
 from typing import List, Optional, Dict
+from collections import Counter
 
 import asyncio
 import json
@@ -430,7 +431,8 @@ class CardsHandler:
             text = [
                 f"<b>Расклад из колоды</b>: <a href='{current_deck.link}'>{escape(current_deck.name)}</a>\n",
                 f"<b>Карты:</b> {escape(', '.join(card_names))}",
-                f"\n<i>Всего в колоде: {current_count}/{total_cards}</i>"
+                "",
+                f"<i>Всего в колоде: {current_count}/{total_cards}</i>"
             ]
             
             if current_count > 10:
@@ -441,6 +443,17 @@ class CardsHandler:
                     deck_id=current_deck.id, 
                     flip_flag=flag
                 ))
+                
+            # Получаем последние 5 раскладов пользователя
+            last_readings = [r async for r in UserReading.objects.filter(user_id=reading.user_id).order_by('-created_at')[:3]]
+            current = last_readings[0]
+            if (
+                current.count > 1
+                and len(last_readings) >= 3
+                and all(r.deck_id == current.deck_id for r in last_readings)
+            ):
+                favorite_cmd = f"/card{current.count}_deck_{current.deck_id}"  # или как у тебя формируется команда
+                text[1] = SpreadMessages.FAVORITE_COMMAND.format(command=favorite_cmd)
                 
             params["parse_mode"] = ParseMode.HTML
             

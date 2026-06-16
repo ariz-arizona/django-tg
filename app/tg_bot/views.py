@@ -30,7 +30,7 @@ def webhook(request, token):
         # Проверка, что это сообщение (опционально)
         try:
             # Вы можете просто поместить строку JSON в очередь
-            redis_client.rpush(f"bot_messages_queue_{token}", json_str)
+            redis_client.publish(f"bot_messages_queue_{token}", json_str)
             try:
                 message = json.loads(json_str)
                 

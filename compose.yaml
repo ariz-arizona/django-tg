@@ -72,23 +72,7 @@ services:
     depends_on:
       - web
     <<: *app_labels
-
-  dozzle:
-    image: amir20/dozzle:latest
-    container_name: ${PROJECT_NAME:-djangotg}_dozzle
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock  # Доступ к Docker socket для Dozzle
-    environment:
-      DOZZLE_FILTER: label=project_name=${PROJECT_NAME:-djangotg}
-    read_only: true  # Только для чтения
-    depends_on:
-      - web
-      - celery
-      - celery_beat
-      - redis
-      - db
-    <<: *app_labels
-
+    
 volumes:
   postgres_data:
   static_volume:  # Общий том для статики

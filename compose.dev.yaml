@@ -1,3 +1,7 @@
+x-labels: &app_labels
+  labels:
+    project_name: ${PROJECT_NAME:-djangotg}
+
 services:
   web:
     volumes:
@@ -16,6 +20,46 @@ services:
     ports:
       - "${OUTER_POSTGRES_PORT:-5432}:5432"
 
+  flower:
+    image: mher/flower:latest
+    container_name: ${PROJECT_NAME:-djangotg}_flower
+    <<: *app_labels
+    env_file:
+      - .env
+    environment:
+      CELERY_BROKER_URL: redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/0
+    ports:
+      - "${FLOWER_PORT:-5555}:5555"
+    depends_on:
+      - redis
+      - celery
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: ${PROJECT_NAME:-djangotg}_redisinsight
+    ports:
+      - "${REDISINSIGHT_PORT:-5540}:5540"
+    environment:
+      - RI_CONNECTION_HOST=${REDIS_HOST:-redis}
+      - RI_CONNECTION_PORT=${REDIS_PORT:-6379}
+      - RI_CONNECTION_NAME=MyBotRedis
+    depends_on:
+      - redis
+
   dozzle:
+    image: amir20/dozzle:latest
+    container_name: ${PROJECT_NAME:-djangotg}_dozzle
+    <<: *app_labels
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Доступ к Docker socket для Dozzle
+    environment:
+      DOZZLE_FILTER: label=project_name=${PROJECT_NAME:-djangotg}
     ports:
       - "${DOZZLE_PORT:-8001}:8080"
+    read_only: true  # Только для чтения
+    depends_on:
+      - web
+      - celery
+      - celery_beat
+      - redis
+      - db

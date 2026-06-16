@@ -87,31 +87,37 @@ async def run_bot(token, app_bot_id, handlersClass):
     await redis_client.hset("running_bots", app_bot_id, json.dumps(bot_info))
     logger.info(f"Бот {app_bot_id} зарегистрирован в Redis")
 
-    while True:
-        try:
-            # Извлекаем сообщение из очереди
-            message = await redis_client.lpop(f"bot_messages_queue_{token}")
-            if message:
-                try:
-                    # Декодируем сообщение
-                    data = json.loads(message)
-                    # logger.info(f"Сообщение из очереди update_id: {data['update_id']}")
+    # Инициализация Pub/Sub
+    pubsub = redis_client.pubsub()
+    channel_name = f"bot_messages_queue_{token}"
+    await pubsub.subscribe(channel_name)
+    
+    logger.info(f"Ожидание сообщений через Pub/Sub в канале: {channel_name}")
 
-                    # Преобразуем в объект Update
-                    update = Update.de_json(data, app.bot)
-                    await app.process_update(update)
-                    # await app.update_queue.put(update)
+    try:
+        # Вместо while True используем async for
+        async for message in pubsub.listen():
+            # Redis при подписке шлет системное сообщение типа 'subscribe'
+            if message['type'] != 'message':
+                continue
 
-                except Exception as e:
-                    logger.error(f"Ошибка при обработке сообщения: {e}", exc_info=True)
+            try:
+                # message['data'] содержит переданную строку
+                data = json.loads(message['data'])
+                
+                # Преобразуем в объект Update
+                update = Update.de_json(data, app.bot)
+                await app.process_update(update)
 
-            # Пауза между попытками извлечь следующее сообщение
-            await asyncio.sleep(0.3)
+            except Exception as e:
+                logger.error(f"Ошибка при обработке сообщения: {e}", exc_info=True)
 
-        except Exception as e:
-            logger.error(
-                f"Ошибка при обработке бота с токеном {token}: {e}", exc_info=True
-            )
+    except Exception as e:
+        logger.error(f"Ошибка в подписке бота {token}: {e}", exc_info=True)
+    finally:
+        # Обязательно отписываемся при выходе из цикла
+        await pubsub.unsubscribe(channel_name)
+        await pubsub.close()
 
 
 @shared_task(bind=True)

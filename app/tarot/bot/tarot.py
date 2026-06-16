@@ -55,6 +55,8 @@ from tarot.bot.rune_handler import RuneHandler
 from tarot.bot.meaning_handler import MeaningHandler
 from tarot.bot.cards_handler import CardsHandler
 
+from tarot.messages import SpreadMessages
+
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(
     host=os.getenv("REDIS_HOST", "localhost"), 
@@ -853,12 +855,17 @@ class TarotBot(AbstractBot):
 
         try:
             # Если все проверки пройдены
-            tech_msg = await update.message.reply_text("Выбор карт")
 
             options = self.parse_reading_options(msg_text)
 
             deck = await self.get_deck(options.get("deck"))
             logger.info(f"Используемая колода: {deck.id if deck else 'не указана'}")
+            
+            tech_msg = await update.message.reply_text(
+                SpreadMessages.INITIALIZING, 
+                parse_mode=ParseMode.HTML,
+                reply_to_message_id=update.effective_message.message_id
+            )
 
             cards = await self.get_cards(
                 deck_id=deck.id if deck else None,
@@ -891,8 +898,14 @@ class TarotBot(AbstractBot):
                 is_major_only=options.get('major', False)
             )
 
-            description_text = f"Расклад  из колоды {deck.name}:\n" + "\n".join(
-                f"{' ' * 4}{desc}" for desc in cards_description
+            description_text = SpreadMessages.format_description(
+                deck.name if deck else None, 
+                cards_description
+            )
+            
+            await tech_msg.edit_text(
+                f"{SpreadMessages.LOADING}\n\n{description_text}",
+                parse_mode=ParseMode.HTML
             )
 
             for card_data in cards:
@@ -912,10 +925,15 @@ class TarotBot(AbstractBot):
                     logger.warning(f"Не удалось создать кэш для карты {card_item.id}")
 
             await tech_msg.edit_text(
-                "Загрузка и отрисовка",
+                f"{SpreadMessages.RENDERING}\n\n{description_text}",
+                parse_mode=ParseMode.HTML
             )
             spread_image = await create_spread_image(cards, options)
-
+            
+            await tech_msg.edit_text(
+                f"{SpreadMessages.UPLOADING}\n\n{description_text}",
+                parse_mode=ParseMode.HTML
+            )
             if spread_image:
                 # Отправляем изображение пользователю
                 await tech_msg.edit_media(

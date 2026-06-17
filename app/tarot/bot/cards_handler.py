@@ -49,13 +49,7 @@ from tg_bot.models import BotFileCache
 from server.logger import logger
 from django.conf import settings
 
-from tarot.utils.image_utils import create_spread_image
-from tarot.bot.allcard_handler import AllCardHandler
-from tarot.bot.ai_interpret_handler import AIInterpretHandler
-from tarot.bot.rune_handler import RuneHandler
-from tarot.bot.meaning_handler import MeaningHandler
-
-from tarot.messages import SpreadMessages
+from tarot.messages import SpreadMessages, TAROT_3_TRIGGER
 
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(
@@ -73,7 +67,6 @@ redis_client_bot = aioredis.StrictRedis(
 
 REDIS_TTL_SECONDS = 10
 REDIS_KEY_TEMPLATE = "user:{user_id}:{category}"
-
 
 class CardsHandler:
     """Обработчик команды /all и связанных callback'ов."""
@@ -96,6 +89,10 @@ class CardsHandler:
         """Возвращает список обработчиков для этой команды."""
         return [
             MessageHandler(
+                filters.Text([TAROT_3_TRIGGER]) & filters.ChatType.PRIVATE,
+                self.handle_card
+            ),
+            MessageHandler(
                 filters.COMMAND
                 & filters.TEXT
                 & filters.ChatType.PRIVATE
@@ -116,7 +113,7 @@ class CardsHandler:
             ),
         ]
     
-        
+    
     async def handle_card(self, update: Update, context: CallbackContext):
         """
         Обработчик команды /card.
@@ -129,7 +126,18 @@ class CardsHandler:
             return
 
         try:
-            options = self.bot.parse_reading_options(msg_text)
+            if msg_text == TAROT_3_TRIGGER:
+                options = {
+                    "counter": 3,
+                    "deck": None,
+                    "flip": True,          # Обязательно, иначе упадет проверка на flip
+                    "major": False,         # Ваш запрос
+                    "card_ids": None,       # Указываем явно, что кастомных ID нет
+                    "original_query": ""    # Пустая строка для корректного логгера
+                }                
+            else:
+                # Стандартный парсинг для команды /card
+                options = self.bot.parse_reading_options(msg_text)
             logger.info(f"Опции расклада разобраны: {options}")
 
             # 1. Получение колоды

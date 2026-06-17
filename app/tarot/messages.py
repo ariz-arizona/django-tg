@@ -1,5 +1,8 @@
 from html import escape
 
+TAROT_3_TRIGGER = "✨ Три карты"
+CANVAS_3_TRIGGER = "🖼 Холст"
+
 class SpreadMessages:
     INITIALIZING = "⏳ <b>Формирование расклада...</b>"
     LOADING = "🃏 <b>Подбираю карты для вас...</b>"

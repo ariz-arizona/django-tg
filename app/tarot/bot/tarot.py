@@ -55,7 +55,7 @@ from tarot.bot.rune_handler import RuneHandler
 from tarot.bot.meaning_handler import MeaningHandler
 from tarot.bot.cards_handler import CardsHandler
 
-from tarot.messages import SpreadMessages
+from tarot.messages import SpreadMessages, CANVAS_3_TRIGGER, TAROT_3_TRIGGER
 
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(
@@ -86,7 +86,7 @@ class TarotBot(AbstractBot):
     def get_handlers(self):
         return [
             MessageHandler(filters.PHOTO, self.handle_photo_msg),
-            CommandHandler("start", self.handle_help),
+            CommandHandler("start", self.handle_start),
             CommandHandler("help", self.handle_help),
             
             *self.allcard_handler.get_handlers(),
@@ -110,6 +110,10 @@ class TarotBot(AbstractBot):
             
             CommandHandler("one", self.handle_one_command, filters.ChatType.PRIVATE),
             
+            MessageHandler(
+                filters.Text([CANVAS_3_TRIGGER]) & filters.ChatType.PRIVATE,
+                self.handle_spread
+            ),
             MessageHandler(
                 filters.COMMAND
                 & filters.TEXT
@@ -867,8 +871,17 @@ class TarotBot(AbstractBot):
 
         try:
             # Если все проверки пройдены
-
-            options = self.parse_reading_options(msg_text)
+            if msg_text == CANVAS_3_TRIGGER:
+                options = {
+                    "counter": 3,
+                    "deck": None,
+                    "flip": True,          # Обязательно, иначе упадет проверка на flip
+                    "major": False,         # Ваш запрос
+                    "card_ids": None,       # Указываем явно, что кастомных ID нет
+                    "original_query": ""    # Пустая строка для корректного логгера
+                }                
+            else:
+                options = self.parse_reading_options(msg_text)
 
             deck = await self.get_deck(options.get("deck"))
             logger.info(f"Используемая колода: {deck.id if deck else 'не указана'}")
@@ -966,6 +979,29 @@ class TarotBot(AbstractBot):
     async def handle_photo_msg(self, update: Update, context: CallbackContext):
         logger.info(update)
 
+    def default_reply_keyboard(self):
+        return ReplyKeyboardMarkup(
+            [[TAROT_3_TRIGGER, CANVAS_3_TRIGGER]],
+            resize_keyboard=True,
+            one_time_keyboard=False,
+            input_field_placeholder="Выберите расклад..."
+        )
+        
+    async def handle_start(self, update: Update, context: CallbackContext):
+        start_text = """
+🔮 <b>Добро пожаловать!</b>
+
+Я помогу вам сделать расклад Таро, Оракула или рун.
+
+Нажмите кнопку ниже — или введите /help для полного списка команд.
+"""
+        reply_markup = self.default_reply_keyboard()
+        await update.message.reply_text(
+            start_text,
+            reply_markup=reply_markup,
+            parse_mode=ParseMode.HTML
+        )
+        
     async def handle_help(self, update: Update, context: CallbackContext):
         help_text = """
 📜 <b>Доступные команды:</b>
@@ -1003,4 +1039,7 @@ class TarotBot(AbstractBot):
 /help - Показать это сообщение.
 """
 
-        await update.message.reply_text(help_text, parse_mode="HTML")
+        await update.message.reply_text(
+            help_text, 
+            parse_mode=ParseMode.HTML
+        )

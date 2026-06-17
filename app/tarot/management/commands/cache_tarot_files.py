@@ -8,8 +8,8 @@ from django.utils import timezone
 from django.db import transaction
 from django.contrib.contenttypes.models import ContentType
 
-from tarot.models import TarotCardItem, BotFile, TarotDeck, OraculumItem
-from tg_bot.models import Bot, BotFileCache
+from tarot.models import TarotCardItem, TarotDeck, OraculumItem
+from tg_bot.models import Bot, BotFile, BotFileCache
 
 
 class Command(BaseCommand):

@@ -1,4 +1,4 @@
-from .tarot import TarotCardAdmin, ExtendedMeaningAdmin, CategoryAdmin, TarotDeckAdmin, CardAdmin
+from .tarot import TarotCardAdmin, ExtendedMeaningAdmin, CategoryAdmin, TarotDeckAdmin, TarotCardItemAdmin
 from .oraculum import OraculumDeckAdmin, OraculumItemAdmin
 from .runes import RuneAdmin
 from .user import UserReadingAdmin

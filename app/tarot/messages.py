@@ -76,7 +76,6 @@ class CanvasMessages(Messages):
     """Класс сообщений для Canvas раскладов"""
     pass
 
-
 class CardMessages(Messages):
     """Класс сообщений для Card раскладов"""
     
@@ -103,9 +102,14 @@ class CardMessages(Messages):
     
     def format_description(self, deck_name: str, cards_description: List[str], 
                           stats_str: Optional[str] = None, 
-                          try_all_str: Optional[str] = None) -> str:
+                          try_all_str: Optional[str] = None,
+                          deck_description: Optional[str] = None) -> str:
         deck_str = escape(deck_name or "Стандартная колода")
         lines = [self.DECK_TITLE.format(deck_name=deck_str)]
+        
+        # Описание колоды, если есть
+        if deck_description:
+            lines.append(f"\n<i>{escape(deck_description)}</i>")
         
         # Если карт больше 20, показываем первые 9 + ... + последние 9
         if len(cards_description) > 20:

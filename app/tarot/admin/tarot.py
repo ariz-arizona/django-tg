@@ -5,49 +5,68 @@ from ..models.tarot import TarotCard, ExtendedMeaning, TarotMeaningCategory, Tar
 
 @admin.register(TarotCard)
 class TarotCardAdmin(admin.ModelAdmin):
-    list_display = ("card_id", "name", "is_major")  # Добавлено card_id для наглядности
-    list_editable = ("is_major",)  # Разрешаем редактирование прямо в списке
-    list_filter = ("is_major",)  # Добавляем фильтр по этому полю
-    search_fields = ("name", "card_id")  # Поиск по названию и ID карты
+    list_display = ("card_id", "name", "is_major", "used_in_decks")
+    list_display_links = ("name",)  # Кликабельно название, а не card_id
+    list_editable = ("is_major",)
+    list_filter = ("is_major",)
+    search_fields = ("name", "card_id")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('deck_cards__deck')
+
+    @admin.display(description='Колоды')
+    def used_in_decks(self, obj):
+        decks = obj.deck_cards.select_related('deck')
+        return ', '.join(d.deck.name for d in decks) or '—'
+
+
+class TarotCardItemInline(admin.TabularInline):
+    model = TarotCardItem
+    extra = 0
+    show_change_link = True
+    fields = ('tarot_card',)
+    autocomplete_fields = ('tarot_card',)
+    classes = ('collapse',)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('tarot_card')
+
+
+@admin.register(TarotDeck)
+class TarotDeckAdmin(admin.ModelAdmin):
+    list_display = ('name', 'cards_count', 'link')
+    search_fields = ('name',)
+    inlines = [TarotCardItemInline]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('cards')
+
+    @admin.display(description='Карт в колоде')
+    def cards_count(self, obj):
+        return obj.cards.count()
+
+
+@admin.register(TarotCardItem)
+class TarotCardItemAdmin(admin.ModelAdmin):
+    list_display = ('id', 'deck', 'tarot_card')
+    list_filter = ('deck',)
+    search_fields = ('deck__name', 'tarot_card__name')
+    autocomplete_fields = ('deck', 'tarot_card')
+    inlines = [BotFileInline]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('deck', 'tarot_card')
 
 
 @admin.register(ExtendedMeaning)
 class ExtendedMeaningAdmin(admin.ModelAdmin):
     list_display = ("tarot_card", "category", "category_base", "text")
+    search_fields = ("tarot_card__name", "text")
+    list_filter = ("category", "category_base")
+    autocomplete_fields = ("tarot_card",)
 
 
 @admin.register(TarotMeaningCategory)
 class CategoryAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(TarotDeck)
-class TarotDeckAdmin(admin.ModelAdmin):
-    """
-    Админка для модели TarotDeck.
-    """
-
-    list_display = ("name", "link")  # Поля, отображаемые в списке
-    search_fields = ("name",)  # Поля для поиска
-    list_filter = ("name",)  # Фильтры в правой панели
-
-
-@admin.register(TarotCardItem)
-class CardAdmin(admin.ModelAdmin):
-    """
-    Админка для модели Card.
-    """
-
-    list_display = (
-        "tarot_card",
-        "deck",
-    )  # Поля, отображаемые в списке
-    search_fields = ("deck__name", "tarot_card__name")  # Поля для поиска
-    list_filter = ("deck", "tarot_card")  # Фильтры в правой панели
-    autocomplete_fields = (
-        "deck",
-        "tarot_card",
-    )
-    inlines = [
-        BotFileInline,
-    ]
+    list_display = ("__str__",)
+    search_fields = ("name",)

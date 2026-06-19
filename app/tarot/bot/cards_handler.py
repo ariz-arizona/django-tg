@@ -537,6 +537,7 @@ class CardsHandler:
             
             text = [self.messages.format_description(
                 deck_name=current_deck.name,
+                deck_description=current_deck.description, 
                 cards_description=card_names,
                 stats_str=stats_str
             )]

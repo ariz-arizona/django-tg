@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.fields import ArrayField
 
 from tg_bot.models import BotFile, BotFileMixin
 from .base import bot_prefix, ActiveDeckManager
@@ -26,11 +27,13 @@ class OraculumDeck(models.Model):
         blank=True,
         null=True,
     )
-    seo_tags = models.TextField(
+    seo_tags = ArrayField(
+        models.CharField(max_length=255),
         null=True,
         blank=True,
+        default=list,
         verbose_name="SEO-теги",
-        help_text="Мета-теги для поисковой оптимизации",
+        help_text="Список тегов для поиска (например, ['уэйт', 'waite', 'rider'])",
     )
     created_at = models.DateTimeField(
         auto_now_add=True,

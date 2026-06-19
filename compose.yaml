@@ -53,7 +53,7 @@ services:
     container_name: ${PROJECT_NAME:-djangotg}_redis
     <<: *app_labels
   db:
-    image: postgres:15
+    image: postgres:18
     container_name: ${PROJECT_NAME:-djangotg}_postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data

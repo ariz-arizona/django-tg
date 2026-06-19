@@ -1,3 +1,4 @@
+import django.db
 import re
 import os
 from typing import List, Optional, Dict
@@ -34,6 +35,7 @@ from telegram.constants import ParseMode
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.postgres.search import TrigramSimilarity
+from django.db.models import Q
 
 from tg_bot.bot.abstract import AbstractBot
 from tg_bot.models import (
@@ -654,60 +656,52 @@ class TarotBot(AbstractBot):
         if not deck_ids:
             raise ValueError("Нет доступных колод.")
 
-        # Поиск по ключевому слову
         if deck_keyword and deck_id is None:
             # 1. Точное совпадение по slug
             deck = await model.objects.filter(slug=deck_keyword).afirst()
             
             if deck:
                 await self._log_search(deck_keyword, "success", [deck])
-            else:
-                # 2. Нечёткий поиск по slug + name + seo_tags через триграммы
-                decks = model.objects.annotate(
-                    similarity=(
-                        TrigramSimilarity('name', deck_keyword) + 
-                        TrigramSimilarity('slug', deck_keyword) + 
-                        TrigramSimilarity('seo_tags', deck_keyword)
-                    )
-                ).filter(similarity__gt=0.2).order_by('-similarity')
-                
-                count = await decks.acount()
-                
-                if count > 0:
-                    if return_all:
-                        # Возвращаем все найденные колоды списком
-                        deck_list = [d async for d in decks]
-                        names = [(d.name, d.similarity) for d in deck_list]
-                        
-                        await self._log_search(deck_keyword, "success", deck_list)
-                        logger.info(f"Найдено {count} колод по '{deck_keyword}': {names}")
-                        
-                        return deck_list
-                    else:
-                        deck = await decks.afirst()
-                        similarity = deck.similarity
-                        
-                        await self._log_search(deck_keyword, "success", [deck])
-                        logger.info(f"Колода найдена по триграммам '{deck_keyword}': {deck.name} (similarity={similarity:.2f})")
-                        
-                        if count > 1:
-                            names = [(d.name, d.similarity) async for d in decks[:3]]
-                            logger.warning(f"Найдено {count} колод по '{deck_keyword}': {names}")
+                if return_all:
+                    return [deck]
+                return deck
+
+            # 2. Комбинированный поиск: ILIKE + триграммы для сортировки
+            decks = model.objects.filter(
+                Q(name__icontains=deck_keyword) |
+                Q(slug__icontains=deck_keyword) |
+                Q(seo_tags__icontains=deck_keyword)
+            ).annotate(
+                similarity=(
+                    TrigramSimilarity('name', deck_keyword) + 
+                    TrigramSimilarity('slug', deck_keyword)
+                )
+            ).order_by('-similarity')
+            
+            count = await decks.acount()
+            
+            if count > 0:
+                if return_all:
+                    deck_list = [d async for d in decks]
+                    names = [(d.name, d.similarity) for d in deck_list]
+                    await self._log_search(deck_keyword, "success", deck_list)
+                    logger.info(f"Найдено {count} колод по '{deck_keyword}': {names}")
+                    return deck_list
                 else:
-                    # 3. Fallback: точный icontains
-                    if return_all:
-                        deck_list = [d async for d in model.objects.filter(name__icontains=deck_keyword)]
-                        if not deck_list:
-                            deck_list = [d async for d in model.objects.filter(seo_tags__icontains=deck_keyword)]
-                            
-                        await self._log_search(deck_keyword, "success" if deck_list else "not_found", deck_list if deck_list else None)
-                        return deck_list
-                    else:
-                        deck = await model.objects.filter(name__icontains=deck_keyword).afirst()
-                        if not deck:
-                            deck = await model.objects.filter(seo_tags__icontains=deck_keyword).afirst()
-                        
-                        await self._log_search(deck_keyword, "success" if deck else "not_found", [deck] if deck else None)
+                    deck = await decks.afirst()
+                    similarity = deck.similarity
+                    await self._log_search(deck_keyword, "success", [deck])
+                    logger.info(f"Колода найдена '{deck_keyword}': {deck.name} (similarity={similarity:.2f})")
+                    if count > 1:
+                        names = [(d.name, d.similarity) async for d in decks[:3]]
+                        logger.warning(f"Найдено {count} колод по '{deck_keyword}': {names}")
+                    return deck
+            
+            # 3. Ничего не найдено
+            await self._log_search(deck_keyword, "not_found", None)
+            if return_all:
+                return []
+            return None
             
             # Если не return_all, возвращаем одну колоду или None
             if not return_all:

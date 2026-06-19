@@ -3,7 +3,7 @@ from .tarot import TarotCard, TarotMeaningCategory, ExtendedMeaning, TarotDeck, 
 from .oraculum import OraculumDeck, OraculumItem
 from .runes import Rune
 from .user import UserReading, AIReadingInterpretation, AIReadingPage
-from .tech import AIApiKey
+from .tech import AIApiKey, DeckSearch
 
 __all__ = [
     "bot_prefix",
@@ -19,4 +19,5 @@ __all__ = [
     "AIReadingInterpretation",
     "AIReadingPage",
     "AIApiKey",
+    "DeckSearch"
 ]

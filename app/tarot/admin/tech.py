@@ -1,7 +1,9 @@
 from django.contrib import admin
+from django.db.models import Count, Q
 from django.utils.html import format_html
 from django.utils.timezone import now
-from ..models import AIApiKey
+from ..models import AIApiKey, DeckSearch
+
 
 
 @admin.register(AIApiKey)
@@ -87,3 +89,74 @@ class AIApiKeyAdmin(admin.ModelAdmin):
     @admin.action(description="Сбросить статус исчерпания лимита")
     def reset_exhausted(self, request, queryset):
         queryset.update(is_exhausted=False, exhausted_until=None)
+        
+
+@admin.register(DeckSearch)
+class DeckSearchAdmin(admin.ModelAdmin):
+    list_display = [
+        'deck_keyword', 
+        'status', 
+        'decks_found', 
+        'created_at'
+    ]
+    list_filter = ['status', 'created_at']
+    search_fields = ['deck_keyword']
+    readonly_fields = ['deck_keyword', 'status', 'found_decks', 'created_at']
+    date_hierarchy = 'created_at'
+    
+    # Агрегация внизу списка
+    def changelist_view(self, request, extra_context=None):
+        response = super().changelist_view(request, extra_context=extra_context)
+        
+        # Статистика
+        total = DeckSearch.objects.count()
+        success = DeckSearch.objects.filter(status='success').count()
+        not_found = DeckSearch.objects.filter(status='not_found').count()
+        multiple = DeckSearch.objects.filter(status='multiple_found').count()
+        
+        # Топ запросов
+        top_keywords = DeckSearch.objects.values('deck_keyword')\
+            .annotate(count=Count('id'))\
+            .order_by('-count')[:10]
+        
+        # Топ "не найденных" запросов
+        top_not_found = DeckSearch.objects.filter(status='not_found')\
+            .values('deck_keyword')\
+            .annotate(count=Count('id'))\
+            .order_by('-count')[:10]
+        
+        # Процент успешных
+        success_rate = round((success / total * 100), 1) if total > 0 else 0
+        
+        extra_context = extra_context or {}
+        extra_context['stats'] = {
+            'total': total,
+            'success': success,
+            'not_found': not_found,
+            'multiple': multiple,
+            'success_rate': success_rate,
+            'top_keywords': top_keywords,
+            'top_not_found': top_not_found,
+        }
+        
+        response.context_data.update(extra_context)
+        return response
+    
+    def decks_found(self, obj):
+        if obj.found_decks:
+            count = len(obj.found_decks)
+            if count == 1:
+                return obj.found_decks[0].get('name', '—')
+            else:
+                return f"{count} колод"
+        return "—"
+    decks_found.short_description = "Найдено"
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return True  # Можно чистить логи

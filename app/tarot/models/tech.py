@@ -1,9 +1,6 @@
 from django.db import models
 
 
-from django.db import models
-
-
 class AIApiKey(models.Model):
     # Заготовки для популярных API-эндпоинтов, чтобы не писать руками каждый раз
     class ProviderUrl(models.TextChoices):
@@ -103,3 +100,20 @@ class AIApiKey(models.Model):
         status = "Активен" if self.is_active and not self.is_exhausted else "Недоступен"
         prov_name = self.get_provider_display()
         return f"{self.title} ({prov_name}) — {status}"
+
+
+class DeckSearch(models.Model):
+    """Логирование поиска колод"""
+    deck_keyword = models.CharField(max_length=255, verbose_name="Поисковый запрос")
+    status = models.CharField(max_length=50, verbose_name="Статус")  # success, not_found, multiple_found
+    found_decks = models.JSONField(null=True, blank=True, verbose_name="Найденные колоды")  # [{id, name, type}]
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата поиска")
+    
+    class Meta:
+        verbose_name = "Поиск колоды"
+        verbose_name_plural = "Поиски колод"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        count = len(self.found_decks) if self.found_decks else 0
+        return f"'{self.deck_keyword}' → {self.status} ({count} колод)"

@@ -45,6 +45,7 @@ from tarot.models import (
     OraculumDeck,
     OraculumItem,
     UserReading,
+    DeckSearch,
 )
 from tg_bot.models import BotFileCache
 from server.logger import logger
@@ -614,6 +615,28 @@ class TarotBot(AbstractBot):
         except Exception as e:
             raise RuntimeError(f"Ошибка: {str(e)}") from e
 
+
+    async def _log_search(self, deck_keyword: str, status: str, decks=None):
+        found = None
+        if decks is not None:
+            if isinstance(decks, list):
+                found = [
+                    {"id": d.id, "name": d.name, "type": "tarot" if isinstance(d, TarotDeck) else "oraculum"}
+                    for d in decks
+                ]
+            else:
+                # Одна колода
+                found = [
+                    {"id": decks.id, "name": decks.name, "type": "tarot" if isinstance(decks, TarotDeck) else "oraculum"}
+                ]
+        
+        await DeckSearch.objects.acreate(
+            deck_keyword=deck_keyword,
+            status=status,
+            found_decks=found
+        )
+        
+        
     async def get_deck(self, deck_id=None, deck_keyword=None, deck_type="tarot", return_all=False):
         """
         Возвращает колоду или список колод.
@@ -636,7 +659,9 @@ class TarotBot(AbstractBot):
             # 1. Точное совпадение по slug
             deck = await model.objects.filter(slug=deck_keyword).afirst()
             
-            if not deck:
+            if deck:
+                await self._log_search(deck_keyword, "success", [deck])
+            else:
                 # 2. Нечёткий поиск по slug + name + seo_tags через триграммы
                 decks = model.objects.annotate(
                     similarity=(
@@ -653,11 +678,16 @@ class TarotBot(AbstractBot):
                         # Возвращаем все найденные колоды списком
                         deck_list = [d async for d in decks]
                         names = [(d.name, d.similarity) for d in deck_list]
+                        
+                        await self._log_search(deck_keyword, "success", deck_list)
                         logger.info(f"Найдено {count} колод по '{deck_keyword}': {names}")
+                        
                         return deck_list
                     else:
                         deck = await decks.afirst()
                         similarity = deck.similarity
+                        
+                        await self._log_search(deck_keyword, "success", [deck])
                         logger.info(f"Колода найдена по триграммам '{deck_keyword}': {deck.name} (similarity={similarity:.2f})")
                         
                         if count > 1:
@@ -666,15 +696,18 @@ class TarotBot(AbstractBot):
                 else:
                     # 3. Fallback: точный icontains
                     if return_all:
-                        # Если return_all, возвращаем все колоды по icontains
                         deck_list = [d async for d in model.objects.filter(name__icontains=deck_keyword)]
                         if not deck_list:
                             deck_list = [d async for d in model.objects.filter(seo_tags__icontains=deck_keyword)]
+                            
+                        await self._log_search(deck_keyword, "success" if deck_list else "not_found", deck_list if deck_list else None)
                         return deck_list
                     else:
                         deck = await model.objects.filter(name__icontains=deck_keyword).afirst()
                         if not deck:
                             deck = await model.objects.filter(seo_tags__icontains=deck_keyword).afirst()
+                        
+                        await self._log_search(deck_keyword, "success" if deck else "not_found", [deck] if deck else None)
             
             # Если не return_all, возвращаем одну колоду или None
             if not return_all:
@@ -689,20 +722,25 @@ class TarotBot(AbstractBot):
 
         # Дальше идём только если не return_all
         if return_all:
+            await self._log_search(deck_keyword or "all", "not_found", None)
             return []
 
         # Поиск по ID
         if deck_id is not None and deck_id not in deck_ids:
             logger.error(f"Указанный ID колоды {deck_id} не существует.")
+            await self._log_search(str(deck_id), "not_found", None)
             deck_id = None
 
         if deck_id is None and not deck_keyword:
             deck_id = random.choice(deck_ids)
 
         try:
-            return await model.objects.aget(id=deck_id)
+            deck = await model.objects.aget(id=deck_id)
+            await self._log_search(str(deck_id), "success", [deck])
+            return deck
         except Exception as e:
             logger.error(f"Произошла ошибка при поиске колоды {e}", exc_info=True)
+            await self._log_search(str(deck_id), "not_found", None)
             raise ValueError("Не удалось получить колоду.")
 
     async def get_oraculum_cards(self, deck_id, counter, exclude_cards, flip):

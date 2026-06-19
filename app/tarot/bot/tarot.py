@@ -55,7 +55,7 @@ from tarot.bot.rune_handler import RuneHandler
 from tarot.bot.meaning_handler import MeaningHandler
 from tarot.bot.cards_handler import CardsHandler
 
-from tarot.messages import SpreadMessages, CANVAS_3_TRIGGER, TAROT_3_TRIGGER
+from tarot.messages import CanvasMessages, CANVAS_3_TRIGGER, TAROT_3_TRIGGER
 
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(
@@ -863,31 +863,40 @@ class TarotBot(AbstractBot):
         msg_text = update.message.text
         user = await self.get_or_create_tg_user(update)
         logger.info(f"Обработка команды /spread с текстом: {msg_text[:100]}")
+        messages = CanvasMessages()
 
         category = UserReading.ReadingCategory.CANVAS_SPREAD
         is_locked = await self.check_reading_cooldown(update, category)
         if is_locked:
+            # Использование сообщения об ошибке через класс
+            error_msg = self.messages.get_error_message("cooldown", wait_time="60")
+            await update.message.reply_text(error_msg, parse_mode=ParseMode.HTML)
             return
 
         try:
-            # Если все проверки пройдены
             if msg_text == CANVAS_3_TRIGGER:
                 options = {
                     "counter": 3,
                     "deck": None,
-                    "flip": True,          # Обязательно, иначе упадет проверка на flip
-                    "major": False,         # Ваш запрос
-                    "card_ids": None,       # Указываем явно, что кастомных ID нет
-                    "original_query": ""    # Пустая строка для корректного логгера
+                    "flip": True,
+                    "major": False,
+                    "card_ids": None,
+                    "original_query": ""
                 }                
             else:
                 options = self.parse_reading_options(msg_text)
 
             deck = await self.get_deck(options.get("deck"))
+            if not deck and options.get("deck"):
+                error_msg = messages.get_error_message("no_deck")
+                await update.message.reply_text(error_msg, parse_mode=ParseMode.HTML)
+                return
+            
             logger.info(f"Используемая колода: {deck.id if deck else 'не указана'}")
             
+            # Использование сообщений через класс
             tech_msg = await update.message.reply_text(
-                SpreadMessages.INITIALIZING, 
+                messages.get_initializing(), 
                 parse_mode=ParseMode.HTML,
                 reply_to_message_id=update.effective_message.message_id
             )
@@ -900,6 +909,11 @@ class TarotBot(AbstractBot):
                 flip=options['flip'],
                 exclude_cards=None,
             )
+            
+            if not cards:
+                error_msg = messages.get_error_message("no_cards")
+                await tech_msg.edit_text(error_msg, parse_mode=ParseMode.HTML)
+                return
 
             cards_description = []
             for card_data in cards:
@@ -918,20 +932,20 @@ class TarotBot(AbstractBot):
                     [await self.format_card_name(c) for c in cards]
                 ),
                 category=category,
-                count=options["counter"],                             # Передаем точное количество карт
+                count=options["counter"],
                 deck_id=deck.id if deck else None,
                 is_flipped_allowed=options.get('flip', False),
                 is_major_only=options.get('major', False),
                 card_ids=card_records
             )
 
-            description_text = SpreadMessages.format_description(
+            description_text = messages.format_description(
                 deck.name if deck else None, 
                 cards_description
             )
             
             await tech_msg.edit_text(
-                f"{SpreadMessages.LOADING}\n\n{description_text}",
+                f"{messages.get_loading()}\n\n{description_text}", 
                 parse_mode=ParseMode.HTML
             )
 
@@ -939,43 +953,57 @@ class TarotBot(AbstractBot):
                 card_item = card_data["card_instance"]
                 bot_file = await card_item.files.afirst()
                 if not bot_file:
+                    error_msg = messages.get_error_message(
+                        "file_not_found", 
+                        card_name=card_data["name"]
+                    )
                     logger.warning(f"Нет исходного файла для карты {card_item.id}")
                     continue
 
                 file_link = await BotFileCache.acreate_and_get_link(bot_file=bot_file)
 
                 if file_link:
-                    # Можно скачать файл или сохранить путь для отправки
                     card_data["file_path"] = file_link
                     logger.info(f"Готов к отправке файл для карты {card_item.id}: {file_link}")
                 else:
                     logger.warning(f"Не удалось создать кэш для карты {card_item.id}")
 
             await tech_msg.edit_text(
-                f"{SpreadMessages.RENDERING}\n\n{description_text}",
+                f"{messages.get_rendering()}\n\n{description_text}",
                 parse_mode=ParseMode.HTML
             )
-            spread_image = await create_spread_image(cards, options)
+            
+            try:
+                spread_image = await create_spread_image(cards, options)
+            except Exception as img_error:
+                error_msg = messages.get_error_message("image_failed")
+                await tech_msg.edit_text(error_msg, parse_mode=ParseMode.HTML)
+                logger.error(f"Ошибка создания изображения: {img_error}")
+                return
             
             await tech_msg.edit_text(
-                f"{SpreadMessages.UPLOADING}\n\n{description_text}",
+                f"{messages.get_uploading()}\n\n{description_text}",
                 parse_mode=ParseMode.HTML
             )
+            
             if spread_image:
-                # Отправляем изображение пользователю
                 await tech_msg.edit_media(
-                    media=InputMediaPhoto(media=spread_image, caption=description_text, parse_mode='HTML'),
+                    media=InputMediaPhoto(media=spread_image, caption=description_text, parse_mode=ParseMode.HTML),
                 )
             else:
-                await tech_msg.edit_text("❌ Не удалось создать изображение расклада")
-                await update.message.reply_text(description_text)
+                error_msg = messages.get_error_message("image_failed")
+                await tech_msg.edit_text(error_msg, parse_mode=ParseMode.HTML)
 
+        except ValueError as ve:
+            logger.error(f"Ошибка валидации: {ve}")
+            error_msg = messages.get_error_message("invalid_options")
+            await update.message.reply_text(error_msg, parse_mode=ParseMode.HTML)
+            
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /spread: {e}", exc_info=True)
-            await update.message.reply_text(
-                "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
-            )
-
+            error_msg = self.messages.get_error_message("generic", error_details=str(e)[:100])
+            await update.message.reply_text(error_msg, parse_mode=ParseMode.HTML)
+            
     async def handle_photo_msg(self, update: Update, context: CallbackContext):
         logger.info(update)
 

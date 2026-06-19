@@ -49,7 +49,7 @@ from tg_bot.models import BotFileCache
 from server.logger import logger
 from django.conf import settings
 
-from tarot.messages import SpreadMessages, TAROT_3_TRIGGER
+from tarot.messages import CardMessages, TAROT_3_TRIGGER
 
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(
@@ -79,6 +79,7 @@ class CardsHandler:
             bot_instance: Экземпляр основного бота для доступа к его методам и атрибутам
         """
         self.bot = bot_instance
+        self.messages = CardMessages()
     
     @property
     def app_bot_id(self):
@@ -447,10 +448,12 @@ class CardsHandler:
                 # Подготавливаем параметры для команды
                 flag = "_flip" if reading.is_flipped_allowed else ""
                 text.append('')
-                text.append(SpreadMessages.TRY_ALL_DECK.format(
-                    deck_id=current_deck.id, 
+                # Используем self.messages для получения форматированного сообщения
+                try_all_text = self.messages.get_try_all_deck(
+                    deck_id=current_deck.id,
                     flip_flag=flag
-                ))
+                )
+                text.append(try_all_text)
                 
             # Получаем последние 5 раскладов пользователя
             last_readings = [r async for r in UserReading.objects.filter(user_id=reading.user_id).order_by('-created_at')[:3]]
@@ -460,8 +463,10 @@ class CardsHandler:
                 and len(last_readings) >= 3
                 and all(r.deck_id == current.deck_id for r in last_readings)
             ):
-                favorite_cmd = f"/card{current.count}_deck_{current.deck_id}"  # или как у тебя формируется команда
-                text[1] = SpreadMessages.FAVORITE_COMMAND.format(command=favorite_cmd)
+                favorite_cmd = f"/card{current.count}_deck_{current.deck_id}"
+                # Используем self.messages для получения форматированного сообщения
+                favorite_text = self.messages.get_favorite_command(command=favorite_cmd)
+                text[1] = favorite_text
                 
             params["parse_mode"] = ParseMode.HTML
             

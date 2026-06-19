@@ -56,12 +56,26 @@ class TarotDeck(models.Model):
     """
 
     name = models.CharField(max_length=255, unique=True, verbose_name="Название колоды")
+    slug = models.SlugField(
+        max_length=255,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name="URL-идентификатор",
+        help_text="Человекопонятный URL для колоды",
+    )
     link = models.CharField(
         max_length=255,
         null=True,
         blank=True,
         default=None,
         verbose_name="Ссылка на колоду",
+    )
+    seo_tags = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name="SEO-теги",
+        help_text="Мета-теги для поисковой оптимизации",
     )
 
     def __str__(self):
@@ -70,7 +84,7 @@ class TarotDeck(models.Model):
     class Meta:
         verbose_name = f"{bot_prefix}: Колода"
         verbose_name_plural = f"{bot_prefix}: Колоды"
-
+        
 
 class TarotCardItem(models.Model, BotFileMixin):
     """

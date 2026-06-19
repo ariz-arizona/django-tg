@@ -34,8 +34,8 @@ class TarotCardItemInline(admin.TabularInline):
 
 @admin.register(TarotDeck)
 class TarotDeckAdmin(admin.ModelAdmin):
-    list_display = ('name', 'cards_count', 'link')
-    search_fields = ('name',)
+    list_display = ('name', 'slug', 'cards_count', 'link')
+    search_fields = ('name', 'slug')
     inlines = [TarotCardItemInline]
 
     def get_queryset(self, request):

@@ -2,15 +2,28 @@ x-labels: &app_labels
   labels:
     project_name: ${PROJECT_NAME:-djangotg}
 
+x-webhook-env: &webhook_env
+  TG_WEBHOOK_HOST: ${TG_WEBHOOK_HOST:-}
+
 services:
   web:
     volumes:
-      - ./app:/app           # Монтируем содержимое папки ./app в /app внутри контейнера
-      - ./.env:/app/.env     # Если нужно примонтировать .env отдельно
+      - ./app:/app
+      - ./.env:/app/.env
       - static_volume:/app/static
     command: poetry run python manage.py runserver 0.0.0.0:8000
     ports:
       - "${WEB_PORT:-8000}:8000"
+    environment:
+      <<: *webhook_env
+
+  bot_processor_tarot:
+    environment:
+      <<: *webhook_env
+
+  bot_processor_cardparser:
+    environment:
+      <<: *webhook_env
 
   redis:
     ports:
@@ -51,12 +64,12 @@ services:
     container_name: ${PROJECT_NAME:-djangotg}_dozzle
     <<: *app_labels
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock  # Доступ к Docker socket для Dozzle
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       DOZZLE_FILTER: label=project_name=${PROJECT_NAME:-djangotg}
     ports:
       - "${DOZZLE_PORT:-8001}:8080"
-    read_only: true  # Только для чтения
+    read_only: true
     depends_on:
       - web
       - celery

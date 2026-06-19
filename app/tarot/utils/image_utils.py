@@ -24,36 +24,134 @@ async def download_image_aiohttp(url: str) -> Optional[bytes]:
         return None
 
 
-def process_card_image(img_data: bytes, flipped: bool = False, max_width: int = 600) -> Optional[Image.Image]:
+def create_card_row(card_images: List[Image.Image], spacing: int = 10, max_cards_per_row: int = 3) -> Image.Image:
     """
-    Обрабатывает изображение карты: открывает, изменяет размер, поворачивает если нужно.
+    Создает горизонтальный ряд карт с центрированием.
+    
+    Логика:
+    - 1-3 карты: холст по размеру максимальной карты, остальные центрируются
+    - 4+ карт: холст по размеру 3 карт, карты располагаются рядами
     
     Args:
-        img_data: байты изображения
-        flipped: перевёрнута ли карта
-        max_width: максимальная ширина после изменения размера
+        card_images: список изображений карт
+        spacing: расстояние между картами
+        max_cards_per_row: максимальное количество карт в ряду (3 для таро)
         
     Returns:
-        Обработанное изображение или None при ошибке
+        Изображение с рядом карт
     """
-    try:
-        img = Image.open(BytesIO(img_data))
-        
-        # Уменьшаем ширину, если нужно
-        if img.width > max_width:
-            ratio = max_width / img.width
-            new_height = int(img.height * ratio)
-            img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
-        
-        # Поворачиваем если перевёрнута
-        if flipped:
-            img = img.rotate(180, expand=True)
-        
-        return img
-    except Exception as e:
-        logger.error(f"Ошибка обработки изображения: {e}")
+    if not card_images:
         return None
+    
+    num_cards = len(card_images)
+    
+    # Если карт 3 или меньше - центрируем в холсте размером с максимальную карту
+    if num_cards <= max_cards_per_row:
+        # Находим максимальные размеры среди карт
+        max_width = max(img.width for img in card_images)
+        max_height = max(img.height for img in card_images)
+        
+        # Приводим все карты к одинаковой высоте (максимальной)
+        normalized_cards = []
+        for img in card_images:
+            if img.height != max_height:
+                ratio = max_height / img.height
+                new_width = int(img.width * ratio)
+                img = img.resize((new_width, max_height), Image.Resampling.LANCZOS)
+            normalized_cards.append(img)
+        
+        # Вычисляем общую ширину для всех карт с отступами
+        total_cards_width = sum(img.width for img in normalized_cards) + spacing * (len(normalized_cards) - 1)
+        
+        # Создаем холст размером с максимальную карту (по ширине - под все карты)
+        canvas_width = max(max_width, total_cards_width)
+        canvas = Image.new('RGBA', (canvas_width, max_height), (0, 0, 0, 0))
+        
+        # Вычисляем начальную позицию для центрирования всех карт
+        start_x = (canvas_width - total_cards_width) // 2
+        
+        # Размещаем карты по центру
+        x_offset = start_x
+        for img in normalized_cards:
+            # Центрируем каждую карту по вертикали
+            y_offset = (max_height - img.height) // 2
+            canvas.paste(img, (x_offset, y_offset), img if img.mode == 'RGBA' else None)
+            x_offset += img.width + spacing
+        
+        return canvas
+    
+    # Если карт больше 3 - холст по размеру 3 карт, остальные в следующих рядах
+    else:
+        # Здесь логика для 4+ карт (если нужно несколько рядов)
+        # Пока возвращаем первый ряд из 3 карт
+        first_row_cards = card_images[:max_cards_per_row]
+        
+        # Находим максимальную высоту для первого ряда
+        max_height = max(img.height for img in first_row_cards)
+        
+        # Приводим все карты первого ряда к одной высоте
+        normalized_cards = []
+        for img in first_row_cards:
+            if img.height != max_height:
+                ratio = max_height / img.height
+                new_width = int(img.width * ratio)
+                img = img.resize((new_width, max_height), Image.Resampling.LANCZOS)
+            normalized_cards.append(img)
+        
+        # Вычисляем общую ширину для 3 карт
+        total_width = sum(img.width for img in normalized_cards) + spacing * (len(normalized_cards) - 1)
+        
+        # Создаем холст точно под 3 карты
+        canvas = Image.new('RGBA', (total_width, max_height), (0, 0, 0, 0))
+        
+        # Размещаем карты
+        x_offset = 0
+        for img in normalized_cards:
+            canvas.paste(img, (x_offset, 0), img if img.mode == 'RGBA' else None)
+            x_offset += img.width + spacing
+        
+        return canvas
 
+
+def create_multiple_rows(card_images: List[Image.Image], spacing: int = 10, 
+                         max_cards_per_row: int = 3, row_spacing: int = 20) -> Image.Image:
+    """
+    Создает несколько рядов карт, если их больше 3.
+    
+    Args:
+        card_images: список изображений карт
+        spacing: расстояние между картами в ряду
+        max_cards_per_row: максимальное количество карт в ряду
+        row_spacing: расстояние между рядами
+        
+    Returns:
+        Полное изображение со всеми рядами
+    """
+    if len(card_images) <= max_cards_per_row:
+        return create_card_row(card_images, spacing, max_cards_per_row)
+    
+    rows = []
+    for i in range(0, len(card_images), max_cards_per_row):
+        row_cards = card_images[i:i + max_cards_per_row]
+        row_image = create_card_row(row_cards, spacing, max_cards_per_row)
+        rows.append(row_image)
+    
+    # Находим максимальную ширину среди всех рядов
+    max_width = max(row.width for row in rows)
+    total_height = sum(row.height for row in rows) + row_spacing * (len(rows) - 1)
+    
+    # Создаем общий холст
+    final_canvas = Image.new('RGBA', (max_width, total_height), (0, 0, 0, 0))
+    
+    # Размещаем ряды с центрированием по ширине
+    y_offset = 0
+    for row in rows:
+        # Центрируем каждый ряд по горизонтали
+        x_offset = (max_width - row.width) // 2
+        final_canvas.paste(row, (x_offset, y_offset), row if row.mode == 'RGBA' else None)
+        y_offset += row.height + row_spacing
+    
+    return final_canvas
 
 async def load_card_images(
     cards_data: List[Dict], 

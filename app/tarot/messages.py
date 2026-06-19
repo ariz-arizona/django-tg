@@ -110,6 +110,8 @@ class CardMessages(Messages):
         "{full_command}"
     )
     
+    DECK_LIST_ITEM = "<i>{command}</i> — {deck_name}"
+    
     def get_try_all_deck(self, deck_id: str, flip_flag: str = "") -> str:
         return self.TRY_ALL_DECK.format(deck_id=deck_id, flip_flag=flip_flag)
     
@@ -125,6 +127,13 @@ class CardMessages(Messages):
     def build_deck_command(self, base_command: str, deck_slug: str) -> str:
         """Собирает команду с колодой: /card_3_deck_waite"""
         return f"{base_command}_deck_{deck_slug}"
+    
+
+    def get_deck_list_item(self, command: str, deck_name: str) -> str:
+        return self.DECK_LIST_ITEM.format(
+            command=command,
+            deck_name=escape(deck_name)
+        )
 
     def get_deck_multiple_found(self, keyword: str, count: int, decks: list, base_command: str) -> str:
         deck_lines = "\n".join([

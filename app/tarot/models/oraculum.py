@@ -3,7 +3,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.postgres.indexes import GinIndex
 
 from tg_bot.models import BotFile, BotFileMixin
-from .base import bot_prefix
+from .base import bot_prefix, ActiveDeckManager
 
 
 class OraculumDeck(models.Model):
@@ -37,6 +37,14 @@ class OraculumDeck(models.Model):
         verbose_name="Дата создания",
         help_text="Дата и время создания колоды.",
     )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Активна",
+        help_text="Если выключено, колода не участвует в поиске и раскладах"
+    )
+    
+    objects = ActiveDeckManager()  # По умолчанию только активные
+    all_decks = models.Manager()   # Вообще все, включая неактивные
 
     def __str__(self):
         return self.name

@@ -34,12 +34,12 @@ class TarotCardItemInline(admin.TabularInline):
 
 @admin.register(TarotDeck)
 class TarotDeckAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'cards_count', 'link')
+    list_display = ('name', 'slug', 'is_active', 'cards_count', 'link')
     search_fields = ('name', 'slug')
     inlines = [TarotCardItemInline]
 
     def get_queryset(self, request):
-        return super().get_queryset(request).prefetch_related('cards')
+        return self.model.all_decks.prefetch_related('cards')
 
     @admin.display(description='Карт в колоде')
     def cards_count(self, obj):

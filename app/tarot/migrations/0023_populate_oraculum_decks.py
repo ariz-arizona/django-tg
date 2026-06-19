@@ -10,40 +10,39 @@ def add_oraculum_decks(apps, schema_editor):
             'name': 'Викинги. Рунический оракул',
             'slug': 'vikings-runic',
             'description': 'Руническая колода-оракул по скандинавским мифам. 45 карт с образами Одина, Тора, Фрейи и других богов. Помогает работать с рунами и северной традицией.',
-            'seo_tags': 'викинги, руны, рунический, скандинавский, оракул, один, тор, фрейя, северный',
+            'seo_tags': 'викинги, руны, рунический, скандинавский, оракул, один, тор, фрейя, северный, vikings, runic, runes, scandinavian, norse, odin, thor, freyja, oracle',
         },
         {
             'name': 'Викканский оракул теней',
             'slug': 'wiccan-shadow',
             'description': 'Викканский оракул с картами растений и животных. Помогает понять свою сущность, теневые аспекты и скрытые силы природы.',
-            'seo_tags': 'викка, викканский, тени, оракул, растения, животные, природа, теневой',
+            'seo_tags': 'викка, викканский, тени, оракул, растения, животные, природа, теневой, wicca, wiccan, shadow, plants, animals, nature, oracle',
         },
         {
             'name': 'Оракул Тёмное Зеркало // Dark Mirror Oracle',
             'slug': 'dark-mirror',
             'description': 'Оракул с готическими иллюстрациями Лауры Саве. Совмещает сказки братьев Гримм с тёмной эстетикой и глубокими архетипами.',
-            'seo_tags': 'тёмное зеркало, dark mirror, готика, лаура саве, гримм, сказки, архетипы',
+            'seo_tags': 'тёмное зеркало, dark mirror, готика, лаура саве, гримм, сказки, архетипы, dark, mirror, gothic, laura sava, grimm, fairytales, archetypes, oracle',
         },
         {
             'name': 'Ангеларий. Оракул Эманаций',
             'slug': 'angelarium',
             'description': 'Оракул по каббалистической мистике с иллюстрациями Питера Морбэкера. Ангелы как эманации божественного, 33 карты.',
-            'seo_tags': 'ангеларий, ангелы, эманации, каббала, морбэкер, питер, мистика',
+            'seo_tags': 'ангеларий, ангелы, эманации, каббала, морбэкер, питер, мистика, angelarium, angels, emanations, kabbalah, morbeker, peter, mysticism, oracle',
         },
         {
             'name': 'Ленорман',
             'slug': 'lenormand',
             'description': 'Гадальные карты по традиции мадам Ленорман, конец 1700-х. Чёткие символы и практичные толкования, 36 карт.',
-            'seo_tags': 'ленорман, ленорман, гадание, оракул, мадам, символы, классический',
+            'seo_tags': 'ленорман, ленорман, гадание, оракул, мадам, символы, классический, lenormand, lenorman, fortune, oracle, madam, symbols, classic, divination',
         },
         {
             'name': 'Заброшенный Оракул // Abandoned Oracle',
             'slug': 'abandoned',
             'description': 'Оракул заброшенных мест и forgotten memories. 53 карты с атмосферными иллюстрациями покинутых зданий и пространств.',
-            'seo_tags': 'заброшенный, abandoned, покинутый, забытый, руины, готика, атмосферный',
+            'seo_tags': 'заброшенный, abandoned, покинутый, забытый, руины, готика, атмосферный, abandoned, forgotten, ruins, gothic, atmospheric, memories, oracle',
         },
     ]
-    
     for deck_data in decks:
         OraculumDeck.objects.update_or_create(
             name=deck_data['name'],       # ищем по name

@@ -87,6 +87,29 @@ class CardMessages(Messages):
     DECK_STATS = "<i>Всего в колоде: {current_count}/{total_cards}</i>"
     ELLIPSIS = "   • <i>...</i>"
     
+    # Текстовки для результатов поиска колоды
+    DECK_NOT_FOUND = (
+        "🔍 По запросу «{keyword}» колода не найдена.\n\n"
+        "✨ Вы можете получить этот расклад с колодой по умолчанию:\n"
+        "{base_command}"
+    )
+    DECK_MULTIPLE_FOUND = (
+        "🔍 По запросу «{keyword}» найдено {count} колод:\n\n"
+        "{deck_lines}\n\n"
+        "✨ Выберите подходящую команду для расклада"
+    )
+    DECK_SINGLE_FOUND = (
+        "🃏 Колода: <b>{deck_name}</b>\n\n"
+        "✨ Вы можете получить этот расклад по команде:\n"
+        "{full_command}"
+    )
+    DECK_SINGLE_WITH_DESCRIPTION = (
+        "🃏 Колода: <b>{deck_name}</b>\n"
+        "<i>{deck_description}</i>\n\n"
+        "✨ Вы можете получить этот расклад по команде:\n"
+        "{full_command}"
+    )
+    
     def get_try_all_deck(self, deck_id: str, flip_flag: str = "") -> str:
         return self.TRY_ALL_DECK.format(deck_id=deck_id, flip_flag=flip_flag)
     
@@ -95,6 +118,57 @@ class CardMessages(Messages):
     
     def get_deck_stats(self, current_count: int, total_cards: int) -> str:
         return self.DECK_STATS.format(current_count=current_count, total_cards=total_cards)
+    
+    def get_deck_not_found(self, keyword: str, base_command: str) -> str:
+        return self.DECK_NOT_FOUND.format(keyword=escape(keyword), base_command=base_command)
+    
+    def build_deck_command(self, base_command: str, deck_slug: str) -> str:
+        """Собирает команду с колодой: /card_3_deck_waite"""
+        return f"{base_command}_deck_{deck_slug}"
+
+    def get_deck_multiple_found(self, keyword: str, count: int, decks: list, base_command: str) -> str:
+        deck_lines = "\n".join([
+            f"  • {self.build_deck_command(base_command, d.slug)} — {escape(d.name)}"
+            for d in decks[:5]
+        ])
+        return self.DECK_MULTIPLE_FOUND.format(
+            keyword=escape(keyword),
+            count=count,
+            deck_lines=deck_lines
+        )
+
+    def get_deck_single_found(self, deck, base_command: str) -> str:
+        full_command = self.build_deck_command(base_command, deck.slug)
+        description = getattr(deck, 'description', None)
+        
+        if description:
+            return self.DECK_SINGLE_WITH_DESCRIPTION.format(
+                deck_name=escape(deck.name),
+                deck_description=escape(description),
+                full_command=full_command
+            )
+        else:
+            return self.DECK_SINGLE_FOUND.format(
+                deck_name=escape(deck.name),
+                full_command=full_command
+            )
+    
+    def get_deck_search_result(self, decks, keyword: str, base_command: str) -> str:
+        """
+        Формирует сообщение с результатами поиска колоды.
+        
+        Args:
+            decks: None, список колод, или одна колода
+            keyword: ключевое слово поиска
+            base_command: базовая команда (например, "/card_3")
+        """
+        if decks is None or (isinstance(decks, list) and len(decks) == 0):
+            return self.get_deck_not_found(keyword, base_command)
+        elif isinstance(decks, list) and len(decks) > 1:
+            return self.get_deck_multiple_found(keyword, len(decks), decks, base_command)
+        else:
+            deck = decks if not isinstance(decks, list) else decks[0]
+            return self.get_deck_single_found(deck, base_command)
     
     def clean_card_name(self, card_name: str) -> str:
         """Очищает имя карты от лишних пробелов и переносов строк"""

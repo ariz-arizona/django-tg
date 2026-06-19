@@ -31,7 +31,9 @@ from telegram.ext import (
     filters,
 )
 from telegram.constants import ParseMode
+
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.postgres.search import TrigramSimilarity
 
 from tg_bot.bot.abstract import AbstractBot
 from tg_bot.models import (
@@ -189,34 +191,6 @@ class TarotBot(AbstractBot):
         return reading
 
 
-    def _find_deck_by_keyword(self, keyword: str) -> int | None:
-        """
-        Ищет колоду по ключевому слову в slug или name.
-        Возвращает ID колоды или None.
-        """
-        
-        # 1. Точное совпадение по slug
-        deck = TarotDeck.objects.filter(slug=keyword).first()
-        if deck:
-            return deck.id
-        
-        # 2. Поиск по name (icontains)
-        decks = TarotDeck.objects.filter(name__icontains=keyword)
-        if decks.count() == 1:
-            return decks.first().id
-        elif decks.count() > 1:
-            logger.warning(f"Найдено {decks.count()} колод по ключевому слову '{keyword}': {[d.name for d in decks]}")
-            # Возвращаем первую, но логируем неоднозначность
-            return decks.first().id
-        
-        # 3. Поиск по seo_tags (icontains)
-        deck = TarotDeck.objects.filter(seo_tags__icontains=keyword).first()
-        if deck:
-            return deck.id
-        
-        logger.warning(f"Колода по ключевому слову '{keyword}' не найдена")
-        return None
-
     def parse_reading_options(self, msg_text: str) -> dict:
         """
         Полный парсинг аргументов команды из текста сообщения.
@@ -259,7 +233,7 @@ class TarotBot(AbstractBot):
                 options["deck"] = int(deck_value)
             else:
                 # Ищем по слову (slug или name)
-                options["deck"] = self._find_deck_by_keyword(deck_value)
+                options["deck_keyword"] = deck_value
             
             clean_text = re.sub(r"deck\s*\S+", "", clean_text, flags=re.IGNORECASE)
         else:
@@ -306,11 +280,100 @@ class TarotBot(AbstractBot):
 
         logger.info(
             f"Опции расклада полностью собраны: counter={options['counter']}, "
-            f"deck={options['deck']}, flip={options['flip']}, "
-            f"major={options['major']}, has_custom_ids={options['card_ids'] is not None} | "
+            f"deck={options.get('deck', None)}, deck_keyword={options.get('deck_keyword', None)}, "
+            f"flip={options['flip']}, major={options['major']}, has_custom_ids={options['card_ids'] is not None} | "
             f"Query: '{options['original_query']}'"
         )
 
+        return options
+
+    def parse_text_reading_options(self, msg_text: str) -> dict:
+        """
+        Парсинг аргументов из текстового сообщения.
+        Форматы:
+        - Таро 3 переверн старши колода "Викторианская"
+        - tarot 5 flip major deck waite
+        - таро 5 перевернуты старшие колода ленорман
+        - таро переверни 10 колода уэйт
+        - Таро 3 оригинальный запрос для ИИ
+        
+        Если нет явного ключевика "колода"/"deck", 
+        то всё что не высеклось как counter/flip/major — уходит в deck_keyword.
+        Если ключевик есть — всё после него в deck_keyword, остальное в original_query.
+        """
+        options = {}
+        clean_text = msg_text.strip()
+        
+        # Убираем первое слово "Таро" или "tarot"
+        clean_text = re.sub(r"^(таро|tarot)\s*", "", clean_text, flags=re.IGNORECASE).strip()
+        
+        remaining = clean_text
+        
+        # 1. Парсинг количества карт (цифра)
+        counter = 1
+        counter_match = re.search(r"\b(\d+)\b", remaining)
+        if counter_match:
+            counter = int(counter_match.group(1))
+            counter = max(1, min(counter, 10))
+            # Вырезаем цифру
+            remaining = remaining[:counter_match.start()] + remaining[counter_match.end():]
+            remaining = re.sub(r"\s+", " ", remaining).strip()
+        options["counter"] = counter
+        
+        # 2. Парсинг флага перевернутых позиций (начинается на переверн/flip)
+        options["flip"] = False
+        flip_match = re.search(r"\b(переверн\w*|flip\w*)\b", remaining, flags=re.IGNORECASE)
+        if flip_match:
+            options["flip"] = True
+            remaining = remaining[:flip_match.start()] + remaining[flip_match.end():]
+            remaining = re.sub(r"\s+", " ", remaining).strip()
+        
+        # 3. Парсинг флага Старших Арканов (начинается на старш/major)
+        options["major"] = False
+        major_match = re.search(r"\b(старш\w*|major\w*)\b", remaining, flags=re.IGNORECASE)
+        if major_match:
+            options["major"] = True
+            remaining = remaining[:major_match.start()] + remaining[major_match.end():]
+            remaining = re.sub(r"\s+", " ", remaining).strip()
+        
+        # 4. Парсинг колоды
+        options["deck"] = None
+        options["deck_keyword"] = None
+        options["original_query"] = ""
+        
+        deck_match = re.search(r"\b(колода|deck)\s+(.+)", remaining, flags=re.IGNORECASE)
+        if deck_match:
+            # Явный ключевик "колода/deck" — всё после него в deck_keyword
+            deck_value = deck_match.group(2).strip()
+            
+            # Убираем кавычки если есть
+            deck_value = deck_value.strip('"\"\'')
+            
+            if deck_value.isdigit():
+                options["deck"] = int(deck_value)
+            else:
+                options["deck_keyword"] = deck_value
+            
+            # Всё до "колода/deck" — original_query
+            original_query = remaining[:deck_match.start()].strip()
+            options["original_query"] = original_query if original_query else ""
+        else:
+            # Нет ключевика "колода/deck" — всё оставшееся в deck_keyword
+            remaining = remaining.strip()
+            if remaining:
+                # Проверяем, не число ли это (хотя числа уже вырезаны)
+                if remaining.isdigit():
+                    options["deck"] = int(remaining)
+                else:
+                    options["deck_keyword"] = remaining
+        
+        logger.info(
+            f"Текстовый парсинг: counter={options['counter']}, "
+            f"deck={options.get('deck')}, deck_keyword={options.get('deck_keyword')}, "
+            f"flip={options['flip']}, major={options['major']} | "
+            f"Query: '{options['original_query']}'"
+        )
+        
         return options
 
     async def check_reading_cooldown(self, update: Update, category: str) -> bool:
@@ -551,29 +614,95 @@ class TarotBot(AbstractBot):
         except Exception as e:
             raise RuntimeError(f"Ошибка: {str(e)}") from e
 
-    async def get_deck(self, deck_id=None, deck_type="tarot"):
-        # Получаем список всех ID колод
-        model = TarotDeck.objects
-        if deck_type == "oraculum":
-            model = OraculumDeck.objects
-        deck_ids: List[int] = [deck.id async for deck in model.all()]
-        logger.info(f"Получаем колоду с ID {deck_id}")
+    async def get_deck(self, deck_id=None, deck_keyword=None, deck_type="tarot", return_all=False):
+        """
+        Возвращает колоду или список колод.
+        
+        Args:
+            deck_id: ID колоды
+            deck_keyword: ключевое слово для поиска
+            deck_type: "tarot" или "oraculum"
+            return_all: если True и keyword — возвращает список всех найденных колод
+        """
+        model = OraculumDeck if deck_type == "oraculum" else TarotDeck        
+        deck_ids: List[int] = [deck.id async for deck in model.objects.all()]
+        logger.info(f"Получаем колоду: id={deck_id}, keyword={deck_keyword}, type={deck_type}, return_all={return_all}")
 
         if not deck_ids:
             raise ValueError("Нет доступных колод.")
 
+        # Поиск по ключевому слову
+        if deck_keyword and deck_id is None:
+            # 1. Точное совпадение по slug
+            deck = await model.objects.filter(slug=deck_keyword).afirst()
+            
+            if not deck:
+                # 2. Нечёткий поиск по slug + name + seo_tags через триграммы
+                decks = model.objects.annotate(
+                    similarity=(
+                        TrigramSimilarity('name', deck_keyword) + 
+                        TrigramSimilarity('slug', deck_keyword) + 
+                        TrigramSimilarity('seo_tags', deck_keyword)
+                    )
+                ).filter(similarity__gt=0.2).order_by('-similarity')
+                
+                count = await decks.acount()
+                
+                if count > 0:
+                    if return_all:
+                        # Возвращаем все найденные колоды списком
+                        deck_list = [d async for d in decks]
+                        names = [(d.name, d.similarity) for d in deck_list]
+                        logger.info(f"Найдено {count} колод по '{deck_keyword}': {names}")
+                        return deck_list
+                    else:
+                        deck = await decks.afirst()
+                        similarity = deck.similarity
+                        logger.info(f"Колода найдена по триграммам '{deck_keyword}': {deck.name} (similarity={similarity:.2f})")
+                        
+                        if count > 1:
+                            names = [(d.name, d.similarity) async for d in decks[:3]]
+                            logger.warning(f"Найдено {count} колод по '{deck_keyword}': {names}")
+                else:
+                    # 3. Fallback: точный icontains
+                    if return_all:
+                        # Если return_all, возвращаем все колоды по icontains
+                        deck_list = [d async for d in model.objects.filter(name__icontains=deck_keyword)]
+                        if not deck_list:
+                            deck_list = [d async for d in model.objects.filter(seo_tags__icontains=deck_keyword)]
+                        return deck_list
+                    else:
+                        deck = await model.objects.filter(name__icontains=deck_keyword).afirst()
+                        if not deck:
+                            deck = await model.objects.filter(seo_tags__icontains=deck_keyword).afirst()
+            
+            # Если не return_all, возвращаем одну колоду или None
+            if not return_all:
+                if deck:
+                    return deck
+                else:
+                    logger.warning(f"Колода по ключевому слову '{deck_keyword}' не найдена")
+                    return None
+            else:
+                # return_all=True, но дошли сюда только если были точные совпадения по slug
+                return [deck] if deck else []
+
+        # Дальше идём только если не return_all
+        if return_all:
+            return []
+
+        # Поиск по ID
         if deck_id is not None and deck_id not in deck_ids:
-            logger.error("Указанный ID колоды не существует.")
+            logger.error(f"Указанный ID колоды {deck_id} не существует.")
             deck_id = None
 
-        if deck_id is None:
+        if deck_id is None and not deck_keyword:
             deck_id = random.choice(deck_ids)
 
-        # Получаем колоду по ID
         try:
-            return await model.aget(id=deck_id)
-        except Exception:
-            # На случай, если колода была удалена между получением списка ID и запросом
+            return await model.objects.aget(id=deck_id)
+        except Exception as e:
+            logger.error(f"Произошла ошибка при поиске колоды {e}", exc_info=True)
             raise ValueError("Не удалось получить колоду.")
 
     async def get_oraculum_cards(self, deck_id, counter, exclude_cards, flip):
@@ -922,7 +1051,7 @@ class TarotBot(AbstractBot):
             else:
                 options = self.parse_reading_options(msg_text)
 
-            deck = await self.get_deck(options.get("deck"))
+            deck = await self.get_deck(options.get("deck"), options.get("deck_keyword", None))
             if not deck and options.get("deck"):
                 error_msg = messages.get_error_message("no_deck")
                 await update.message.reply_text(error_msg, parse_mode=ParseMode.HTML)

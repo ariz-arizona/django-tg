@@ -103,6 +103,13 @@ class CardsHandler:
             CallbackQueryHandler(self.handle_more_button, pattern=r"^more_"),
             
             MessageHandler(
+                filters.TEXT
+                & filters.ChatType.PRIVATE
+                & filters.Regex(r"^(?i)(таро|tarot)\s"),
+                self.handle_tarot_text,
+            ),
+            
+            MessageHandler(
                 filters.COMMAND
                 & filters.TEXT
                 & filters.ChatType.PRIVATE
@@ -146,7 +153,7 @@ class CardsHandler:
             logger.info(f"Опции расклада разобраны: {options}")
 
             # 1. Получение колоды
-            deck = await self.bot.get_deck(options.get("deck"))
+            deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None))
             logger.info(f"Используемая колода ID: {deck.id if deck else 'None'}")
 
             # 2. Генерация карт
@@ -206,7 +213,8 @@ class CardsHandler:
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /card: {e}", exc_info=True)
             await update.message.reply_text(
-                self.messages.get_error_message("generic", error_details=str(e))
+                self.messages.get_error_message("generic", error_details=str(e)),
+                parse_mode=ParseMode.HTML
             )
 
     async def handle_more_button(self, update: Update, context: CallbackContext):
@@ -272,7 +280,8 @@ class CardsHandler:
         except Exception as e:
             logger.error(f"Ошибка при обработке добора карты: {e}", exc_info=True)
             await query.edit_message_text(
-                self.messages.get_error_message("generic", error_details=str(e))
+                self.messages.get_error_message("generic", error_details=str(e)),
+                parse_mode=ParseMode.HTML
             )
 
     async def handle_oraculum(self, update: Update, context: CallbackContext):
@@ -291,7 +300,7 @@ class CardsHandler:
             options = self.bot.parse_reading_options(msg_text)
             
             # 1. Получение колоды
-            deck = await self.bot.get_deck(options.get("deck"), "oraculum")
+            deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None), 'oraculum')
             
             # 2. Получение карт
             cards = await self.bot.get_oraculum_cards(
@@ -340,7 +349,8 @@ class CardsHandler:
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /oraculum: {e}", exc_info=True)
             await update.message.reply_text(
-                self.messages.get_error_message("generic", error_details=str(e))
+                self.messages.get_error_message("generic", error_details=str(e)),
+                parse_mode=ParseMode.HTML
             )
             
     async def handle_moreoracle_button(self, update: Update, context: CallbackContext):
@@ -411,6 +421,47 @@ class CardsHandler:
                 parse_mode=ParseMode.HTML,
             )
 
+    async def handle_tarot_text(self, update: Update, context: CallbackContext):
+        msg_text = update.message.text
+        logger.info(f"Обработка текстовой строки ТАРО с текстом: {msg_text[:100]}")
+
+        try:
+            # 1. Парсим опции
+            options = self.bot.parse_text_reading_options(msg_text)
+            
+            # 2. Запрашиваем колоды (может быть список)
+            decks = await self.bot.get_deck(
+                deck_id=options.get("deck"),
+                deck_keyword=options.get("deck_keyword"),
+                deck_type="tarot",
+                return_all=True,
+            )
+            
+            # 3. Формируем базовую команду
+            command_parts = ["/card"]
+            if options["counter"] > 1:
+                command_parts[0] = command_parts[0] + str(options["counter"])
+            if options["flip"]:
+                command_parts.append("flip")
+            if options["major"]:
+                command_parts.append("major")
+            
+            base_command = "_".join(command_parts)
+            
+            info_text = self.messages.get_deck_search_result(
+                decks=decks,
+                keyword=options.get('deck_keyword', ''),
+                base_command=base_command
+            )
+            
+            await update.message.reply_text(info_text, parse_mode=ParseMode.HTML)
+        except Exception as e:
+            logger.error(f"Ошибка при обработке команды /card: {e}", exc_info=True)
+            await update.message.reply_text(
+                self.messages.get_error_message("generic", error_details=str(e)),
+                parse_mode=ParseMode.HTML
+            )
+    
     async def send_card(self, update: Update, cards, **kwargs):
         reading_id = kwargs.get("reading_id")
         send_type = kwargs.get("send_type") # 'tarot' или 'oracle'

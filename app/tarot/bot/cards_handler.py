@@ -127,6 +127,10 @@ class CardsHandler:
             return
 
         try:
+            status_message = await update.message.reply_text(
+                self.messages.get_loading(), parse_mode=ParseMode.HTML
+            )
+
             if msg_text == TAROT_3_TRIGGER:
                 options = {
                     "counter": 3,
@@ -196,9 +200,14 @@ class CardsHandler:
             card_names_info = [f"{c['name']} {c['card_id']} ({'Flipped' if c['flipped'] else 'Direct'})" for c in cards]
             logger.info(f"Карты успешно отправлены: {card_names_info}")
 
+            # Удаляем статусное сообщение
+            await status_message.delete()
+
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /card: {e}", exc_info=True)
-            await update.message.reply_text("Произошла ошибка при выполнении расклада.")
+            await update.message.reply_text(
+                self.messages.get_error_message("generic", error_details=str(e))
+            )
 
     async def handle_more_button(self, update: Update, context: CallbackContext):
         query = update.callback_query
@@ -215,7 +224,9 @@ class CardsHandler:
             # УСЛОВИЕ: Если расклада нет — чистим кнопки и выходим
             if not reading:
                 logger.warning(f"Расклад {reading_id} не найден.")
-                await query.edit_message_text("Этот расклад больше не доступен.")
+                await query.edit_message_text(
+                    self.messages.get_error_message("no_cards")
+                )
                 await query.edit_message_reply_markup(reply_markup=None)
                 return
 
@@ -232,7 +243,9 @@ class CardsHandler:
             )
 
             if not new_card:
-                await query.edit_message_text("Больше карт в колоде нет.")
+                await query.edit_message_text(
+                    self.messages.get_error_message("no_cards")
+                )
                 await query.edit_message_reply_markup(reply_markup=None)
                 return
 
@@ -258,7 +271,9 @@ class CardsHandler:
 
         except Exception as e:
             logger.error(f"Ошибка при обработке добора карты: {e}", exc_info=True)
-            await query.edit_message_text("Произошла ошибка при доборе карты.")
+            await query.edit_message_text(
+                self.messages.get_error_message("generic", error_details=str(e))
+            )
 
     async def handle_oraculum(self, update: Update, context: CallbackContext):
         msg_text = update.message.text
@@ -269,6 +284,10 @@ class CardsHandler:
             return
 
         try:
+            status_message = await update.message.reply_text(
+                self.messages.get_loading(), parse_mode=ParseMode.HTML,
+            )
+
             options = self.bot.parse_reading_options(msg_text)
             
             # 1. Получение колоды
@@ -315,9 +334,14 @@ class CardsHandler:
             
             logger.info(f"Карты оракула успешно отправлены: {[c['name'] for c in cards]}")
 
+            # Удаляем статусное сообщение
+            await status_message.delete()
+
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /oraculum: {e}", exc_info=True)
-            await update.message.reply_text("Произошла ошибка при обработке запроса.")
+            await update.message.reply_text(
+                self.messages.get_error_message("generic", error_details=str(e))
+            )
             
     async def handle_moreoracle_button(self, update: Update, context: CallbackContext):
         query = update.callback_query
@@ -333,7 +357,9 @@ class CardsHandler:
             
             if not reading:
                 logger.warning(f"Расклад с ID {reading_id} не найден.")
-                await query.edit_message_text("Этот расклад больше не доступен.")
+                await query.edit_message_text(
+                    self.messages.get_error_message("no_cards")
+                )
                 return
             
             # 2. Подготовка исключений (извлекаем card_ids из БД)
@@ -352,7 +378,9 @@ class CardsHandler:
             )
 
             if not new_card:
-                await query.edit_message_text("Больше карт в колоде нет.")
+                await query.edit_message_text(
+                    self.messages.get_error_message("no_cards")
+                )
                 return
 
             # 4. Обновление БД
@@ -378,7 +406,10 @@ class CardsHandler:
 
         except Exception as e:
             logger.error(f"Ошибка при доборе карты Оракула: {e}", exc_info=True)
-            await query.edit_message_text("Ошибка при обработке запроса.")
+            await query.edit_message_text(
+                self.messages.get_error_message("generic", error_details=str(e)),
+                parse_mode=ParseMode.HTML,
+            )
 
     async def send_card(self, update: Update, cards, **kwargs):
         reading_id = kwargs.get("reading_id")
@@ -395,20 +426,16 @@ class CardsHandler:
         text = []
         
         def local_format_card_name(card_name: str, is_flipped: bool) -> str:
-            """
-            Форматирует имя карты оракула с учетом переворота.
-            Пример: "Младенец ⬇️" или "Младенец"
-            """
+            clean_name = self.messages.clean_card_name(card_name)
             if is_flipped:
-                return f"{card_name} ⬇️"
-            return card_name
+                return f"{clean_name} ⬇️"
+            return clean_name
 
         # 2. Логика для ТАРО
         if send_type == 'tarot':
             reading = await UserReading.objects.aget(id=reading_id)
             current_deck = await TarotDeck.objects.aget(id=reading.deck_id)
             
-            # Сортировка и сбор данных (как мы делали раньше)
             order_list = [str(item.get("id")) for item in (reading.card_ids or [])]
             flip_map = {str(item.get("id")): item.get("flip", False) for item in (reading.card_ids or [])}
             
@@ -422,10 +449,9 @@ class CardsHandler:
                 cards_dict[card_id_str] = {
                     "card_instance": c,
                     "name": c.tarot_card.name,
-                    "flipped": flip_map.get(card_id_str, False) # Возвращаем flip сюда!
+                    "flipped": flip_map.get(card_id_str, False)
                 }
             
-            # Собираем список с сохраненным флагом flipped
             all_cards = [cards_dict[cid] for cid in order_list if cid in cards_dict]
             
             total_query = TarotCardItem.objects.filter(deck_id=current_deck.id)
@@ -436,26 +462,29 @@ class CardsHandler:
             can_draw = await can_draw_query.aexists()
             current_count = len(all_cards)
 
-            card_names = [local_format_card_name(c['name'], c['flipped']) for c in all_cards]
-            text = [
-                f"<b>Расклад из колоды</b>: <a href='{current_deck.link}'>{escape(current_deck.name)}</a>\n",
-                f"<b>Карты:</b> {escape(', '.join(card_names))}",
-                "",
-                f"<i>Всего в колоде: {current_count}/{total_cards}</i>"
-            ]
+            # Формируем описание карт как список строк
+            cards_description = [local_format_card_name(c['name'], c['flipped']) for c in all_cards]
             
+            # Статистика по колоде
+            stats_str = self.messages.get_deck_stats(current_count, total_cards)
+            
+            # Текст для больших раскладов
+            try_all_str = None
             if current_count > 10:
-                # Подготавливаем параметры для команды
                 flag = "_flip" if reading.is_flipped_allowed else ""
-                text.append('')
-                # Используем self.messages для получения форматированного сообщения
-                try_all_text = self.messages.get_try_all_deck(
+                try_all_str = self.messages.get_try_all_deck(
                     deck_id=current_deck.id,
                     flip_flag=flag
                 )
-                text.append(try_all_text)
                 
-            # Получаем последние 5 раскладов пользователя
+            text = [self.messages.format_description(
+                deck_name=current_deck.name,
+                cards_description=cards_description,
+                stats_str=stats_str,
+                try_all_str=try_all_str
+            )]
+                
+            # Проверка на любимую команду - добавляем отдельной строкой
             last_readings = [r async for r in UserReading.objects.filter(user_id=reading.user_id).order_by('-created_at')[:3]]
             current = last_readings[0]
             if (
@@ -464,9 +493,9 @@ class CardsHandler:
                 and all(r.deck_id == current.deck_id for r in last_readings)
             ):
                 favorite_cmd = f"/card{current.count}_deck_{current.deck_id}"
-                # Используем self.messages для получения форматированного сообщения
                 favorite_text = self.messages.get_favorite_command(command=favorite_cmd)
-                text[1] = favorite_text
+                # Добавляем любимую команду в конец текста
+                text.append(f"\n{favorite_text}")
                 
             params["parse_mode"] = ParseMode.HTML
             
@@ -486,7 +515,7 @@ class CardsHandler:
             
             all_cards_qs = OraculumItem.objects.filter(
                 deck_id=current_deck.id, 
-                id__in=order_list # Тут ID — это первичный ключ OraculumItem
+                id__in=order_list
             )
             
             cards_dict = {str(c.id): c async for c in all_cards_qs}
@@ -504,11 +533,14 @@ class CardsHandler:
             current_count = len(all_cards)
             
             card_names = [local_format_card_name(c['name'], c['flipped']) for c in all_cards]
-            text = [
-                f"<b>{escape(current_deck.name)}</b>",
-                f"<b>Карты:</b> {', '.join(card_names)}",
-                f"\n<i>Всего в колоде: {current_count}/{total_cards}</i>"
-            ]
+            stats_str = self.messages.get_deck_stats(current_count, total_cards)
+            
+            text = [self.messages.format_description(
+                deck_name=current_deck.name,
+                cards_description=card_names,
+                stats_str=stats_str
+            )]
+            
             params["parse_mode"] = ParseMode.HTML
             
             if current_count < total_cards:
@@ -526,4 +558,3 @@ class CardsHandler:
             params["reply_markup"] = InlineKeyboardMarkup(reply_markup)
 
         await update.effective_message.reply_text(**params)
-        

@@ -85,9 +85,39 @@ class CardMessages(Messages):
         "/all_deck_{deck_id}{flip_flag}"
     )
     FAVORITE_COMMAND = "❤️ <b>Повторить расклад:</b> {command}"
+    DECK_STATS = "<i>Всего в колоде: {current_count}/{total_cards}</i>"
+    ELLIPSIS = "   • <i>...</i>"
     
     def get_try_all_deck(self, deck_id: str, flip_flag: str = "") -> str:
         return self.TRY_ALL_DECK.format(deck_id=deck_id, flip_flag=flip_flag)
     
     def get_favorite_command(self, command: str) -> str:
         return self.FAVORITE_COMMAND.format(command=command)
+    
+    def get_deck_stats(self, current_count: int, total_cards: int) -> str:
+        return self.DECK_STATS.format(current_count=current_count, total_cards=total_cards)
+    
+    def clean_card_name(self, card_name: str) -> str:
+        """Очищает имя карты от лишних пробелов и переносов строк"""
+        return " ".join(card_name.split())
+    
+    def format_description(self, deck_name: str, cards_description: List[str], 
+                          stats_str: Optional[str] = None, 
+                          try_all_str: Optional[str] = None) -> str:
+        deck_str = escape(deck_name or "Стандартная колода")
+        lines = [self.DECK_TITLE.format(deck_name=deck_str)]
+        
+        # Если карт больше 20, показываем первые 9 + ... + последние 9
+        if len(cards_description) > 20:
+            lines.extend(f"   • {desc}" for desc in cards_description[:9])
+            lines.append(self.ELLIPSIS)
+            lines.extend(f"   • {desc}" for desc in cards_description[-9:])
+        else:
+            lines.extend(f"   • {desc}" for desc in cards_description)
+        
+        if stats_str:
+            lines.append(f"\n{stats_str}")
+        if try_all_str:
+            lines.append(try_all_str)
+            
+        return "\n".join(lines)

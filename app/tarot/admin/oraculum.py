@@ -14,8 +14,8 @@ class OraculumItemInline(admin.TabularInline):
 
 @admin.register(OraculumDeck)
 class OraculumDeckAdmin(admin.ModelAdmin):
-    list_display = ('name', 'cards_count', 'description_preview', 'created_at')
-    search_fields = ('name', 'description')
+    list_display = ('name', 'slug', 'cards_count', 'description_preview', 'created_at')
+    search_fields = ('name', 'slug', 'description')
     list_filter = ('created_at',)
     inlines = [OraculumItemInline]
 

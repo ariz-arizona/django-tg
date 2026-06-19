@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.contenttypes.fields import GenericRelation
+from django.contrib.postgres.indexes import GinIndex
+
 from tg_bot.models import BotFile, BotFileMixin
 from .base import bot_prefix
 
@@ -10,11 +12,25 @@ class OraculumDeck(models.Model):
         verbose_name="Название колоды",
         help_text="Название колоды (например, 'Колода МЛАДЕНЦА').",
     )
+    slug = models.SlugField(
+        max_length=255,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name="URL-идентификатор",
+        help_text="Человекопонятный URL для колоды",
+    )
     description = models.TextField(
         verbose_name="Описание колоды",
         help_text="Краткое описание колоды.",
         blank=True,
         null=True,
+    )
+    seo_tags = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name="SEO-теги",
+        help_text="Мета-теги для поисковой оптимизации",
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -28,6 +44,18 @@ class OraculumDeck(models.Model):
     class Meta:
         verbose_name = f"{bot_prefix}: Колода оракула"
         verbose_name_plural = f"{bot_prefix}: Колоды оракула"
+        indexes = [
+            GinIndex(
+                name="oraculumdeck_slug_trgm_idx",
+                fields=["slug"],
+                opclasses=["gin_trgm_ops"],
+            ),
+            GinIndex(
+                name="oraculumdeck_seo_tags_trgm_idx",
+                fields=["seo_tags"],
+                opclasses=["gin_trgm_ops"],
+            ),
+        ]
 
 
 class OraculumItem(models.Model, BotFileMixin):

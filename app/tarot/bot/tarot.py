@@ -188,6 +188,35 @@ class TarotBot(AbstractBot):
 
         return reading
 
+
+    def _find_deck_by_keyword(self, keyword: str) -> int | None:
+        """
+        Ищет колоду по ключевому слову в slug или name.
+        Возвращает ID колоды или None.
+        """
+        
+        # 1. Точное совпадение по slug
+        deck = TarotDeck.objects.filter(slug=keyword).first()
+        if deck:
+            return deck.id
+        
+        # 2. Поиск по name (icontains)
+        decks = TarotDeck.objects.filter(name__icontains=keyword)
+        if decks.count() == 1:
+            return decks.first().id
+        elif decks.count() > 1:
+            logger.warning(f"Найдено {decks.count()} колод по ключевому слову '{keyword}': {[d.name for d in decks]}")
+            # Возвращаем первую, но логируем неоднозначность
+            return decks.first().id
+        
+        # 3. Поиск по seo_tags (icontains)
+        deck = TarotDeck.objects.filter(seo_tags__icontains=keyword).first()
+        if deck:
+            return deck.id
+        
+        logger.warning(f"Колода по ключевому слову '{keyword}' не найдена")
+        return None
+
     def parse_reading_options(self, msg_text: str) -> dict:
         """
         Полный парсинг аргументов команды из текста сообщения.
@@ -220,12 +249,19 @@ class TarotBot(AbstractBot):
         # Ищем команду с необязательными цифрами на конце
         clean_text = re.sub(r"/[a-zA-Z]+\d*", "", clean_text, flags=re.IGNORECASE)
 
-        # 2. Парсинг ID колоды (deck 5)
-        deck_match = re.search(r"deck\s*(\d+)", msg_lower)
+        # 2. Парсинг ID колоды или поиск по слову
+        deck_match = re.search(r"deck\s*(\S+)", msg_lower)
         if deck_match:
-            options["deck"] = int(deck_match.group(1))
-            # Вырезаем 'deck X' или 'deckX' из текста запроса
-            clean_text = re.sub(r"deck\s*\d+", "", clean_text, flags=re.IGNORECASE)
+            deck_value = deck_match.group(1)
+            
+            # Пробуем как число
+            if deck_value.isdigit():
+                options["deck"] = int(deck_value)
+            else:
+                # Ищем по слову (slug или name)
+                options["deck"] = self._find_deck_by_keyword(deck_value)
+            
+            clean_text = re.sub(r"deck\s*\S+", "", clean_text, flags=re.IGNORECASE)
         else:
             options["deck"] = None
 

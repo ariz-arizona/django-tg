@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.contenttypes.fields import GenericRelation
+from django.contrib.postgres.indexes import GinIndex
+
 from tg_bot.models import BotFile, BotFileMixin
 from .base import bot_prefix
 
@@ -84,6 +86,13 @@ class TarotDeck(models.Model):
     class Meta:
         verbose_name = f"{bot_prefix}: Колода"
         verbose_name_plural = f"{bot_prefix}: Колоды"
+        indexes = [
+            GinIndex(
+                name="tarotdeck_seo_tags_trgm_idx",
+                fields=["seo_tags"],
+                opclasses=["gin_trgm_ops"],
+            ),
+        ]
         
 
 class TarotCardItem(models.Model, BotFileMixin):

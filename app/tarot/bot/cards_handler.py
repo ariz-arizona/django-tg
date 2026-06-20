@@ -133,24 +133,43 @@ class CardsHandler:
         if await self.bot.check_reading_cooldown(update, category):
             return
 
+        reading = None
         try:
-            status_message = await update.message.reply_text(
-                self.messages.get_loading(), parse_mode=ParseMode.HTML
-            )
-
+            user = await self.bot.get_or_create_tg_user(update)
+            
+            # Парсим опции до создания reading
             if msg_text == TAROT_3_TRIGGER:
                 options = {
                     "counter": 3,
                     "deck": None,
-                    "flip": True,          # Обязательно, иначе упадет проверка на flip
-                    "major": False,         # Ваш запрос
-                    "card_ids": None,       # Указываем явно, что кастомных ID нет
-                    "original_query": ""    # Пустая строка для корректного логгера
+                    "flip": True,
+                    "major": False,
+                    "card_ids": None,
+                    "original_query": ""
                 }                
             else:
-                # Стандартный парсинг для команды /card
                 options = self.bot.parse_reading_options(msg_text)
             logger.info(f"Опции расклада разобраны: {options}")
+
+            # Создаём чтение сразу после парсинга опций
+            reading = await self.bot.save_reading(
+                user=user,
+                message_id=update.effective_message.message_id,
+                text="",
+                category=category,
+                count=options.get("counter", 1),
+                deck_id=None,  # ID колоды ещё не знаем
+                is_flipped_allowed=options.get('flip', False),
+                is_major_only=options.get('major', False),
+                card_ids=[],
+                original_query=options.get('original_query'),
+            )
+            reading.reading_status = UserReading.ReadingStatus.PENDING
+            await reading.asave()
+
+            status_message = await update.message.reply_text(
+                self.messages.get_loading(), parse_mode=ParseMode.HTML
+            )
 
             # 1. Получение колоды
             deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None))
@@ -169,24 +188,18 @@ class CardsHandler:
             card_records = [{"id": str(c["card_id"]), "flip": c["flipped"]} for c in cards]
             logger.info(f"Получены карты {card_records}")
             
-            # 3. Сохранение расклада
-            user = await self.bot.get_or_create_tg_user(update)
-            reading = await self.bot.save_reading(
-                user=user,
-                message_id=update.effective_message.message_id,
-                text=f"{deck.name if deck else 'Дефолтная колода'}: " + 
-                     ", ".join([await self.bot.format_card_name(c) for c in cards]),
-                category=category,
-                count=options.get("counter", 1),
-                deck_id=deck.id if deck else None,
-                is_flipped_allowed=options.get('flip', False),
-                is_major_only=options.get('major', False),
-                card_ids=card_records,
-                original_query=options.get('original_query'),
-            )
+            result_text = f"{deck.name if deck else 'Дефолтная колода'}: " + \
+                        ", ".join([await self.bot.format_card_name(c) for c in cards])
+
+            # ✅ Успех — вставляем данные и меняем статус
+            reading.text = result_text
+            reading.deck_id = deck.id if deck else None
+            reading.card_ids = card_records
+            reading.reading_status = UserReading.ReadingStatus.SUCCESS
+            await reading.asave()
             logger.info(f"Результат гадания сохранен в БД, ID записи: {reading.id}")
 
-            # 4. Подготовка клавиатуры и отправка
+            # 3. Подготовка клавиатуры и отправка
             send_card_kwargs = {
                 "reading_id": reading.id,
                 "send_type": "tarot",
@@ -212,6 +225,10 @@ class CardsHandler:
 
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /card: {e}", exc_info=True)
+            # ❌ Ошибка
+            if reading:
+                reading.reading_status = UserReading.ReadingStatus.ERROR
+                await reading.asave()
             await update.message.reply_text(
                 self.messages.get_error_message("generic", error_details=str(e)),
                 parse_mode=ParseMode.HTML
@@ -238,6 +255,10 @@ class CardsHandler:
                 await query.edit_message_reply_markup(reply_markup=None)
                 return
 
+            # Статус: начинаем обработку
+            reading.reading_status = UserReading.ReadingStatus.PENDING
+            await reading.asave()
+
             # === Подготовка данных ===
             exclude_cards = [str(item.get("id") if isinstance(item, dict) else item) for item in (reading.card_ids or [])]
             logger.info(f"Получаем карты с major {bool(reading.is_major_only)} flip {bool(reading.is_flipped_allowed)}. Исключаем: {exclude_cards}")
@@ -251,6 +272,8 @@ class CardsHandler:
             )
 
             if not new_card:
+                reading.reading_status = UserReading.ReadingStatus.ERROR
+                await reading.asave()
                 await query.edit_message_text(
                     self.messages.get_error_message("no_cards")
                 )
@@ -265,6 +288,7 @@ class CardsHandler:
             reading.text = f"{reading.text}, {new_card_text}"
             reading.count += 1
             reading.card_ids.extend(new_card_data)
+            reading.reading_status = UserReading.ReadingStatus.SUCCESS
             await reading.asave()
 
             # === Отправка результата ===
@@ -279,6 +303,10 @@ class CardsHandler:
 
         except Exception as e:
             logger.error(f"Ошибка при обработке добора карты: {e}", exc_info=True)
+            # ❌ Ошибка
+            if reading:
+                reading.reading_status = UserReading.ReadingStatus.ERROR
+                await reading.asave()
             await query.edit_message_text(
                 self.messages.get_error_message("generic", error_details=str(e)),
                 parse_mode=ParseMode.HTML
@@ -292,12 +320,29 @@ class CardsHandler:
         if await self.bot.check_reading_cooldown(update, category):
             return
 
+        reading = None
         try:
+            user = await self.bot.get_or_create_tg_user(update)
+            options = self.bot.parse_reading_options(msg_text)
+
+            # Создаём чтение сразу после парсинга
+            reading = await self.bot.save_reading(
+                user=user,
+                message_id=update.effective_message.message_id,
+                text="",
+                category=category,
+                count=options.get("counter", 1),
+                deck_id=None,
+                is_flipped_allowed=options.get('flip', False),
+                is_major_only=False,
+                card_ids=[]
+            )
+            reading.reading_status = UserReading.ReadingStatus.PENDING
+            await reading.asave()
+
             status_message = await update.message.reply_text(
                 self.messages.get_loading(), parse_mode=ParseMode.HTML,
             )
-
-            options = self.bot.parse_reading_options(msg_text)
             
             # 1. Получение колоды
             deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None), 'oraculum')
@@ -310,29 +355,22 @@ class CardsHandler:
                 options.get('flip', False)
             )
             
-            # 3. Сохранение расклада (используем консистентный формат card_ids)
-            user = await self.bot.get_or_create_tg_user(update)
-            # Для оракула тоже используем формат списка словарей для единства БД
+            # 3. Обновление записи с данными
             card_records = [{"id": str(c["card_id"]), "flip": c["flipped"]} for c in cards]
-            
-            reading = await self.bot.save_reading(
-                user=user,
-                message_id=update.effective_message.message_id,
-                text=f"{deck.name if deck else 'Дефолтный оракул'}: " + 
-                     ", ".join([await self.bot.format_card_name(c) for c in cards]),
-                category=category,
-                count=options.get("counter", 1),
-                deck_id=deck.id if deck else None,
-                is_flipped_allowed=options.get('flip', False),
-                is_major_only=False,
-                card_ids=card_records
-            )
+            result_text = f"{deck.name if deck else 'Дефолтный оракул'}: " + \
+                        ", ".join([await self.bot.format_card_name(c) for c in cards])
+
+            reading.text = result_text
+            reading.deck_id = deck.id if deck else None
+            reading.card_ids = card_records
+            reading.reading_status = UserReading.ReadingStatus.SUCCESS
+            await reading.asave()
             logger.info(f"Результат оракула сохранен в БД, ID: {reading.id}")
 
-            # 4. Отправка карт через обновленный send_card
+            # 4. Отправка карт
             send_card_kwargs = {
                 "reading_id": reading.id,
-                "send_type": "oracle", # Новый тип отправки
+                "send_type": "oracle",
             }
 
             await self.send_card(
@@ -348,16 +386,21 @@ class CardsHandler:
 
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /oraculum: {e}", exc_info=True)
+            if reading:
+                reading.reading_status = UserReading.ReadingStatus.ERROR
+                await reading.asave()
             await update.message.reply_text(
                 self.messages.get_error_message("generic", error_details=str(e)),
                 parse_mode=ParseMode.HTML
             )
+
             
     async def handle_moreoracle_button(self, update: Update, context: CallbackContext):
         query = update.callback_query
         await query.answer()
         logger.info(f"Получен callback-запрос: {query.data}")
         
+        reading = None
         try:
             # Получаем reading_id напрямую из callback_data
             _, reading_id = query.data.split("_")
@@ -371,6 +414,10 @@ class CardsHandler:
                     self.messages.get_error_message("no_cards")
                 )
                 return
+
+            # Статус: начинаем обработку
+            reading.reading_status = UserReading.ReadingStatus.PENDING
+            await reading.asave()
             
             # 2. Подготовка исключений (извлекаем card_ids из БД)
             exclude_cards = [
@@ -388,6 +435,8 @@ class CardsHandler:
             )
 
             if not new_card:
+                reading.reading_status = UserReading.ReadingStatus.ERROR
+                await reading.asave()
                 await query.edit_message_text(
                     self.messages.get_error_message("no_cards")
                 )
@@ -401,6 +450,7 @@ class CardsHandler:
             reading.text = f"{reading.text}, {new_card_text}"
             reading.count += 1
             reading.card_ids.extend(new_card_data)
+            reading.reading_status = UserReading.ReadingStatus.SUCCESS
             await reading.asave()
 
             # 5. Отправка карты через унифицированный send_card
@@ -416,6 +466,9 @@ class CardsHandler:
 
         except Exception as e:
             logger.error(f"Ошибка при доборе карты Оракула: {e}", exc_info=True)
+            if reading:
+                reading.reading_status = UserReading.ReadingStatus.ERROR
+                await reading.asave()
             await query.edit_message_text(
                 self.messages.get_error_message("generic", error_details=str(e)),
                 parse_mode=ParseMode.HTML,

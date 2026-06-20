@@ -172,7 +172,7 @@ class ParserBot(AbstractBot):
         card_url = f"https://card.wb.ru/cards/v4/detail?curr=rub&dest=-1059500,-72639,-3826860,-5551776&nm={card_id}"
         REQUEST_TIMEOUT = 30
         
-        async with AsyncSession(http_version=CurlHttpVersion.V2_0, impersonate="chrome120") as session:
+        async with AsyncSession(http_version=CurlHttpVersion.V2_0, impersonate="chrome128") as session:
             # Загружаем данные карточки
             response = await session.get(card_url, timeout=REQUEST_TIMEOUT)
             # Проверяем успешность запроса

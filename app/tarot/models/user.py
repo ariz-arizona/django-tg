@@ -12,6 +12,15 @@ class UserReading(models.Model):
         CANVAS_SPREAD = "canvas_spread", "Расклад на холсте" # Для /spread
         ALL = "all", "Вся колода"
 
+    class ReadingStatus(models.TextChoices):
+        PENDING = "pending", "Ожидание"
+        INITIALIZING = "initializing", "Инициализация"
+        LOADING = "loading", "Загрузка карт"
+        RENDERING = "rendering", "Создание изображения"
+        UPLOADING = "uploading", "Отправка"
+        SUCCESS = "success", "Успешно"
+        ERROR = "error", "Ошибка"
+        
     user = models.ForeignKey(
         "tg_bot.TgUser",
         on_delete=models.SET_NULL,
@@ -26,6 +35,13 @@ class UserReading(models.Model):
         choices=ReadingCategory.choices,
         default=ReadingCategory.TAROT,
         verbose_name="Категория гадания",
+    )
+    
+    reading_status = models.CharField(
+        max_length=20,
+        choices=ReadingStatus.choices,
+        default=ReadingStatus.PENDING,
+        verbose_name="Статус выполнения",
     )
 
     # Дополнительные настройки расклада (флаги)

@@ -1071,6 +1071,9 @@ class TarotBot(AbstractBot):
             await update.message.reply_text(error_msg, parse_mode=ParseMode.HTML)
             return
 
+        reading = None
+        tech_msg = None
+        
         try:
             if msg_text == CANVAS_3_TRIGGER:
                 options = {
@@ -1123,7 +1126,7 @@ class TarotBot(AbstractBot):
             card_records = [{"id": str(c["card_id"]), "flip": c["flipped"]} for c in cards]
             logger.info(f"Получены карты {card_records}")
 
-            await self.save_reading(
+            reading = await self.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,
                 text=f"{deck.name if deck else 'Дефолтная колода'}: " + ", ".join(
@@ -1136,6 +1139,8 @@ class TarotBot(AbstractBot):
                 is_major_only=options.get('major', False),
                 card_ids=card_records
             )
+            reading.status = UserReading.ReadingStatus.PENDING
+            await reading.asave()
 
             description_text = messages.format_description(
                 deck.name if deck else None, 
@@ -1171,14 +1176,7 @@ class TarotBot(AbstractBot):
                 parse_mode=ParseMode.HTML
             )
             
-            try:
-                spread_image = await create_spread_image(cards)
-            except Exception as img_error:
-                error_msg = messages.get_error_message("image_failed")
-                await tech_msg.edit_text(error_msg, parse_mode=ParseMode.HTML)
-                logger.error(f"Ошибка создания изображения: {img_error}")
-                return
-            
+            spread_image = await create_spread_image(cards)
             await tech_msg.edit_text(
                 f"{messages.get_uploading()}\n\n{description_text}",
                 parse_mode=ParseMode.HTML
@@ -1189,18 +1187,30 @@ class TarotBot(AbstractBot):
                     media=InputMediaPhoto(media=spread_image, caption=description_text, parse_mode=ParseMode.HTML),
                 )
             else:
-                error_msg = messages.get_error_message("image_failed")
-                await tech_msg.edit_text(error_msg, parse_mode=ParseMode.HTML)
-
-        except ValueError as ve:
-            logger.error(f"Ошибка валидации: {ve}")
-            error_msg = messages.get_error_message("invalid_options")
-            await update.message.reply_text(error_msg, parse_mode=ParseMode.HTML)
+                raise Exception("create_spread_image вернул None")
             
+            reading.reading_status = UserReading.ReadingStatus.SUCCESS
+            await reading.asave()
+
         except Exception as e:
-            logger.error(f"Ошибка при обработке команды /spread: {e}", exc_info=True)
-            error_msg = self.messages.get_error_message("generic", error_details=str(e)[:100])
-            await update.message.reply_text(error_msg, parse_mode=ParseMode.HTML)
+            # Определяем тип ошибки и сообщение
+            if isinstance(e, ValueError):
+                logger.error(f"Ошибка валидации: {e}")
+                error_msg = messages.get_error_message("invalid_options")
+            else:
+                logger.error(f"Ошибка при обработке команды /spread: {e}", exc_info=True)
+                error_msg = messages.get_error_message("generic", error_details=str(e)[:100])
+
+            # ❌ Статус ERROR
+            if reading:
+                reading.reading_status = UserReading.ReadingStatus.ERROR
+                await reading.asave()
+
+            # Пробуем показать ошибку в tech_msg, если он ещё жив
+            try:
+                await tech_msg.edit_text(error_msg, parse_mode=ParseMode.HTML)
+            except:
+                await update.message.reply_text(error_msg, parse_mode=ParseMode.HTML)
             
     async def handle_photo_msg(self, update: Update, context: CallbackContext):
         logger.info(update)

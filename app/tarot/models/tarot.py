@@ -98,11 +98,6 @@ class TarotDeck(models.Model):
         verbose_name = f"{bot_prefix}: Колода"
         verbose_name_plural = f"{bot_prefix}: Колоды"
         indexes = [
-            GinIndex(
-                name="tarotdeck_seo_tags_trgm_idx",
-                fields=["seo_tags"],
-                opclasses=["gin_trgm_ops"],
-            ),
         ]
         
 

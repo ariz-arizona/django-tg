@@ -9,6 +9,7 @@ class AIApiKey(models.Model):
         DEEPSEEK = "https://api.deepseek.com/v1", "DeepSeek API"
         LOCAL_OLLAMA = "http://localhost:11434/v1", "Локальный Ollama (Localhost)"
         CUSTOM = "custom", "Свой URL (указать в поле ниже)"
+        
     DEFAULT_SYSTEM_PROMPT = (
         # "Ты — опытный, мудрый таролог и эксперт по эзотерике. "
         # "Твоя задача — дать глубокое, поддерживающее и развернутое толкование расклада карт для пользователя.\n\n"
@@ -18,6 +19,7 @@ class AIApiKey(models.Model):
         "3. Разделяй логические блоки и абзацы двойным переносом строки (пустой строкой), чтобы текст был структурированным, воздушным и легко читался.\n"
         "4. ОГРАНИЧЕНИЕ НА РАЗМЕР: Твой ответ должен быть строго меньше 3800 символов. Пиши емко, глубоко, без лишней воды."
     )
+    
     bot = models.ForeignKey(
         "tg_bot.Bot",
         on_delete=models.CASCADE,

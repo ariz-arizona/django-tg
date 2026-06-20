@@ -57,14 +57,9 @@ class OraculumDeck(models.Model):
         verbose_name_plural = f"{bot_prefix}: Колоды оракула"
         indexes = [
             GinIndex(
-                name="oraculumdeck_slug_trgm_idx",
-                fields=["slug"],
-                opclasses=["gin_trgm_ops"],
-            ),
-            GinIndex(
-                name="oraculumdeck_seo_tags_trgm_idx",
-                fields=["seo_tags"],
-                opclasses=["gin_trgm_ops"],
+                fields=['slug'], 
+                name='oraculumdeck_slug_trgm_idx', 
+                opclasses=['gin_trgm_ops']
             ),
         ]
 

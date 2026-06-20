@@ -7,6 +7,31 @@ from django.utils.html import format_html
 from ..models.user import UserReading, AIReadingInterpretation, AIReadingPage
 from ..models.tech import AIApiKey
 
+STATUS_BADGES = {
+    # Reading статусы
+    "pending":       ("#9E9E9E", "⏳"),
+    "initializing":  ("#2196F3", "🔄"),
+    "loading":       ("#FF9800", "📥"),
+    "rendering":     ("#9C27B0", "🎨"),
+    "uploading":     ("#00BCD4", "📤"),
+    "success":       ("#4CAF50", "✅"),
+    "error":         ("#F44336", "❌"),
+    # AI статусы (мапятся на общие цвета)
+    "failed":        ("#F44336", "🤖❌"),
+}
+
+def status_badge(status: str, label: str = None) -> str:
+    """Унифицированный цветной бейдж статуса."""
+    color, icon = STATUS_BADGES.get(status, ("#757575", "❓"))
+    if not label:
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{} {}</span>',
+            color, icon, status
+        )
+    return format_html(
+        '<span style="color: {}; font-weight: bold;">{} {}</span>',
+        color, icon, label
+    )
 
 class AIReadingInterpretationInline(admin.TabularInline):
     """Инлайн для отображения ИИ-генераций прямо внутри расклада карт"""
@@ -68,7 +93,6 @@ class AIReadingInterpretationInline(admin.TabularInline):
 
 @admin.register(UserReading)
 class UserReadingAdmin(admin.ModelAdmin):
-    # Добавляем в инлайны нашу ИИ-модель
     inlines = [AIReadingInterpretationInline]
 
     list_display = (
@@ -76,17 +100,19 @@ class UserReadingAdmin(admin.ModelAdmin):
         "user_link",
         "bot_link",           
         "category_display",   
-        "card_count",         
-        "ai_status_summary",  # Добавили агрегированный статус ИИ в общий список
+        "card_count",
+        "reading_status_badge",
+        "ai_status_summary",
         "created_at_short",   
     )
 
     list_filter = (
         "category",
-        "bot",                
+        "bot",
+        "reading_status",
         "is_flipped_allowed",
         "is_major_only",
-        "ai_interpretations__status",  # Позволяет фильтровать расклады по статусу ИИ-запросов
+        "ai_interpretations__status",
         ("created_at", admin.DateFieldListFilter),  
     )
 
@@ -100,14 +126,14 @@ class UserReadingAdmin(admin.ModelAdmin):
         "card_ids",  
     )
 
-    readonly_fields = ("created_at", "updated_at", "card_ids_preview")
+    readonly_fields = ("created_at", "updated_at", "card_ids_preview", "reading_status")
     ordering = ("-created_at",)
     list_per_page = 50
     actions = ["export_selected"]
 
     fieldsets = (
         ("Основная информация", {
-            "fields": ("user", "bot", "category", "count", "original_query")
+            "fields": ("user", "bot", "category", "count", "reading_status", "original_query")
         }),
         ("Настройки расклада", {
             "fields": ("is_flipped_allowed", "is_major_only", "deck_id"),
@@ -121,6 +147,13 @@ class UserReadingAdmin(admin.ModelAdmin):
             "classes": ("collapse",)
         }),
     )
+
+    # ===== Методы отображения =====
+
+    def reading_status_badge(self, obj):
+        return status_badge(obj.reading_status, obj.get_reading_status_display())
+    reading_status_badge.short_description = "Статус"
+    reading_status_badge.admin_order_field = "reading_status"
 
     def user_link(self, obj):
         if obj.user:
@@ -157,20 +190,18 @@ class UserReadingAdmin(admin.ModelAdmin):
     category_display.admin_order_field = "category"
 
     def ai_status_summary(self, obj):
-        """Выводит в общий список статус последней интерпретации ИИ и тотал токенов"""
         latest_ai = obj.ai_interpretations.order_by("-created_at").first()
         if not latest_ai:
             return format_html('<span style="color: #757575;">Без ИИ</span>')
         
-        status_colors = {"pending": "#FF9800", "success": "#4CAF50", "failed": "#F44336"}
-        color = status_colors.get(latest_ai.status, "#757575")
+        badge = status_badge(latest_ai.status, latest_ai.get_status_display())
         
         if latest_ai.status == "success":
             return format_html(
-                '<span style="color: {}; font-weight: bold;">🤖 OK</span> <small style="color: #757575">({} tkn)</small>',
-                color, latest_ai.total_tokens
+                '{} <small style="color: #757575">({} tkn)</small>',
+                badge, latest_ai.total_tokens
             )
-        return format_html('<span style="color: {}; font-weight: bold;">🤖 {}</span>', color, latest_ai.get_status_display())
+        return badge
     ai_status_summary.short_description = "ИИ Ответ"
 
     def created_at_short(self, obj):
@@ -179,25 +210,25 @@ class UserReadingAdmin(admin.ModelAdmin):
     created_at_short.admin_order_field = "created_at"
 
     def card_count(self, obj):
-        """Количество карт в раскладе"""
-        # Если это список, берем len, если число (одна карта) — значит 1, иначе 0
         if isinstance(obj.card_ids, list):
             count = len(obj.card_ids)
         elif isinstance(obj.card_ids, (int, str)): 
-            # Если там просто ID (число) или строка с ID
             count = 1 if obj.card_ids else 0
         else:
             count = 0
-            
         if count > 0:
             return f"🎴 {count}"
         return "—"
+    card_count.short_description = "Карт"
+    card_count.admin_order_field = "count"
 
     def card_ids_preview(self, obj):
         if obj.card_ids:
             return ", ".join(map(str, obj.card_ids[:10]))
         return "—"
     card_ids_preview.short_description = "Предпросмотр карт"
+
+    # ===== CSV экспорт =====
 
     def export_selected(self, request, queryset):
         response = HttpResponse(content_type="text/csv")
@@ -206,8 +237,8 @@ class UserReadingAdmin(admin.ModelAdmin):
         writer = csv.writer(response)
         writer.writerow([
             "ID", "User ID", "Username", "Bot", "Category", 
-            "Count", "Flipped", "Major Only", "Deck ID", 
-            "Card IDs", "Created At", "Text Preview"
+            "Status", "Count", "Flipped", "Major Only", "Deck ID", 
+            "Card IDs", "Created At", "Updated At", "Text Preview"
         ])
         
         for obj in queryset:
@@ -217,13 +248,15 @@ class UserReadingAdmin(admin.ModelAdmin):
                 obj.user.username if obj.user else "",
                 obj.bot.username if obj.bot else "",
                 obj.get_category_display(),
+                obj.get_reading_status_display(),
                 obj.count,
                 obj.is_flipped_allowed,
                 obj.is_major_only,
                 obj.deck_id or "",
                 ", ".join(map(str, obj.card_ids)) if obj.card_ids else "",
                 obj.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-                obj.text[:100] if obj.text else ""
+                obj.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+                obj.text[:200] if obj.text else ""
             ])
         return response
     export_selected.short_description = "Экспортировать выбранные в CSV"

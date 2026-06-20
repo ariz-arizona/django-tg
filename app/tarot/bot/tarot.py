@@ -193,7 +193,6 @@ class TarotBot(AbstractBot):
 
         return reading
 
-
     def parse_reading_options(self, msg_text: str) -> dict:
         """
         Полный парсинг аргументов команды из текста сообщения.
@@ -291,19 +290,6 @@ class TarotBot(AbstractBot):
         return options
 
     def parse_text_reading_options(self, msg_text: str) -> dict:
-        """
-        Парсинг аргументов из текстового сообщения.
-        Форматы:
-        - Таро 3 переверн старши колода "Викторианская"
-        - tarot 5 flip major deck waite
-        - таро 5 перевернуты старшие колода ленорман
-        - таро переверни 10 колода уэйт
-        - Таро 3 оригинальный запрос для ИИ
-        
-        Если нет явного ключевика "колода"/"deck", 
-        то всё что не высеклось как counter/flip/major — уходит в deck_keyword.
-        Если ключевик есть — всё после него в deck_keyword, остальное в original_query.
-        """
         options = {}
         clean_text = msg_text.strip()
         
@@ -318,22 +304,21 @@ class TarotBot(AbstractBot):
         if counter_match:
             counter = int(counter_match.group(1))
             counter = max(1, min(counter, 10))
-            # Вырезаем цифру
             remaining = remaining[:counter_match.start()] + remaining[counter_match.end():]
             remaining = re.sub(r"\s+", " ", remaining).strip()
         options["counter"] = counter
         
-        # 2. Парсинг флага перевернутых позиций (начинается на переверн/flip)
+        # 2. Парсинг флага перевернутых позиций
         options["flip"] = False
-        flip_match = re.search(r"\b(переверн\w*|flip\w*)\b", remaining, flags=re.IGNORECASE)
+        flip_match = re.search(r"(?<!\w)(переверн\w*|flip)(?!\w)", remaining, flags=re.IGNORECASE)
         if flip_match:
             options["flip"] = True
             remaining = remaining[:flip_match.start()] + remaining[flip_match.end():]
             remaining = re.sub(r"\s+", " ", remaining).strip()
         
-        # 3. Парсинг флага Старших Арканов (начинается на старш/major)
+        # 3. Парсинг флага Старших Арканов
         options["major"] = False
-        major_match = re.search(r"\b(старш\w*|major\w*)\b", remaining, flags=re.IGNORECASE)
+        major_match = re.search(r"(?<!\w)(старш\w*|major)(?!\w)", remaining, flags=re.IGNORECASE)
         if major_match:
             options["major"] = True
             remaining = remaining[:major_match.start()] + remaining[major_match.end():]
@@ -344,12 +329,9 @@ class TarotBot(AbstractBot):
         options["deck_keyword"] = None
         options["original_query"] = ""
         
-        deck_match = re.search(r"\b(колода|deck)\s+(.+)", remaining, flags=re.IGNORECASE)
+        deck_match = re.search(r"(?<!\w)(колода|deck)\s+(.+)", remaining, flags=re.IGNORECASE)
         if deck_match:
-            # Явный ключевик "колода/deck" — всё после него в deck_keyword
             deck_value = deck_match.group(2).strip()
-            
-            # Убираем кавычки если есть
             deck_value = deck_value.strip('"\"\'')
             
             if deck_value.isdigit():
@@ -357,14 +339,11 @@ class TarotBot(AbstractBot):
             else:
                 options["deck_keyword"] = deck_value
             
-            # Всё до "колода/deck" — original_query
             original_query = remaining[:deck_match.start()].strip()
             options["original_query"] = original_query if original_query else ""
         else:
-            # Нет ключевика "колода/deck" — всё оставшееся в deck_keyword
             remaining = remaining.strip()
             if remaining:
-                # Проверяем, не число ли это (хотя числа уже вырезаны)
                 if remaining.isdigit():
                     options["deck"] = int(remaining)
                 else:
@@ -667,17 +646,18 @@ class TarotBot(AbstractBot):
                 return deck
 
             # 2. Комбинированный поиск: ILIKE + триграммы для сортировки
-            decks = model.objects.filter(
-                Q(name__icontains=deck_keyword) |
-                Q(slug__icontains=deck_keyword) |
-                Q(seo_tags__icontains=deck_keyword)
-            ).annotate(
+            decks = model.objects.annotate(
                 similarity=(
                     TrigramSimilarity('name', deck_keyword) + 
                     TrigramSimilarity('slug', deck_keyword)
                 )
+            ).filter(
+                Q(name__icontains=deck_keyword) |
+                Q(slug__icontains=deck_keyword) |
+                Q(seo_tags__icontains=deck_keyword) |
+                Q(similarity__gt=0.3)  # ← Порог похожести для опечаток
             ).order_by('-similarity')
-            
+                        
             count = await decks.acount()
             
             if count > 0:

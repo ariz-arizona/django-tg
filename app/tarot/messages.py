@@ -122,7 +122,10 @@ class CardMessages(Messages):
         return self.DECK_STATS.format(current_count=current_count, total_cards=total_cards)
     
     def get_deck_not_found(self, keyword: str, base_command: str) -> str:
-        return self.DECK_NOT_FOUND.format(keyword=escape(keyword), base_command=base_command)
+        return self.DECK_NOT_FOUND.format(
+            keyword=escape(keyword or "не указан"),  # ← Защита от None
+            base_command=base_command
+        )
     
     def build_deck_command(self, base_command: str, deck_slug: str) -> str:
         """Собирает команду с колодой: /card_3_deck_waite"""

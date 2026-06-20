@@ -78,6 +78,7 @@ def create_card_row(card_images: List[Image.Image], spacing: int = 10,
         return None
     
     num_cards = len(card_images)
+    logger.info(spacing)
     padding = spacing * 2  # Поля вокруг карт в 2 раза больше spacing
     
     # Находим максимальную высоту среди карт для нормализации
@@ -301,5 +302,5 @@ async def create_spread_image(
         return result
         
     except Exception as e:
-        logger.error(f"Ошибка создания изображения расклада: {e}")
+        logger.error(f"Ошибка создания изображения расклада: {e}", exc_info=True)
         return None

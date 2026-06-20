@@ -56,7 +56,7 @@ services:
     image: postgres:18
     container_name: ${PROJECT_NAME:-djangotg}_postgres
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     env_file:
       - .env
     <<: *app_labels

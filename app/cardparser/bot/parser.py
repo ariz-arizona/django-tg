@@ -4,6 +4,7 @@ import aiohttp
 import json
 import requests
 from curl_cffi.requests import AsyncSession
+from curl_cffi.curl import CurlHttpVersion
 from asgiref.sync import sync_to_async
 from telegram import Update, InputMediaPhoto, Chat
 from telegram.constants import ChatType
@@ -171,7 +172,7 @@ class ParserBot(AbstractBot):
         card_url = f"https://card.wb.ru/cards/v4/detail?curr=rub&dest=-1059500,-72639,-3826860,-5551776&nm={card_id}"
         REQUEST_TIMEOUT = 30
         
-        async with AsyncSession(impersonate="chrome120") as session:
+        async with AsyncSession(http_version=CurlHttpVersion.V2_0, impersonate="chrome120") as session:
             # Загружаем данные карточки
             response = await session.get(card_url, timeout=REQUEST_TIMEOUT)
             # Проверяем успешность запроса

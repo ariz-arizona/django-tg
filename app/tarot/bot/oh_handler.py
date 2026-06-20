@@ -36,11 +36,6 @@ from tg_bot.models import BotFileCache
 from server.logger import logger
 from django.conf import settings
 
-from tarot.utils.image_utils import create_spread_image
-from tarot.bot.allcard_handler import AllCardHandler
-from tarot.bot.ai_interpret_handler import AIInterpretHandler
-from tarot.bot.rune_handler import RuneHandler
-
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(
     host=os.getenv("REDIS_HOST", "localhost"), 

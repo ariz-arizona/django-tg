@@ -1172,7 +1172,7 @@ class TarotBot(AbstractBot):
             )
             
             try:
-                spread_image = await create_spread_image(cards, options)
+                spread_image = await create_spread_image(cards)
             except Exception as img_error:
                 error_msg = messages.get_error_message("image_failed")
                 await tech_msg.edit_text(error_msg, parse_mode=ParseMode.HTML)

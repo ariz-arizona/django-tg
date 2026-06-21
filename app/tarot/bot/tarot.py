@@ -773,8 +773,9 @@ class TarotBot(AbstractBot):
         # Основное описание (название или описание из модели)
         main_desc = ""
         if isinstance(instance, OraculumItem):
-            # Если description пустой, берем name
             main_desc = (instance.description or "")
+        elif isinstance(instance, TarotCardItem):
+            main_desc = (instance.custom_description or "")
 
         # Текст значения (прямое или перевернутое)
         value_text = ""
@@ -788,7 +789,7 @@ class TarotBot(AbstractBot):
         parts = [
             instance.display_name,
             "Перевернуто" if flipped else None,
-            (f"{main_desc} {value_text}".strip() if isinstance(instance, OraculumItem) else None)
+            " ".join([s.strip() for s in [main_desc, value_text]])
         ]
 
         return text_join.join(str(p) for p in parts if p)

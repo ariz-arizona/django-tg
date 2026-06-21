@@ -17,7 +17,7 @@ class TarotCardAdmin(admin.ModelAdmin):
     @admin.display(description='Колоды')
     def used_in_decks(self, obj):
         decks = obj.deck_cards.select_related('deck')
-        return ', '.join(d.deck.name for d in decks) or '—'
+        return len(decks)
 
 
 class TarotCardItemInline(admin.TabularInline):
@@ -48,11 +48,21 @@ class TarotDeckAdmin(admin.ModelAdmin):
 
 @admin.register(TarotCardItem)
 class TarotCardItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'deck', 'tarot_card')
+    list_display = ('id', 'deck', 'tarot_card', 'custom_name')
     list_filter = ('deck',)
-    search_fields = ('deck__name', 'tarot_card__name')
+    search_fields = ('deck__name', 'tarot_card__name', 'custom_name')
     autocomplete_fields = ('deck', 'tarot_card')
     inlines = [BotFileInline]
+    fieldsets = (
+        (None, {
+            'fields': ('deck', 'tarot_card')
+        }),
+        ('Индивидуальные настройки', {
+            'fields': ('custom_name', 'custom_description'),
+            'classes': ('collapse',),
+            'description': 'Необязательные поля для переопределения названия и описания карты в этой колоде'
+        }),
+    )
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('deck', 'tarot_card')

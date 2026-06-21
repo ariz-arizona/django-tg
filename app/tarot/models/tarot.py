@@ -115,6 +115,19 @@ class TarotCardItem(models.Model, BotFileMixin):
         related_name="deck_cards",
         verbose_name="Карта Таро",
     )
+    custom_name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Индивидуальное название",
+        help_text="Необязательное название карты в этой колоде",
+    )
+    custom_description = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Индивидуальное описание",
+        help_text="Необязательное описание карты в контексте этой колоды",
+    )
     files = GenericRelation(BotFile, related_query_name="tarot_cards")
 
     def __str__(self):

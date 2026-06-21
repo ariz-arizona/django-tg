@@ -226,8 +226,6 @@ class AllCardHandler:
             
     async def handle_all_by_reading(self, update: Update, context: CallbackContext):
         msg_text = update.message.text
-        logger.info(f"Обработка команды /all с текстом: {msg_text[:100]}")
-        
         category = UserReading.ReadingCategory.ALL
         if await self.bot.check_reading_cooldown(update, category):
             return
@@ -237,58 +235,53 @@ class AllCardHandler:
         reading = None
 
         try:
-            # 1. Создаем запись со статусом PENDING
+            # 1. Создание ридинга БЕЗ текста
             reading = await self.bot.save_reading(
                 user=user, 
                 message_id=update.effective_message.message_id,
-                text="Полная колода", 
+                text="", 
                 category=category, 
                 count=1,
-                deck_id=None, # Обновим позже
+                deck_id=None,
                 is_flipped_allowed=options.get('flip', False),
                 is_major_only=options.get('major', False),
                 card_ids=[],
                 original_query=options.get('original_query'),
             )
+            # 2. Статус PENDING
             reading.reading_status = UserReading.ReadingStatus.PENDING
-            await reading.asave()
+            await reading.asave(update_fields=['reading_status'])
 
-            # 2. Логика получения данных
+            # Логика получения
             deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None))
-            counter = 22 if options.get('major') else 78
-            
             cards = await self.bot.get_cards(
                 deck_id=deck.id if deck else None,
-                counter=counter,
+                counter=22 if options.get('major') else 78,
                 card_ids=options.get("card_ids"),
                 major=options.get("major", False),
                 flip=options.get('flip')
             )
             
-            # 3. Обновляем запись результатами
-            card_records = [{"id": str(c["card_id"]), "flip": c["flipped"]} for c in cards]
+            # Заполняем данные
+            reading.text = "Полная колода"
             reading.deck_id = deck.id if deck else None
-            reading.card_ids = card_records
-            reading.reading_status = UserReading.ReadingStatus.SUCCESS
-            await reading.asave(update_fields=['deck_id', 'card_ids', 'reading_status'])
-
-            # 4. Подготовка и отправка ответа
+            reading.card_ids = [{"id": str(c["card_id"]), "flip": c["flipped"]} for c in cards]
+            await reading.asave(update_fields=['text', 'deck_id', 'card_ids'])
+            
+            
+            # 3. Отправка
             original_card = cards[0]["card_instance"]
             card = await TarotCardItem.objects.select_related('tarot_card', 'deck').aget(id=original_card.id)
-            
-            img_id, card_text, keyboard = await self.make_only_card_message(
-                card, reading.id, 0, item_type="reading"
-            )
+            img_id, card_text, keyboard = await self.make_only_card_message(card, reading.id, 0, item_type="reading")
             await update.message.reply_photo(img_id, caption=card_text, reply_markup=keyboard)
             
-            logger.info(f"Ридинг /all успешно создан, ID: {reading.id}")
+            # 4. Статус SUCCESS
+            reading.reading_status = UserReading.ReadingStatus.SUCCESS
+            await reading.asave(update_fields=['reading_status'])
 
         except Exception as e:
-            logger.error(f"Ошибка при обработке команды /all: {e}", exc_info=True)
+            logger.error(f"Ошибка /all: {e}", exc_info=True)
             if reading:
                 reading.reading_status = UserReading.ReadingStatus.ERROR
                 await reading.asave(update_fields=['reading_status'])
-            await update.message.reply_text(
-                self.messages.get_error_message("generic", error_details=str(e)),
-                parse_mode=ParseMode.HTML
-            )
+            await update.message.reply_text(self.bot.cards_handler.messages.get_error_message("generic", error_details=str(e)), ParseMode.HTML)

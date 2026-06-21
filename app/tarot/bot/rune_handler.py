@@ -137,92 +137,58 @@ class RuneHandler:
         return pages[0] if position is None else pages[current_page], InlineKeyboardMarkup(keyboard)
     
     async def handle_rune_reading(self, update: Update, context: CallbackContext):
-        """
-        Обработчик команды /futark.
-        """
         msg_text = update.message.text
         user = await self.bot.get_or_create_tg_user(update)
         is_triplet = "triplet" in msg_text or "триплет" in msg_text
-        logger.info(f"Обработка команды /futark с текстом: {msg_text[:100]}")
-        
         category = UserReading.ReadingCategory.RUNES
-        is_locked = await self.bot.check_reading_cooldown(update, category)
-        if is_locked:
+        if await self.bot.check_reading_cooldown(update, category):
             return
 
+        reading = None
         try:
-            # Получаем все руны из базы данных
+            # 1. Создание БЕЗ текста
+            reading = await self.bot.save_reading(
+                user=user,
+                message_id=update.effective_message.message_id,
+                text="",
+                category=category,
+                card_ids=[],
+                count=3 if is_triplet else 1
+            )
+            # 2. Статус PENDING
+            reading.reading_status = UserReading.ReadingStatus.PENDING
+            await reading.asave(update_fields=['reading_status'])
+
             runes = [rune async for rune in Rune.objects.all()]
-
+            
             if is_triplet:
-                # Выбираем 3 случайные руны
                 raw_selected = random.sample(runes, 3)
+                reading.card_ids = [{"id": r.id, "inverted": random.choice([True, False]), "position": i + 1} for i, r in enumerate(raw_selected)]
+                reading.text = f"Рунный триплет {', '.join([r.symbol for r in raw_selected])}"
+                await reading.asave(update_fields=['text', 'card_ids'])
                 
-                selected_runes_full_data = []
-                for i, rune in enumerate(raw_selected):
-                    selected_runes_full_data.append({
-                        "id": rune.id,
-                        "inverted": random.choice([True, False]),
-                        "rune_obj": rune,
-                        "position": i + 1
-                    })
-
-                # 3. Подготавливаем данные для JSON (только ID и статус)
-                ids_for_db = [
-                    {"id": item["id"], "inverted": item["inverted"], "position": item["position"]} 
-                    for item in selected_runes_full_data
-                ]
-                
-                rune_texts = []
-                
-                reading = await self.bot.save_reading(
-                    user=user,
-                    message_id=update.effective_message.message_id,
-                    text=" ".join(rune_texts),
-                    category=category,
-                    card_ids=ids_for_db,
-                    ids_for_db=True,
-                    count=3
-                )
-
                 text, markup = await self.get_rune_paged_and_keyboard(reading.id, position=None)
-                # Отправляем сообщение с рунами и inline-клавиатурой
-                await update.message.reply_text(
-                    text,
-                    parse_mode=ParseMode.HTML,
-                    reply_markup=markup,
-                )
+                await update.message.reply_text(text, parse_mode=ParseMode.HTML, reply_markup=markup)
             else:
-                # Выбираем одну случайную руну
                 random_rune = random.choice(runes)
                 inverted = "flip" in msg_text.lower() and random.choice([True, False])
+                reading.card_ids = [{"id": random_rune.id, "inverted": inverted}]
+                reading.text = f"{random_rune.symbol} {'(Перевернуто)' if inverted else ''}"
+                await reading.asave(update_fields=['text','card_ids'])
                 
-                # Формируем текст сообщения
-                text_parts = [f"<b>{random_rune.symbol}</b>", random_rune.type]
-                if inverted:
-                    text_parts.append("Перевернуто")
-
-                reading = await self.bot.save_reading(
-                    user=user,
-                    message_id=update.effective_message.message_id,
-                    text=" ".join(text_parts),
-                    category=UserReading.ReadingCategory.RUNES,
-                    card_ids=random_rune.id,
-                    is_flipped_allowed=True,
-                    count=1
-                )
-
-                # Отправляем текст и стикер
-                await update.message.reply_text(
-                    "\n".join(text_parts), parse_mode=ParseMode.HTML
-                )
+                await update.message.reply_text(reading.text, parse_mode=ParseMode.HTML)
                 await update.message.reply_sticker(random_rune.sticker)
 
+            # 3. Статус SUCCESS
+            reading.reading_status = UserReading.ReadingStatus.SUCCESS
+            await reading.asave(update_fields=['reading_status'])
+
         except Exception as e:
-            logger.error(f"Ошибка при обработке команды /futark: {e}", exc_info=True)
-            await update.message.reply_text(
-                "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова."
-            )
+            logger.error(f"Ошибка /futark: {e}", exc_info=True)
+            if reading:
+                reading.reading_status = UserReading.ReadingStatus.ERROR
+                await reading.asave(update_fields=['reading_status'])
+            await update.message.reply_text(self.messages.get_error_message("generic", error_details=str(e)))
 
     async def handle_rune_callback(self, update: Update, context: CallbackContext):
         """

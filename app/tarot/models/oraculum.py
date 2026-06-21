@@ -96,6 +96,16 @@ class OraculumItem(models.Model, BotFileMixin):
         verbose_name="Перевернутое значение",
         help_text="Значение карты в перевернутом положении.",
     )
+    
+    @property
+    def display_name(self):
+        """Возвращает custom_name, если он задан, иначе стандартное название карты."""
+        return self.name
+
+    @property
+    def display_description(self):
+        """Возвращает custom_description, если он задан, иначе стандартное описание карты."""
+        return self.description
 
     def __str__(self):
         return f"{self.name} (из колоды: {self.deck.name})"

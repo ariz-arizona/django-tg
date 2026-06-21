@@ -129,6 +129,16 @@ class TarotCardItem(models.Model, BotFileMixin):
         help_text="Необязательное описание карты в контексте этой колоды",
     )
     files = GenericRelation(BotFile, related_query_name="tarot_cards")
+    
+    @property
+    def display_name(self):
+        """Возвращает custom_name, если он задан, иначе стандартное название карты."""
+        return self.custom_name or self.tarot_card.name
+    
+    @property
+    def display_description(self):
+        """Возвращает custom_description, если он задан, иначе стандартное значение карты."""
+        return self.custom_description or self.tarot_card.meaning
 
     def __str__(self):
         return f"{self.tarot_card.name} в колоде {self.deck.name}"

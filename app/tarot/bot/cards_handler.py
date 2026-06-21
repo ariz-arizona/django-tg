@@ -567,7 +567,7 @@ class CardsHandler:
             current_count = len(all_cards)
 
             # Формируем описание карт как список строк
-            cards_description = [local_format_card_name(c['name'], c['flipped']) for c in all_cards]
+            cards_description = [local_format_card_name(c["card_instance"].display_name, c['flipped']) for c in all_cards]
             
             # Статистика по колоде
             stats_str = self.messages.get_deck_stats(current_count, total_cards)

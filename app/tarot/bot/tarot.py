@@ -786,7 +786,7 @@ class TarotBot(AbstractBot):
 
         # Собираем все части
         parts = [
-            card.get("name"),
+            instance.display_name,
             "Перевернуто" if flipped else None,
             (f"{main_desc} {value_text}".strip() if isinstance(instance, OraculumItem) else None)
         ]

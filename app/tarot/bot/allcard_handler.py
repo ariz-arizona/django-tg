@@ -7,6 +7,7 @@ from telegram.ext import (
     CallbackContext,
     filters
 )
+from telegram.constants import ParseMode
 from django.db.models import IntegerField
 from django.db.models.functions import Cast
 
@@ -185,7 +186,7 @@ class AllCardHandler:
                 photo=img_id,
                 caption=card_text,
                 reply_markup=keyboard,
-                parse_mode="HTML",
+                parse_mode=ParseMode.HTML,
             )
         except Exception as e:
             logger.error(f"Ошибка: {e}", exc_info=True)
@@ -215,7 +216,7 @@ class AllCardHandler:
                 InputMediaPhoto(
                     media=img_id,
                     caption=card_text,
-                    parse_mode="HTML",
+                    parse_mode=ParseMode.HTML,
                 ),
                 reply_markup=keyboard,
             )
@@ -231,45 +232,63 @@ class AllCardHandler:
         if await self.bot.check_reading_cooldown(update, category):
             return
         
-        options = self.bot.parse_reading_options(msg_text)
-        deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None))
-        
-        # 1. Получаем карты через ваш метод
-        counter = 22 if options.get('major') else 78
-        cards = await self.bot.get_cards(
-            deck_id=deck.id if deck else None,
-            counter=counter,
-            card_ids=options.get("card_ids"),
-            major=options.get("major", False),
-            flip=options.get('flip')
-        )
-        
-        # 2. Сохраняем ридинг
         user = await self.bot.get_or_create_tg_user(update)
-        card_records = [{"id": str(c["card_id"]), "flip": c["flipped"]} for c in cards]
-        
-        reading = await self.bot.save_reading(
-            user=user, 
-            message_id=update.effective_message.message_id,
-            text="Полная колода", 
-            category=category, 
-            count=1,
-            deck_id=deck.id if deck else None,
-            is_flipped_allowed=options.get('flip', False),
-            is_major_only=options.get('major', False),
-            card_ids=card_records,
-            original_query=options.get('original_query'),
-        )
+        options = self.bot.parse_reading_options(msg_text)
+        reading = None
 
-        # 3. Получаем первую карту для отображения
-        original_card = cards[0]["card_instance"]
-        
-        # Переполучаем объект с нужными нам связями (select_related)
-        card = await TarotCardItem.objects.select_related('tarot_card', 'deck').aget(
-            id=original_card.id
-        )
-        # 4. Отправляем через ваш универсальный метод
-        img_id, card_text, keyboard = await self.make_only_card_message(
-            card, reading.id, 0, item_type="reading"
-        )
-        await update.message.reply_photo(img_id, caption=card_text, reply_markup=keyboard)
+        try:
+            # 1. Создаем запись со статусом PENDING
+            reading = await self.bot.save_reading(
+                user=user, 
+                message_id=update.effective_message.message_id,
+                text="Полная колода", 
+                category=category, 
+                count=1,
+                deck_id=None, # Обновим позже
+                is_flipped_allowed=options.get('flip', False),
+                is_major_only=options.get('major', False),
+                card_ids=[],
+                original_query=options.get('original_query'),
+            )
+            reading.reading_status = UserReading.ReadingStatus.PENDING
+            await reading.asave()
+
+            # 2. Логика получения данных
+            deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None))
+            counter = 22 if options.get('major') else 78
+            
+            cards = await self.bot.get_cards(
+                deck_id=deck.id if deck else None,
+                counter=counter,
+                card_ids=options.get("card_ids"),
+                major=options.get("major", False),
+                flip=options.get('flip')
+            )
+            
+            # 3. Обновляем запись результатами
+            card_records = [{"id": str(c["card_id"]), "flip": c["flipped"]} for c in cards]
+            reading.deck_id = deck.id if deck else None
+            reading.card_ids = card_records
+            reading.reading_status = UserReading.ReadingStatus.SUCCESS
+            await reading.asave(update_fields=['deck_id', 'card_ids', 'reading_status'])
+
+            # 4. Подготовка и отправка ответа
+            original_card = cards[0]["card_instance"]
+            card = await TarotCardItem.objects.select_related('tarot_card', 'deck').aget(id=original_card.id)
+            
+            img_id, card_text, keyboard = await self.make_only_card_message(
+                card, reading.id, 0, item_type="reading"
+            )
+            await update.message.reply_photo(img_id, caption=card_text, reply_markup=keyboard)
+            
+            logger.info(f"Ридинг /all успешно создан, ID: {reading.id}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при обработке команды /all: {e}", exc_info=True)
+            if reading:
+                reading.reading_status = UserReading.ReadingStatus.ERROR
+                await reading.asave(update_fields=['reading_status'])
+            await update.message.reply_text(
+                self.messages.get_error_message("generic", error_details=str(e)),
+                parse_mode=ParseMode.HTML
+            )

@@ -69,7 +69,7 @@ REDIS_TTL_SECONDS = 10
 REDIS_KEY_TEMPLATE = "user:{user_id}:{category}"
 
 class CardsHandler:
-    """Обработчик команды /all и связанных callback'ов."""
+    """Обработчик команды /card и связанных callback'ов."""
 
     def __init__(self, bot_instance):
         """

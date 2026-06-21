@@ -158,14 +158,16 @@ class AllCardHandler:
             # Используем метод парсинга из основного бота
             options = self.bot.parse_reading_options(msg_text)
 
-            deck_id = options.get('deck')
+            deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None))
+            
+            deck_id = deck.id
             item_type = "all"
             target_id = None
 
             if options.get('card_ids'):
                 item_type = 'card'
                 target_id = options.get('card_ids')[0]
-            elif options.get('deck'):
+            elif options.get('deck') or options.get("deck_keyword"):
                 item_type = 'deck'
                 target_id = deck_id
 
@@ -230,7 +232,7 @@ class AllCardHandler:
             return
         
         options = self.bot.parse_reading_options(msg_text)
-        deck = await self.bot.get_deck(options.get("deck"))
+        deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None))
         
         # 1. Получаем карты через ваш метод
         counter = 22 if options.get('major') else 78

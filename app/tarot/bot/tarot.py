@@ -681,7 +681,6 @@ class TarotBot(AbstractBot):
             await self._log_search(deck_keyword, "not_found", None)
             if return_all:
                 return []
-            return None
             
             # Если не return_all, возвращаем одну колоду или None
             if not return_all:

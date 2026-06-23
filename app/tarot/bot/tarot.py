@@ -1007,7 +1007,7 @@ class TarotBot(AbstractBot):
         """
         try:
             msg_text = update.message.text
-            logger.info(f"Обработка команды /oraculum с текстом: {msg_text[:100]}")
+            logger.info(f"Обработка команды /decks с текстом: {msg_text[:100]}")
 
             # Определяем тип колоды (по умолчанию — oraculum)
             deck_type = "tarot"

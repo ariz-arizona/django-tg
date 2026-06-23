@@ -77,7 +77,7 @@ redis_client_bot = aioredis.StrictRedis(
 )
 
 REDIS_TTL_SECONDS = 10
-REDIS_KEY_TEMPLATE = "user:{user_id}:{category}"
+REDIS_KEY_TEMPLATE = "user:{user_id}:{category}:{app_id}"
 
 class TarotBot(AbstractBot):
     def __init__(self):
@@ -185,7 +185,7 @@ class TarotBot(AbstractBot):
         # 3. Сохраняем отметку в Redis
         try:
             # Формируем ключ, например: "user:123456789:tarot"
-            redis_key = REDIS_KEY_TEMPLATE.format(user_id=user.tg_id, category=category)
+            redis_key = REDIS_KEY_TEMPLATE.format(user_id=user.tg_id, category=category, app_id=self.app_bot_id)
             await redis_client.set(redis_key, reading.id, ex=REDIS_TTL_SECONDS) 
             logger.info(f"Ключ {redis_key} успешно записан в Redis на {REDIS_TTL_SECONDS} сек.")
         except Exception as e:
@@ -366,11 +366,11 @@ class TarotBot(AbstractBot):
         """
         user_id = update.effective_user.id
         user = update.effective_user
-
+        app_id = self.app_bot_id
         # Формируем ключ по тому же шаблону, что и при сохранении
-        redis_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=category)
+        redis_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=category, app_id=app_id)
         # Ключ для хранения ID сообщения кулдауна
-        msg_ttl_key = f"user:ttl:message:{user_id}:{category}"
+        msg_ttl_key = f"user:ttl:message:{user_id}:{category}:{app_id}"
 
         try:
             # Запрашиваем оставшееся время жизни ключа (в секундах)
@@ -408,7 +408,7 @@ class TarotBot(AbstractBot):
                         continue  # Пропускаем текущую заблокированную категорию
 
                     # Формируем ключ для проверки
-                    check_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=cat_choice)
+                    check_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=cat_choice, app_id=app_id)
                     check_ttl = await redis_client.ttl(check_key)
 
                     # Если ключа нет (time_left == -2) - категория доступна
@@ -494,7 +494,7 @@ class TarotBot(AbstractBot):
         except Exception as e:
             # Если Redis упал, не блокируем пользователя, а логируем ошибку
             import logging
-            logging.error(f"Ошибка проверки TTL в Redis: {e}")
+            logging.error(f"Ошибка проверки TTL в Redis: {e}", exc_info=True)
 
         return False
 

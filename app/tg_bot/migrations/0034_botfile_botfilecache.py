@@ -42,6 +42,8 @@ class Migration(migrations.Migration):
     dependencies = [
         ('contenttypes', '0002_remove_content_type_name'),
         ('tg_bot', '0033_bot_is_enabled'),
+        ('tarot', '0003_alter_tarotcarditem_img_id_botfile'),
+        ('tarot', '0005_botfilecache_delete_tarotfilecache'),
     ]
 
     operations = [

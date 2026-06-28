@@ -1,0 +1,145 @@
+version: '3'
+
+includes:
+  tunnel: ./Taskfile.tunnel.yml
+  test: ./Taskfile.test.yml
+
+dotenv: ['.env']
+
+silent: true
+
+vars:
+  PROJECT_NAME: '{{.PROJECT_NAME | default "tgbot"}}'
+  COMPOSE_DEV_FILES: '-f compose.yaml -f compose.dev.yaml'
+
+tasks:
+  default:
+    desc: Показать справку
+    cmds:
+      - task: help
+
+  help:
+    desc: Показать справку
+    silent: true
+    cmds:
+      - |
+        echo -e "\033[0;34m📚 Доступные команды:\033[0m"
+        task --list-all
+        echo ""
+        echo -e "\033[0;34m📌 Примеры:\033[0m"
+        echo -e "  \033[0;33mtask run\033[0m              - Запустить всё в одном терминале"
+        echo -e "  \033[0;33mtask down\033[0m             - Остановить всё (туннель + Docker)"
+        echo -e "  \033[0;33mtask status\033[0m           - Показать статус всех сервисов"
+        echo ""
+        echo -e "\033[0;34m📋 Текущая конфигурация:\033[0m"
+        echo -e "  PINGGY_PORT: {{.PINGGY_PORT | default .NGINX_PORT}}"
+        echo -e "  PROJECT_NAME: {{.PROJECT_NAME}}"
+
+  init:
+    desc: Создать папку для логов
+    internal: true
+    silent: true
+    cmds:
+      - mkdir -p tunnel
+      - echo -e "\033[0;32m✅ Папка tunnel создана\033[0m"
+
+  up:
+    desc: Запустить Docker контейнеры (требуется запущенный туннель)
+    deps: [tunnel:tunnel-up]
+    cmds:
+      - |
+        if [ ! -f tunnel/.tunnel.url ]; then
+          echo -e "\033[0;31m❌ URL туннеля не найден. Сначала запустите туннель: task tunnel-up\033[0m"
+          exit 1
+        fi
+        echo -e "\033[0;32m🐳 Запуск Docker контейнеров...\033[0m"
+        TG_WEBHOOK_HOST=$(cat tunnel/.tunnel.url) \
+        docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} up --build -d
+        echo -e "\033[0;32m✅ Docker контейнеры запущены!\033[0m"
+        echo -e "\033[0;34m📋 Проверить статус: task status\033[0m"
+        echo -e "\033[0;34m📋 Посмотреть логи: task logs\033[0m"
+
+  down:
+    desc: Остановить всё (туннель + Docker)
+    cmds:
+      - |
+        echo -e "\033[0;31m🛑 Остановка всех сервисов...\033[0m"
+        echo -e "\033[0;33m🐳 Остановка Docker контейнеров...\033[0m"
+        docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} down 2>/dev/null || true
+        echo -e "\033[0;32m✅ Docker контейнеры остановлены\033[0m"
+      - task: tunnel:tunnel-down
+
+  restart:
+    desc: Перезапустить всё
+    cmds:
+      - task: down
+      - task: run
+
+  run:
+    desc: Запустить всё в одном терминале
+    deps: [init]
+    cmds:
+      - |
+        echo -e "\033[0;34m🚀 Запуск всего комплекса...\033[0m"
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[0;32mШаг 1/2: Запуск туннеля...\033[0m"
+      - task: tunnel-start
+      - |
+        sleep 3
+      - task: tunnel-get-url
+      - |
+        echo -e "\033[0;32mШаг 2/2: Запуск Docker...\033[0m"
+        TUNNEL_URL=$(cat tunnel/.tunnel.url)
+        echo -e "\033[0;34m📋 TG_WEBHOOK_HOST=$TUNNEL_URL\033[0m"
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        TG_WEBHOOK_HOST=$TUNNEL_URL \
+        docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} up --build
+
+  logs:
+    desc: Показать логи Docker
+    cmds:
+      - docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} logs --tail=50 -f
+
+  status:
+    desc: Показать статус всех сервисов
+    cmds:
+      - |
+        echo -e "\033[0;34m📊 Статус сервисов:\033[0m"
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        if [ -f tunnel/.tunnel.pid ] && ps -p $(cat tunnel/.tunnel.pid) > /dev/null 2>&1; then
+          echo -e "\033[0;32m✅ Туннель: ЗАПУЩЕН (PID: $(cat tunnel/.tunnel.pid))\033[0m"
+          if [ -f tunnel/.tunnel.url ]; then
+            echo -e "\033[0;32m🔗 URL: $(cat tunnel/.tunnel.url)\033[0m"
+          else
+            echo -e "\033[0;33m⚠️  URL: неизвестен\033[0m"
+          fi
+        else
+          echo -e "\033[0;31m❌ Туннель: НЕ ЗАПУЩЕН\033[0m"
+        fi
+        echo -e "\033[0;34m─────────────────────────────────────────────\033[0m"
+        if docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} ps 2>/dev/null | grep -q "Up"; then
+          echo -e "\033[0;32m✅ Docker: ЗАПУЩЕН\033[0m"
+          docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || true
+        else
+          echo -e "\033[0;31m❌ Docker: НЕ ЗАПУЩЕН\033[0m"
+        fi
+
+  clean:
+    desc: Полная очистка
+    cmds:
+      - task: down
+      - |
+        echo -e "\033[0;31m🧹 Полная очистка...\033[0m"
+        rm -rf tunnel
+        docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} down --remove-orphans -v 2>/dev/null || true
+        echo -e "\033[0;32m✅ Полная очистка выполнена\033[0m"
+
+  exec:
+    desc: Выполнить команду в контейнере (CONTAINER=имя CMD="команда")
+    vars:
+      CONTAINER: '{{.CONTAINER | default "web"}}'
+      CMD: '{{.CMD | default "bash"}}'
+    cmds:
+      - |
+        echo -e "\033[0;34m🐳 Выполняю в {{.CONTAINER}}: {{.CMD}}\033[0m"
+        docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} exec {{.CONTAINER}} {{.CMD}}

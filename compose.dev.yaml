@@ -35,7 +35,6 @@ services:
 
   flower:
     image: mher/flower:latest
-    container_name: ${PROJECT_NAME:-djangotg}_flower
     <<: *app_labels
     env_file:
       - .env
@@ -49,7 +48,6 @@ services:
 
   redisinsight:
     image: redis/redisinsight:latest
-    container_name: ${PROJECT_NAME:-djangotg}_redisinsight
     ports:
       - "${REDISINSIGHT_PORT:-5540}:5540"
     environment:
@@ -61,7 +59,6 @@ services:
 
   dozzle:
     image: amir20/dozzle:latest
-    container_name: ${PROJECT_NAME:-djangotg}_dozzle
     <<: *app_labels
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

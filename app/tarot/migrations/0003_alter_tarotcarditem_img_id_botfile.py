@@ -12,7 +12,10 @@ def migrate_img_ids_to_botfile(apps, schema_editor):
     ContentType = apps.get_model('contenttypes', 'ContentType')
 
     # Получаем бота с ID 1
-    bot = Bot.objects.get(pk=1)
+    try:
+        bot = Bot.objects.get(pk=1)
+    except Bot.DoesNotExist:
+        return
 
     # Получаем ContentType для моделей
     ct_oraculum = ContentType.objects.get_for_model(OraculumItem)

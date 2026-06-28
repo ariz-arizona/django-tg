@@ -1,0 +1,50 @@
+x-labels: &app_labels
+  labels:
+    project_name: ${PROJECT_NAME:-djangotg}_test
+
+services:
+  web:
+    environment:
+      - POSTGRES_DB=${TEST_DB_NAME:-test_db}
+      - POSTGRES_USER=${TEST_DB_USER:-test_user}
+      - POSTGRES_PASSWORD=${TEST_DB_PASSWORD:-test_password}
+      - DEBUG=True
+    ports:
+      - "8000:8000"  # Другой порт для тестового веба
+    <<: *app_labels
+
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: ${TEST_DB_NAME:-test_db}
+      POSTGRES_USER: ${TEST_DB_USER:-test_user}
+      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:-test_password}
+    ports:
+      - "${OUTER_TEST_DB_PORT:-15433}:5432"
+    volumes:
+      - test_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TEST_DB_USER:-test_user} -d ${TEST_DB_NAME:-test_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    <<: *app_labels
+
+  redis:
+    ports:
+      - "16379:6379"  # Другой порт для тестового редиса
+    <<: *app_labels
+
+  # Отключаем продовые сервисы
+  
+  bot_processor_cardparser:
+    profiles: ["disabled"]
+  
+  celery:
+    profiles: ["disabled"]
+  
+  celery_beat:
+    profiles: ["disabled"]
+
+volumes:
+  test_postgres_data:

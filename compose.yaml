@@ -19,14 +19,12 @@ x-common-settings: &common_settings
 services:
   web:
     <<: *common_settings
-    container_name: ${PROJECT_NAME:-djangotg}_web
     command: gunicorn server.wsgi:application --bind 0.0.0.0:8000
 
   bot_processor_tarot:
     <<: *common_settings
     environment:
       - INSTANCE_NAME=tarot
-    container_name: ${PROJECT_NAME}_bot_processor_tarot
     command: poetry run python manage.py start_bot_processing
     restart: always
 
@@ -34,27 +32,22 @@ services:
     <<: *common_settings
     environment:
       - INSTANCE_NAME=cardparser
-    container_name: ${PROJECT_NAME}_bot_processor_cardparser
     command: poetry run python manage.py start_bot_processing
     restart: always
 
   celery:
     <<: *common_settings
-    container_name: ${PROJECT_NAME:-djangotg}_celery_worker
     command: poetry run celery -A server worker --loglevel=info
 
   celery_beat:
     <<: *common_settings
-    container_name: ${PROJECT_NAME:-djangotg}_celery_beat
     command: poetry run celery -A server beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 
   redis:
     image: redis:7
-    container_name: ${PROJECT_NAME:-djangotg}_redis
     <<: *app_labels
   db:
     image: postgres:18
-    container_name: ${PROJECT_NAME:-djangotg}_postgres
     volumes:
       - postgres_data:/var/lib/postgresql
     env_file:
@@ -63,7 +56,6 @@ services:
 
   nginx:
     image: nginx:latest
-    container_name: ${PROJECT_NAME:-djangotg}_nginx
     ports:
       - "${NGINX_PORT:-80}:80"  # Если переменная не задана, по умолчанию 80
     volumes:

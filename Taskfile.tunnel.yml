@@ -1,0 +1,103 @@
+version: '3'
+
+vars:
+  PINGGY_PORT: '{{.PINGGY_PORT | default .NGINX_PORT | default "80"}}'
+  PINGGY_USER: '{{.PINGGY_USER | default "qr"}}'
+  PINGGY_HOST: '{{.PINGGY_HOST | default "free.pinggy.io"}}'
+  PINGGY_SSH_PORT: '{{.PINGGY_SSH_PORT | default "443"}}'
+  LOG_DIR: 'tunnel'
+  PID_FILE: '{{.LOG_DIR}}/.tunnel.pid'
+  URL_FILE: '{{.LOG_DIR}}/.tunnel.url'
+  LOG_FILE: '{{.LOG_DIR}}/tunnel_output.log'
+  SSH_CMD: 'ssh -p {{.PINGGY_SSH_PORT}} -R0:localhost:{{.PINGGY_PORT}} {{.PINGGY_USER}}@{{.PINGGY_HOST}} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+
+tasks:
+  init:
+    desc: Создать папку для логов
+    internal: true
+    silent: true
+    cmds:
+      - mkdir -p {{.LOG_DIR}}
+
+  check-alive:
+    desc: Проверить, запущен ли туннель
+    internal: true
+    silent: true
+    cmds:
+      - |
+        if [ -f {{.PID_FILE}} ] && ps -p $(cat {{.PID_FILE}}) > /dev/null 2>&1; then
+          echo -e "\033[0;33m⚠️  Туннель уже запущен (PID: $(cat {{.PID_FILE}}))\033[0m"
+          [ -f {{.URL_FILE}} ] && echo -e "\033[0;32m🔗 URL: $(cat {{.URL_FILE}})\033[0m" || echo -e "\033[0;33m⚠️  URL неизвестен\033[0m"
+          echo -e "\033[0;33m💡 Используйте 'task down' для перезапуска\033[0m"
+          exit 1
+        fi
+
+  tunnel-start:
+    desc: Запустить туннель в фоне
+    internal: true
+    silent: true
+    deps: [init]
+    cmds:
+      - |
+        echo -e "\033[0;32m🔗 Запуск Pinggy туннеля...\033[0m"
+        echo -e "\033[0;34m📡 Подключение к {{.PINGGY_USER}}@{{.PINGGY_HOST}}:{{.PINGGY_SSH_PORT}}\033[0m"
+        echo -e "\033[0;34m🌐 Локальный порт: {{.PINGGY_PORT}}\033[0m"
+        echo -e "\033[0;32m📋 Лог туннеля сохранен в: {{.LOG_FILE}}\033[0m"
+        ({{.SSH_CMD}} < /dev/null > {{.LOG_FILE}} 2>&1 &)
+        sleep 0.5
+        pgrep -f "ssh.*{{.PINGGY_HOST}}" | head -1 > {{.PID_FILE}}
+        sleep 3
+
+  tunnel-get-url:
+    desc: Получить URL туннеля
+    internal: true
+    silent: true
+    cmds:
+      - |
+        echo -e "\033[0;34m⏳ Ожидание получения URL...\033[0m"
+        for i in $(seq 1 15); do
+          sleep 1
+          # Очищаем бинарные данные и ищем URL
+          URL=$(cat {{.LOG_FILE}} 2>/dev/null | tr -d '\000' | grep -oE 'https?://[a-zA-Z0-9_-]+\.(free\.pinggy\.net|run\.pinggy-free\.link)' | head -1)
+          if [ -n "$URL" ]; then
+            echo "$URL" > {{.URL_FILE}}
+            echo -e "\033[0;32m🔗 URL туннеля: $URL\033[0m"
+            exit 0
+          fi
+        done
+        echo -e "\033[0;31m❌ Не удалось получить URL из лога\033[0m"
+        echo -e "\033[0;33m📋 Последние строки лога:\033[0m"
+        cat {{.LOG_FILE}} 2>/dev/null | tr -d '\000' | tail -5 || echo "Файл лога пуст"
+        exit 1
+
+  tunnel-up:
+    desc: Запустить Pinggy туннель и сохранить URL
+    silent: true
+    deps: [init]
+    cmds:
+      - task: check-alive
+      - task: tunnel-start
+      - task: tunnel-get-url
+      - |
+        echo -e "\033[0;32m✅ Туннель запущен (PID: $(cat {{.PID_FILE}}))\033[0m"
+
+  tunnel-down:
+    desc: Остановить туннель
+    silent: true
+    cmds:
+      - |
+        echo -e "\033[0;33m🔗 Остановка туннеля...\033[0m"
+        if [ -f {{.PID_FILE}} ]; then
+          PID=$(cat {{.PID_FILE}})
+          if ps -p $PID > /dev/null 2>&1; then
+            kill $PID 2>/dev/null || true
+            echo -e "\033[0;32m✅ Туннель остановлен (PID: $PID)\033[0m"
+          else
+            echo -e "\033[0;33m⚠️  Туннель с PID $PID уже не работает\033[0m"
+          fi
+          rm -f {{.PID_FILE}}
+        else
+          echo -e "\033[0;33m⚠️  PID файл туннеля не найден\033[0m"
+          pkill -f "ssh.*{{.PINGGY_HOST}}" 2>/dev/null && echo -e "\033[0;32m✅ Найденные процессы туннеля остановлены\033[0m" || true
+        fi
+        rm -f {{.URL_FILE}}

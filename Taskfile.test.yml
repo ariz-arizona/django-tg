@@ -16,7 +16,7 @@ vars:
   POSTGRES_DB: '{{.POSTGRES_DB | default "django_db"}}'
 
 tasks:
-  test-up:
+  up:
     desc: Запустить тестовое окружение с загрузкой данных
     cmds:
       - |
@@ -26,8 +26,20 @@ tasks:
         echo -e "\033[0;33m📦 Шаг 1/3: Запуск тестовой базы и Redis...\033[0m"
         docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} up -d db redis
         echo -e "\033[0;32m✅ База данных и Redis запущены\033[0m"
-        echo -e "\033[0;34m⏳ Ожидание готовности базы (10 секунд)...\033[0m"
-        sleep 10
+        
+        echo -e "\033[0;34m⏳ Ожидание готовности базы...\033[0m"
+        ATTEMPTS=0
+        MAX_ATTEMPTS=30
+        until docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} exec -T db pg_isready -U {{.TEST_DB_USER}} -d {{.TEST_DB_NAME}} &>/dev/null; do
+          ATTEMPTS=$((ATTEMPTS + 1))
+          if [ $ATTEMPTS -ge $MAX_ATTEMPTS ]; then
+            echo -e "\033[0;31m❌ База данных не готова после ${MAX_ATTEMPTS} попыток\033[0m"
+            exit 1
+          fi
+          echo -e "\033[0;34m⏳ Попытка ${ATTEMPTS}/${MAX_ATTEMPTS}...\033[0m"
+          sleep 1
+        done
+        echo -e "\033[0;32m✅ База данных готова (попыток: ${ATTEMPTS})\033[0m"
         
         echo -e "\033[0;33m🔄 Шаг 2/3: Применение миграций Django...\033[0m"
         docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} run --build --rm web poetry run python manage.py migrate
@@ -63,7 +75,7 @@ tasks:
         echo -e "  База: localhost:{{.OUTER_TEST_DB_PORT}} (пользователь: {{.TEST_DB_USER}}, база: {{.TEST_DB_NAME}})"
         echo -e "  Веб: http://localhost:8000"
 
-  test-dump:
+  dump:
     desc: Снять дамп таблиц Таро и Оракула с dev базы
     cmds:
       - |
@@ -72,8 +84,20 @@ tasks:
         if ! docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} ps db 2>/dev/null | grep -q "Up"; then
           echo -e "\033[0;33m🚀 Запускаю dev базу...\033[0m"
           docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} up -d db
-          echo -e "\033[0;34m⏳ Ожидание (10 секунд)...\033[0m"
-          sleep 10
+          
+          echo -e "\033[0;34m⏳ Ожидание готовности dev базы...\033[0m"
+          ATTEMPTS=0
+          MAX_ATTEMPTS=30
+          until docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} exec -T db pg_isready -U {{.POSTGRES_USER}} -d {{.POSTGRES_DB}} &>/dev/null; do
+            ATTEMPTS=$((ATTEMPTS + 1))
+            if [ $ATTEMPTS -ge $MAX_ATTEMPTS ]; then
+              echo -e "\033[0;31m❌ Dev база не готова после ${MAX_ATTEMPTS} попыток\033[0m"
+              exit 1
+            fi
+            echo -e "\033[0;34m⏳ Попытка ${ATTEMPTS}/${MAX_ATTEMPTS}...\033[0m"
+            sleep 1
+          done
+          echo -e "\033[0;32m✅ Dev база готова (попыток: ${ATTEMPTS})\033[0m"
         else
           echo -e "\033[0;32m✅ Dev база уже запущена\033[0m"
         fi
@@ -103,7 +127,7 @@ tasks:
           echo "-- empty" > {{.DUMP_FILE}}
         fi
 
-  test-down:
+  down:
     desc: Остановить тестовое окружение
     cmds:
       - |
@@ -111,9 +135,9 @@ tasks:
         docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} down -v
         echo -e "\033[0;32m✅ Остановлено\033[0m"
 
-  test-clean:
+  clean:
     desc: Полная очистка тестового окружения
-    deps: [test-down]
+    deps: [down]
     cmds:
       - |
         echo -e "\033[0;31m🧹 Удаление томов и дампа...\033[0m"
@@ -121,25 +145,49 @@ tasks:
         rm -f {{.DUMP_FILE}}
         echo -e "\033[0;32m✅ Очищено\033[0m"
 
-  test-init:
+  add-bot:
+    desc: Добавить тестового бота в тестовую базу
+    cmds:
+      - |
+        echo -e "\033[0;34m🤖 Добавление тестового бота в тестовую базу...\033[0m"
+        if ! docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps db 2>/dev/null | grep -q "Up"; then
+          echo -e "\033[0;31m❌ Тестовая база не запущена! Сначала выполните test-up\033[0m"
+          exit 1
+        fi
+        
+        docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} exec -T db \
+          psql -U {{.TEST_DB_USER}} -d {{.TEST_DB_NAME}} \
+          -c "INSERT INTO tg_bot_bot (name, username, token, chat_id, bot_type, is_enabled, created_at, updated_at, docker_instance_name) VALUES ('Test Tgbot', 'tgbot', 'test_token_12345', '9999999', 'ParserBot', true, NOW(), NOW(), 'tgbot_instance') ON CONFLICT (username) DO UPDATE SET is_enabled = true, chat_id = '9999999', updated_at = NOW(); SELECT * FROM tg_bot_bot WHERE username = 'tgbot';"
+        echo -e "\033[0;32m✅ Бот добавлен\033[0m"
+
+  init:
     desc: Полный цикл инициализации
-    deps: [test-clean]
+    deps: [clean]
     cmds:
       - |
         echo -e "\033[0;34m🚀 Инициализация тестового окружения...\033[0m"
         echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
         echo ""
-        echo -e "\033[0;33m📋 Этап 1/2: Снятие дампа с dev базы\033[0m"
-      - task: test-dump
+        echo -e "\033[0;33m📋 Этап 1/3: Снятие дампа с dev базы\033[0m"
+      - task: dump
       - |
         echo ""
-        echo -e "\033[0;33m📋 Этап 2/2: Запуск тестового окружения\033[0m"
-      - task: test-up
+        echo -e "\033[0;33m📋 Этап 2/3: Запуск тестового окружения\033[0m"
+      - task: up
       - |
         echo ""
-        echo -e "\033[0;32m✅ Готово!\033[0m"
+        echo -e "\033[0;33m📋 Этап 3/3: Добавление тестового бота\033[0m"
+      - task: add-bot
+      - |
+        echo ""
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[0;32m✅ Инициализация завершена!\033[0m"
+        echo -e "\033[0;34m📊 Проверка бота:\033[0m"
+        docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} exec -T db \
+          psql -U {{.TEST_DB_USER}} -d {{.TEST_DB_NAME}} \
+          -c "SELECT id, name, username, chat_id, bot_type, is_enabled FROM tg_bot_bot WHERE username = 'tgbot';"
 
-  test-status:
+  status:
     desc: Статус тестового окружения
     cmds:
       - |

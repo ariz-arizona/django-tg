@@ -4,7 +4,12 @@ x-labels: &app_labels
 
 services:
   web:
+    volumes:
+      - ./app:/app
+      - ./.env:/app/.env
+      - static_volume:/app/static
     environment:
+      - TESTING=true
       - POSTGRES_DB=${TEST_DB_NAME:-test_db}
       - POSTGRES_USER=${TEST_DB_USER:-test_user}
       - POSTGRES_PASSWORD=${TEST_DB_PASSWORD:-test_password}
@@ -35,8 +40,27 @@ services:
       - "16379:6379"  # Другой порт для тестового редиса
     <<: *app_labels
 
+  dozzle:
+    image: amir20/dozzle:latest
+    <<: *app_labels
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      DOZZLE_FILTER: label=project_name=${PROJECT_NAME:-djangotg}
+    ports:
+      - "${DOZZLE_PORT:-8001}:8080"
+    read_only: true
+
+  bot_processor_tarot:
+    environment:
+      INSTANCE_NAME: tarot
+      TESTING: true
+      TG_WEBHOOK_HOST: https://localhost
+      POSTGRES_DB: ${TEST_DB_NAME:-test_db}
+      POSTGRES_USER: ${TEST_DB_USER:-test_user}
+      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:-test_password}
+
   # Отключаем продовые сервисы
-  
   bot_processor_cardparser:
     profiles: ["disabled"]
   

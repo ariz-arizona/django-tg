@@ -1,6 +1,9 @@
 # Используем Python 3.10 в качестве базового образа
 FROM python:3.10-slim
 
+# Принимаем аргумент сборки
+ARG TESTING=false
+
 # Устанавливаем зависимости системы
 RUN apt-get update && apt-get install -y \
     libpq-dev gcc curl \
@@ -17,10 +20,17 @@ ENV PATH="/root/.local/bin:$PATH"
 WORKDIR /app
 
 # Копируем файлы Poetry
-COPY poetry.lock pyproject.toml /app/
+COPY pyproject.toml poetry.lock* /app/
 
-# Устанавливаем зависимости через Poetry
-RUN poetry config virtualenvs.create false && poetry install --no-root --no-interaction --no-ansi
+# Сначала устанавливаем основные зависимости
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-root --no-interaction --no-ansi --only main
+
+# Если TESTING=true, устанавливаем pytest отдельно
+RUN if [ "$TESTING" = "true" ]; then \
+        echo "Installing test dependencies..." && \
+        pip install pytest pytest-asyncio pytest-django pytest-mock httpx; \
+    fi
 
 # Копируем весь проект
 COPY . /app/
@@ -30,7 +40,6 @@ ENV PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=server.settings
 
 RUN poetry run python manage.py collectstatic --noinput --clear
-# RUN poetry run python manage.py migrate
 
 # Команда запуска приложения
 CMD ["gunicorn", "server.wsgi:application", "--bind", "0.0.0.0:8000"]

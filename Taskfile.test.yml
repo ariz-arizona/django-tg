@@ -16,6 +16,17 @@ vars:
   POSTGRES_DB: '{{.POSTGRES_DB | default "django_db"}}'
 
 tasks:
+  build:
+    desc: Собрать Docker образ
+    cmds:
+      - |
+        echo -e "\033[0;34m🏗️  Сборка Docker образа...\033[0m"
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} build \
+          --build-arg TESTING=true \
+          web bot_processor_tarot
+        echo -e "\033[0;32m✅ Образ собран с флагом TESTING=true\033[0m"
+
   up:
     desc: Запустить тестовое окружение с загрузкой данных
     cmds:
@@ -42,7 +53,7 @@ tasks:
         echo -e "\033[0;32m✅ База данных готова (попыток: ${ATTEMPTS})\033[0m"
         
         echo -e "\033[0;33m🔄 Шаг 2/3: Применение миграций Django...\033[0m"
-        docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} run --build --rm web poetry run python manage.py migrate
+        docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} run --rm web poetry run python manage.py migrate
         echo -e "\033[0;32m✅ Миграции применены\033[0m"
         
         echo -e "\033[0;33m📥 Шаг 3/3: Загрузка тестовых данных...\033[0m"
@@ -157,8 +168,31 @@ tasks:
         
         docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} exec -T db \
           psql -U {{.TEST_DB_USER}} -d {{.TEST_DB_NAME}} \
-          -c "INSERT INTO tg_bot_bot (name, username, token, chat_id, bot_type, is_enabled, created_at, updated_at, docker_instance_name) VALUES ('Test Tgbot', 'tgbot', 'test_token_12345', '9999999', 'ParserBot', true, NOW(), NOW(), 'tgbot_instance') ON CONFLICT (username) DO UPDATE SET is_enabled = true, chat_id = '9999999', updated_at = NOW(); SELECT * FROM tg_bot_bot WHERE username = 'tgbot';"
+          -c "INSERT INTO tg_bot_bot (name, username, token, chat_id, bot_type, is_enabled, created_at, updated_at, docker_instance_name) VALUES ('Test Tgbot', 'tgbot', 'test_token_12345', '9999999', 'TarotBot', true, NOW(), NOW(), 'tarot') ON CONFLICT (username) DO UPDATE SET is_enabled = true, chat_id = '9999999', updated_at = NOW(); SELECT * FROM tg_bot_bot WHERE username = 'tgbot';"
         echo -e "\033[0;32m✅ Бот добавлен\033[0m"
+
+  start-bot-processor:
+    desc: Запустить bot_processor_tarot
+    cmds:
+      - |
+        echo -e "\033[0;34m🚀 Запуск bot_processor_tarot...\033[0m"
+        if ! docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps db 2>/dev/null | grep -q "Up"; then
+          echo -e "\033[0;31m❌ Тестовая база не запущена!\033[0m"
+          exit 1
+        fi
+        
+        docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} up -d bot_processor_tarot
+        
+        echo -e "\033[0;34m⏳ Ожидание запуска бота...\033[0m"
+        sleep 3
+        
+        if docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps bot_processor_tarot 2>/dev/null | grep -q "Up"; then
+          echo -e "\033[0;32m✅ bot_processor_tarot запущен\033[0m"
+        else
+          echo -e "\033[0;31m❌ Ошибка запуска bot_processor_tarot\033[0m"
+          docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} logs bot_processor_tarot
+          exit 1
+        fi
 
   init:
     desc: Полный цикл инициализации
@@ -168,16 +202,24 @@ tasks:
         echo -e "\033[0;34m🚀 Инициализация тестового окружения...\033[0m"
         echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
         echo ""
-        echo -e "\033[0;33m📋 Этап 1/3: Снятие дампа с dev базы\033[0m"
+        echo -e "\033[0;33m📋 Этап 1/5: Сборка Docker образа с флагом тестирования\033[0m"
+      - task: build
+      - |
+        echo ""
+        echo -e "\033[0;33m📋 Этап 2/5: Снятие дампа с dev базы\033[0m"
       - task: dump
       - |
         echo ""
-        echo -e "\033[0;33m📋 Этап 2/3: Запуск тестового окружения\033[0m"
+        echo -e "\033[0;33m📋 Этап 3/5: Запуск тестового окружения\033[0m"
       - task: up
       - |
         echo ""
-        echo -e "\033[0;33m📋 Этап 3/3: Добавление тестового бота\033[0m"
+        echo -e "\033[0;33m📋 Этап 4/5: Добавление тестового бота\033[0m"
       - task: add-bot
+      - |
+        echo ""
+        echo -e "\033[0;33m📋 Этап 5/5: Запуск bot_processor_tarot\033[0m"
+      - task: start-bot-processor
       - |
         echo ""
         echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
@@ -193,3 +235,34 @@ tasks:
       - |
         echo -e "\033[0;34m📊 Статус тестового окружения:\033[0m"
         docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps 2>/dev/null || echo -e "\033[0;33mНе запущено\033[0m"
+
+  test-all:
+    desc: Запустить все тесты
+    cmds:
+      - |
+        echo -e "\033[0;34m🧪 Запуск всех тестов...\033[0m"
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        
+        echo -e "\033[0;33m📋 Проверка окружения...\033[0m"
+        if ! docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps web 2>/dev/null | grep -q "Up"; then
+          echo -e "\033[0;31m❌ Веб-сервер не запущен! Сначала выполните: task up\033[0m"
+          exit 1
+        fi
+        
+        if ! docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps db 2>/dev/null | grep -q "Up"; then
+          echo -e "\033[0;31m❌ База данных не запущена!\033[0m"
+          exit 1
+        fi
+        
+        echo -e "\033[0;32m✅ Окружение готово\033[0m"
+        echo -e "\033[0;33m🚀 Запуск pytest...\033[0m"
+        echo ""
+        
+        docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} exec -T web \
+          poetry run pytest tests/ -v -s \
+          --tb=short \
+          --color=yes
+        
+        echo ""
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[0;32m✅ Все тесты завершены\033[0m"

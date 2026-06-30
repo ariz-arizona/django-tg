@@ -256,16 +256,9 @@ class TarotBot(AbstractBot):
 
         if card_ids_found:
             card_ids = [int(c) % 78 for c in card_ids_found[0].split("_")]
-            target_count = options["counter"]
-
-            if len(card_ids) < target_count:
-                temp_id = card_ids[-1]
-                for _ in range(len(card_ids), target_count):
-                    temp_id = (temp_id + 1) % 78
-                    card_ids.append(temp_id)
-
-            options["card_ids"] = card_ids[:target_count]
-            logger.info(f"Парсинг ID карт: card_ids={options['card_ids']}")
+            
+            options["card_ids"] = card_ids  # Берём ровно то, что запросили
+            logger.info(f"Парсинг ID карт: запрошено={len(card_ids)}, card_ids={options['card_ids']}")
 
             # Вырезаем блок кастомных ID (например, c12_15_23)
             clean_text = re.sub(r"[cC]\d+(?:_\d+)*", "", clean_text)

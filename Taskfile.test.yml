@@ -236,6 +236,40 @@ tasks:
         echo -e "\033[0;34m📊 Статус тестового окружения:\033[0m"
         docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps 2>/dev/null || echo -e "\033[0;33mНе запущено\033[0m"
 
+  rebuild-services:
+    desc: Пересобрать и перезапустить web и bot_processor_tarot
+    cmds:
+      - |
+        echo -e "\033[0;34m🏗️  Полный цикл: опустить → собрать → поднять\033[0m"
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        
+        echo -e "\033[0;33m📋 Проверка окружения...\033[0m"
+        if ! docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps db 2>/dev/null | grep -q "Up"; then
+          echo -e "\033[0;31m❌ База данных не запущена! Сначала выполните: task up\033[0m"
+          exit 1
+        fi
+        
+        echo -e "\033[0;33m⬇️  Шаг 1/3: Опустить (остановка)...\033[0m"
+        docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} stop web bot_processor_tarot
+        echo -e "\033[0;32m✅ Сервисы опущены\033[0m"
+        
+        echo -e "\033[0;33m🏗️  Шаг 2/3: Собрать (пересборка)...\033[0m"
+        docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} build web bot_processor_tarot --build-arg TESTING=true
+        echo -e "\033[0;32m✅ Образы собраны\033[0m"
+        
+        echo -e "\033[0;33m⬆️  Шаг 3/3: Поднять (запуск)...\033[0m"
+        docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} up -d web bot_processor_tarot
+        
+        echo -e "\033[0;34m⏳ Ожидание готовности...\033[0m"
+        sleep 3
+        
+        echo -e "\033[0;34m📊 Статус сервисов:\033[0m"
+        docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps web bot_processor_tarot
+        
+        echo ""
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[0;32m✅ Цикл завершён: сервисы пересобраны и запущены\033[0m"
+
   test-all:
     desc: Запустить все тесты
     cmds:

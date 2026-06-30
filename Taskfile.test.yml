@@ -266,3 +266,123 @@ tasks:
         echo ""
         echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
         echo -e "\033[0;32m✅ Все тесты завершены\033[0m"
+
+  test-file:
+    desc: Запустить тесты из конкретного файла (FILE=test_card.py)
+    cmds:
+      - |
+        if [ -z "{{.FILE}}" ]; then
+          echo -e "\033[0;31m❌ Укажите файл: task test-file FILE=test_card.py\033[0m"
+          echo -e "\033[0;33m📂 Доступные файлы:\033[0m"
+          ls -1 tests/test_*.py 2>/dev/null | while read f; do
+            echo "   • $(basename $f)"
+          done
+          exit 1
+        fi
+        
+        FILE_PATH="tests/{{.FILE}}"
+        
+        if [ ! -f "$FILE_PATH" ]; then
+          echo -e "\033[0;31m❌ Файл не найден: $FILE_PATH\033[0m"
+          echo -e "\033[0;33m📂 Доступные файлы:\033[0m"
+          ls -1 tests/test_*.py 2>/dev/null | while read f; do
+            echo "   • $(basename $f)"
+          done
+          exit 1
+        fi
+        
+        echo -e "\033[0;34m🧪 Запуск тестов из файла: {{.FILE}}\033[0m"
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        
+        echo -e "\033[0;33m📋 Проверка окружения...\033[0m"
+        if ! docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps web 2>/dev/null | grep -q "Up"; then
+          echo -e "\033[0;31m❌ Веб-сервер не запущен! Сначала выполните: task up\033[0m"
+          exit 1
+        fi
+        
+        if ! docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps db 2>/dev/null | grep -q "Up"; then
+          echo -e "\033[0;31m❌ База данных не запущена!\033[0m"
+          exit 1
+        fi
+        
+        echo -e "\033[0;32m✅ Окружение готово\033[0m"
+        echo -e "\033[0;33m🚀 Запуск pytest для {{.FILE}}...\033[0m"
+        echo ""
+        
+        docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} exec -T web \
+          poetry run pytest "$FILE_PATH" -v -s \
+          --tb=short \
+          --color=yes
+        
+        echo ""
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[0;32m✅ Тесты из {{.FILE}} завершены\033[0m"
+
+  test-k:
+    desc: Запустить тесты по ключевому слову (K=card)
+    cmds:
+      - |
+        if [ -z "{{.K}}" ]; then
+          echo -e "\033[0;31m❌ Укажите ключевое слово: task test-k K=card\033[0m"
+          exit 1
+        fi
+        
+        echo -e "\033[0;34m🧪 Запуск тестов по ключевому слову: {{.K}}\033[0m"
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        
+        echo -e "\033[0;33m📋 Проверка окружения...\033[0m"
+        if ! docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps web 2>/dev/null | grep -q "Up"; then
+          echo -e "\033[0;31m❌ Веб-сервер не запущен! Сначала выполните: task up\033[0m"
+          exit 1
+        fi
+        
+        if ! docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps db 2>/dev/null | grep -q "Up"; then
+          echo -e "\033[0;31m❌ База данных не запущена!\033[0m"
+          exit 1
+        fi
+        
+        echo -e "\033[0;32m✅ Окружение готово\033[0m"
+        echo -e "\033[0;33m🚀 Запуск pytest с фильтром -k {{.K}}...\033[0m"
+        echo ""
+        
+        docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} exec -T web \
+          poetry run pytest tests/ -v -s \
+          -k "{{.K}}" \
+          --tb=short \
+          --color=yes
+        
+        echo ""
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[0;32m✅ Тесты по фильтру '{{.K}}' завершены\033[0m"
+
+  test-lf:
+    desc: Запустить только упавшие тесты (last failed)
+    cmds:
+      - |
+        echo -e "\033[0;34m🧪 Повторный запуск упавших тестов...\033[0m"
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        
+        echo -e "\033[0;33m📋 Проверка окружения...\033[0m"
+        if ! docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps web 2>/dev/null | grep -q "Up"; then
+          echo -e "\033[0;31m❌ Веб-сервер не запущен! Сначала выполните: task up\033[0m"
+          exit 1
+        fi
+        
+        if ! docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} ps db 2>/dev/null | grep -q "Up"; then
+          echo -e "\033[0;31m❌ База данных не запущена!\033[0m"
+          exit 1
+        fi
+        
+        echo -e "\033[0;32m✅ Окружение готово\033[0m"
+        echo -e "\033[0;33m🚀 Запуск pytest --lf...\033[0m"
+        echo ""
+        
+        docker compose {{.COMPOSE_TEST_FILES}} -p {{.TEST_PROJECT}} exec -T web \
+          poetry run pytest tests/ -v -s \
+          --lf \
+          --tb=short \
+          --color=yes
+        
+        echo ""
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[0;32m✅ Повтор упавших тестов завершён\033[0m"

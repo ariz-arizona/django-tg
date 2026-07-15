@@ -189,8 +189,11 @@ class CardMessages(Messages):
     def format_description(self, deck_name: str, cards_description: List[str], 
                           stats_str: Optional[str] = None, 
                           try_all_str: Optional[str] = None,
-                          deck_description: Optional[str] = None) -> str:
+                          deck_description: Optional[str] = None,
+                          deck_link: Optional[str] = None) -> str:
         deck_str = escape(deck_name or "Стандартная колода")
+        if deck_link:
+            deck_str = f'<a href="{escape(deck_link)}">{deck_str}</a>'
         lines = [self.DECK_TITLE.format(deck_name=deck_str)]
         
         # Описание колоды, если есть

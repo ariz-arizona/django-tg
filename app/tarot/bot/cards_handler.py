@@ -565,6 +565,7 @@ class CardsHandler:
                 
             text = [self.messages.format_description(
                 deck_name=current_deck.name,
+                deck_link=current_deck.link,
                 cards_description=cards_description,
                 stats_str=stats_str,
                 try_all_str=try_all_str
@@ -623,6 +624,7 @@ class CardsHandler:
             
             text = [self.messages.format_description(
                 deck_name=current_deck.name,
+                deck_link=current_deck.link,
                 deck_description=current_deck.description, 
                 cards_description=card_names,
                 stats_str=stats_str

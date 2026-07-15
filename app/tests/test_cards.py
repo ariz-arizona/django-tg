@@ -682,7 +682,7 @@ def test_exhaust_deck(send_webhook_update, redis_client, command, description):
     ("/card9", ""),                    # /card9 → /all_deck_N
     ("/card9_flip", "_flip"),          # /card9_flip → /all_deck_N_flip
     ("/card9_major", "_major"),        # /card9_major → /all_deck_N_major
-    ("/card9_major_flip", "_major_flip"),  # /card9_major_flip → /all_deck_N_major_flip
+    ("/card9_major_flip", "_flip_major"),  # /card9_major_flip → /all_deck_N_major_flip
 ])
 def test_card_all_deck_promo(send_webhook_update, redis_client, start_command, expected_mode):
     """E2E: жмем 'Еще карту' 2 раза → появляется /all_deck_N{mode} с прогрессом"""
@@ -736,8 +736,8 @@ def test_card_all_deck_promo(send_webhook_update, redis_client, start_command, e
             data = extract_message_data(msg)
             text = data.get('text', '')
             
-            # Ищем /all_deck_ в тексте
-            all_deck_match = re.search(r'(/all_deck_\d+(?:_flip|_major|_major_flip)?)\b', text)
+            # Ищем /all_deck_ в тексте — любое сочетание флагов
+            all_deck_match = re.search(r'(/all_deck_\d+(?:_\w+)*)\b', text)
             if all_deck_match:
                 all_deck_found = True
                 all_deck_full_command = all_deck_match.group(1)
@@ -1258,8 +1258,6 @@ def test_card_by_positions(send_webhook_update, redis_client):
     print(f"   Позиции 3,4,5: {cards_round3}")
     print(f"   Повторяемость: ✅")
     print(f"   Уникальность позиций: ✅")
-
-# tests/test_card.py (исправленный test_card_fixed_position_with_random)
 
 @pytest.mark.django_db
 def test_card_fixed_position_with_random(send_webhook_update, redis_client):

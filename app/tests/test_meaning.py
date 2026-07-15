@@ -6,7 +6,7 @@ import time
 import asyncio
 from django.test import Client
 from django.urls import reverse
-from tests.conftest import extract_message_data, sync_lrange
+from tests.conftest import extract_message_data, sync_lrange, extract_card_name
 
 
 def _find_button(inline_keyboard, text_substring):

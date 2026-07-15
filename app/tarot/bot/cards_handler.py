@@ -553,10 +553,14 @@ class CardsHandler:
             # Текст для больших раскладов
             try_all_str = None
             if current_count > 10:
-                flag = "_flip" if reading.is_flipped_allowed else ""
+                flag = ""
+                if reading.is_flipped_allowed:
+                    flag += "_flip"
+                if reading.is_major_only:
+                    flag += "_major"
                 try_all_str = self.messages.get_try_all_deck(
                     deck_id=current_deck.id,
-                    flip_flag=flag
+                    flag=flag
                 )
                 
             text = [self.messages.format_description(

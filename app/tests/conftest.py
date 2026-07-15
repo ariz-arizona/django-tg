@@ -1,4 +1,5 @@
 # tests/conftest.py
+import re
 import pytest
 import os
 import json
@@ -49,7 +50,7 @@ class RedisLoggingHTTPXRequest(HTTPXRequest):
             json.dumps(request_info, ensure_ascii=False)
         )
         
-        logger.info(f"🔍 [Patched] {endpoint}: {json.dumps(json_data, ensure_ascii=False)[:300]}")
+        logger.info(f"🔍 [Patched] {endpoint}: {json.dumps(json_data, ensure_ascii=False)[:600]}")
         
         # Мок-ответ
         mock_response = self._get_mock_response(endpoint, json_data)
@@ -500,3 +501,18 @@ def get_card_names_from_response(redis_client, token, timeout=10):
         time.sleep(0.1)
     
     return []
+
+def extract_card_name(text):
+    """Извлекает каноническое имя карты из строки.
+    'Кастом (Оригинал)' → 'Оригинал'
+    'Шесть Мечей • Шесть лебедей (Шестерка Мечей)' → 'Шестерка Мечей'
+    'Просто Имя' → 'Просто Имя'
+    """
+    text = text.strip()
+    # Убираем HTML-теги если есть
+    text = re.sub(r'<[^>]+>', '', text)
+    # Берём то что в скобках, если есть
+    match = re.search(r'\(([^)]+)\)', text)
+    if match:
+        return match.group(1).strip()
+    return text

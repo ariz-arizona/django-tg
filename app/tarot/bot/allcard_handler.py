@@ -267,7 +267,6 @@ class AllCardHandler:
             reading.card_ids = [{"id": str(c["card_id"]), "flip": c["flipped"]} for c in cards]
             await reading.asave(update_fields=['text', 'deck_id', 'card_ids'])
             
-            
             # 3. Отправка
             original_card = cards[0]["card_instance"]
             card = await TarotCardItem.objects.select_related('tarot_card', 'deck').aget(id=original_card.id)

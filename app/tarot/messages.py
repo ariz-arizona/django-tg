@@ -81,7 +81,7 @@ class CardMessages(Messages):
     
     TRY_ALL_DECK = (
         "💡 <b>Большие расклады удобнее смотреть в режиме «Вся колода»: </b>\n"
-        "/all_deck_{deck_id}{flip_flag}"
+        "/all_deck_{deck_id}{flag}"
     )
     FAVORITE_COMMAND = "❤️ <b>Повторить расклад:</b> {command}"
     DECK_STATS = "<i>Всего в колоде: {current_count}/{total_cards}</i>"
@@ -112,8 +112,8 @@ class CardMessages(Messages):
     
     DECK_LIST_ITEM = "<i>{command}</i> — {deck_name}"
     
-    def get_try_all_deck(self, deck_id: str, flip_flag: str = "") -> str:
-        return self.TRY_ALL_DECK.format(deck_id=deck_id, flip_flag=flip_flag)
+    def get_try_all_deck(self, deck_id: str, flag: str = "") -> str:
+        return self.TRY_ALL_DECK.format(deck_id=deck_id, flag=flag)
     
     def get_favorite_command(self, command: str) -> str:
         return self.FAVORITE_COMMAND.format(command=command)

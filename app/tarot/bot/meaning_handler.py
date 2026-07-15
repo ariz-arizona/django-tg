@@ -353,6 +353,11 @@ class MeaningHandler:
         card_ids = [str(item.get("id")) for item in (reading.card_ids or [])]
 
         logger.info(f"Запуск трактовки для расклада {reading_id}, карт: {len(card_ids)}")
+        
+        if reading.count == reading.initial_count:
+            start_card = 0  # изначальный расклад — первая карта
+        else:
+            start_card = reading.count - 1  # добавляли карты — последняя
 
         # 1. Получаем текущую клавиатуру
         keyboard = query.message.reply_markup.inline_keyboard
@@ -371,4 +376,4 @@ class MeaningHandler:
             await query.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(new_keyboard))
 
         # Запускаем пагинацию с 0-й карты
-        await self.send_paginated_text(update, reading_id, 0, "base", 1)
+        await self.send_paginated_text(update, reading_id, start_card, "base", 1)

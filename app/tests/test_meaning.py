@@ -183,7 +183,6 @@ def test_meaning_flow(send_webhook_update, redis_client):
     assert response.status_code == 200
     print("✅ Апдейт /card отправлен\n")
 
-    # Собираем сообщения: ждём финальное с кнопками
     all_messages = _collect_messages(
         redis_client, redis_key,
         endpoints=['sendMessage', 'sendMediaGroup', 'deleteMessage'],
@@ -208,10 +207,7 @@ def test_meaning_flow(send_webhook_update, redis_client):
     assert media_msg is not None, "Нет сообщения с картинкой!"
 
     text_1 = final_msg.get('text', '')
-
-    # Карты из текста (основной источник — там полный список)
     cards_from_text = _extract_cards_from_text(text_1)
-    # Карты из media (доп. проверка — там только новые карты)
     cards_from_media = _extract_cards_from_media(media_msg)
 
     print(f"   Карты из текста: {cards_from_text}")
@@ -225,18 +221,17 @@ def test_meaning_flow(send_webhook_update, redis_client):
     buttons_1 = [b.get('text', '') for row in inline_keyboard_1 for b in row]
     print(f"🔘 Кнопки (1 карта): {buttons_1}")
 
-    traktovka_btn_1 = _find_button(inline_keyboard_1, 'Трактовка')
-    assert traktovka_btn_1 is not None, "Нет кнопки Трактовка!"
-    assert '(1)' in traktovka_btn_1.get('text', ''), \
-        f"Кнопка трактовки должна содержать (1), а не: {traktovka_btn_1.get('text')}"
-    print(f"✅ Кнопка Трактовка найдена: {traktovka_btn_1.get('text')}")
+    meaning_btn = _find_button(inline_keyboard_1, 'Трактовка')
+    assert meaning_btn is not None, "Нет кнопки Трактовка!"
+    assert '(1)' in meaning_btn.get('text', ''), \
+        f"Кнопка трактовки должна содержать (1), а не: {meaning_btn.get('text')}"
+    print(f"✅ Кнопка Трактовка найдена: {meaning_btn.get('text')}")
 
     more_btn = _find_button(inline_keyboard_1, 'Еще карту')
     assert more_btn is not None, "Нет кнопки 'Еще карту'!"
     more_callback = more_btn.get('callback_data')
     print(f"✅ Кнопка 'Еще карту' найдена, callback: {more_callback[:30]}...")
 
-    # Получаем актуальный message_id для следующего шага
     last_message_id = _get_message_id_from_reply_markup(all_messages) or 700
     print(f"📌 Актуальный message_id: {last_message_id}")
 
@@ -253,7 +248,6 @@ def test_meaning_flow(send_webhook_update, redis_client):
     assert response.status_code == 200
     print(f"✅ Callback 'Еще карту' отправлен (msg_id={last_message_id})\n")
 
-    # На шаге 2 ожидаем: sendMediaGroup + sendMessage (с кнопками)
     all_messages_2 = _collect_messages(
         redis_client, redis_key,
         endpoints=['sendMessage', 'sendMediaGroup', 'deleteMessage'],
@@ -273,7 +267,7 @@ def test_meaning_flow(send_webhook_update, redis_client):
     if delete_msgs:
         print(f"✅ Старое сообщение удалено ({len(delete_msgs)} deleteMessage)")
     else:
-        print("ℹ️ deleteMessage не пришёл (возможно, старое сообщение остаётся или удаляется иначе)")
+        print("ℹ️ deleteMessage не пришёл")
 
     final_msg_2 = None
     media_msg_2 = None
@@ -291,64 +285,54 @@ def test_meaning_flow(send_webhook_update, redis_client):
     buttons_2 = [b.get('text', '') for row in inline_keyboard_2 for b in row]
     print(f"\n🔘 Кнопки (2 карты): {buttons_2}")
 
-    traktovka_btn_2 = _find_button(inline_keyboard_2, 'Трактовка')
-    assert traktovka_btn_2 is not None, "Нет кнопки Трактовка после 'Еще карту'!"
-    assert '(2)' in traktovka_btn_2.get('text', ''), \
-        f"Кнопка трактовки должна содержать (2), а не: {traktovka_btn_2.get('text')}"
-    print(f"✅ Кнопка Трактовка обновлена: {traktovka_btn_2.get('text')}")
+    meaning_btn = _find_button(inline_keyboard_2, 'Трактовка')
+    assert meaning_btn is not None, "Нет кнопки Трактовка после 'Еще карту'!"
+    assert '(2)' in meaning_btn.get('text', ''), \
+        f"Кнопка трактовки должна содержать (2), а не: {meaning_btn.get('text')}"
+    print(f"✅ Кнопка Трактовка обновлена: {meaning_btn.get('text')}")
 
-    meaning_callback = traktovka_btn_2.get('callback_data')
+    meaning_callback = meaning_btn.get('callback_data')
     print(f"✅ Callback трактовки: {meaning_callback[:40]}...")
 
     text_2 = final_msg_2.get('text', '')
-
-    # Собираем карты ИЗ ТЕКСТА (там полный список • Имя карты)
     cards_from_text = _extract_cards_from_text(text_2)
     cards_from_media = _extract_cards_from_media(media_msg_2)
 
     print(f"   Карты из текста: {cards_from_text}")
     print(f"   Карты из media:  {cards_from_media}")
 
-    # Основной список карт — из текста (там полный список всех карт)
     all_cards = cards_from_text
-
     assert len(all_cards) == 2, \
         f"Ожидалось 2 карты, нашли: {all_cards}\nТекст сообщения:\n{text_2[:500]}"
     print(f"\n🃏 Карты в раскладе: {all_cards}")
 
-    # Обновляем message_id для следующего шага
     last_message_id = _get_message_id_from_reply_markup(all_messages_2) or last_message_id
     print(f"📌 Актуальный message_id: {last_message_id}")
 
     # ═══════════════════════════════════════════
-    # ШАГ 3: Жмём "Трактовка карт (2)"
+    # ШАГ 3: Жмём "Трактовка карт (2)" → последняя карта
     # ═══════════════════════════════════════════
     print("\n" + "═" * 50)
-    print("ШАГ 3: Нажимаем 'Трактовка карт (2)' → проверяем меню")
+    print("ШАГ 3: Нажимаем 'Трактовка карт (2)' → последняя карта")
     print("═" * 50)
 
     loop.run_until_complete(redis_client.delete(redis_key))
 
-    # Важно: передаём текущую reply_markup, чтобы бот мог её прочитать
-    # Это имитирует реальное поведение Telegram
     response = _send_callback(
         client, webhook_url, user_id, last_message_id, meaning_callback, 702,
-        reply_markup=final_msg_2.get('reply_markup')  # ← клавиатура с кнопкой "Трактовка (2)"
+        reply_markup=final_msg_2.get('reply_markup')
     )
     assert response.status_code == 200
     print(f"✅ Callback 'Трактовка' отправлен (msg_id={last_message_id})\n")
 
-    # Собираем сообщения — ждём editMessageReplyMarkup (убрали кнопку) + текст трактовки
     all_messages_3 = _collect_messages(
         redis_client, redis_key,
         endpoints=['sendMessage', 'editMessageText', 'editMessageReplyMarkup', 'answerCallbackQuery'],
         stop_condition=lambda msgs: (
-            # Должен быть editMessageReplyMarkup (убрали кнопку Трактовка)
             any(m.get('endpoint') == 'editMessageReplyMarkup' for m in msgs)
             and
-            # И сообщение с reply_markup (текст трактовки с кнопками навигации)
             any(
-                'reply_markup' in extract_message_data(m) 
+                'reply_markup' in extract_message_data(m)
                 and m.get('endpoint') in ['sendMessage', 'editMessageText']
                 for m in msgs
             )
@@ -361,7 +345,6 @@ def test_meaning_flow(send_webhook_update, redis_client):
     print(f"\n📊 Получено сообщений на шаге 3: {len(all_messages_3)}")
     assert len(all_messages_3) > 0, "Нет сообщений после нажатия Трактовки!"
 
-    # Проверяем, что старая клавиатура отредактирована (кнопка Трактовка убрана)
     edit_markup_msgs = [m for m in all_messages_3 if m.get('endpoint') == 'editMessageReplyMarkup']
     assert len(edit_markup_msgs) > 0, "Старая клавиатура не отредактирована при открытии трактовки!"
     print(f"✅ editMessageReplyMarkup найден ({len(edit_markup_msgs)} шт.)")
@@ -374,18 +357,15 @@ def test_meaning_flow(send_webhook_update, redis_client):
             f"Кнопка Трактовка не убрана из старого сообщения! Кнопки: {flat}"
     print("✅ Кнопка Трактовка убрана из старого сообщения!")
 
-    # Находим сообщение с текстом трактовки
     meaning_msg = None
     for msg in all_messages_3:
         data = extract_message_data(msg)
         if 'reply_markup' in data and msg.get('endpoint') in ['sendMessage', 'editMessageText']:
             text = data.get('text', '')
-            # Проверяем что это трактовка (есть <b> или стр)
             if '<b>' in text or 'стр' in text:
                 meaning_msg = data
                 break
 
-    # Fallback — любое с reply_markup
     if meaning_msg is None:
         for msg in all_messages_3:
             data = extract_message_data(msg)
@@ -393,10 +373,7 @@ def test_meaning_flow(send_webhook_update, redis_client):
                 meaning_msg = data
                 break
 
-    assert meaning_msg is not None, (
-        f"Нет сообщения с reply_markup после Трактовки!\n"
-        f"Все сообщения: {[(m.get('endpoint'), extract_message_data(m).get('text', '')[:60]) for m in all_messages_3]}"
-    )
+    assert meaning_msg is not None, "Нет сообщения с reply_markup после Трактовки!"
 
     meaning_text = meaning_msg.get('text', '')
     meaning_keyboard = meaning_msg.get('reply_markup', {}).get('inline_keyboard', [])
@@ -404,21 +381,19 @@ def test_meaning_flow(send_webhook_update, redis_client):
     print(f"\n📝 Текст трактовки:\n{meaning_text[:300]}...")
     print(f"\n🔘 Кнопки трактовки ({len(meaning_keyboard)} рядов):")
 
-    # Проверка: первая строка текста = первая карта из списка
+    # После "Еще карту" трактовка должна показывать ПОСЛЕДНЮЮ карту
     first_line = meaning_text.strip().split('\n')[0] if meaning_text else ''
     print(f"\n🔍 Первая строка текста: '{first_line}'")
-    print(f"🔍 Первая карта в списке: '{all_cards[0]}'")
+    print(f"🔍 Последняя карта в списке: '{all_cards[-1]}'")
 
-    assert all_cards[0] in first_line, \
-        f"Первая строка трактовки должна содержать '{all_cards[0]}', а содержит: '{first_line}'"
-    print(f"✅ Первая строка совпадает с первой картой!")
+    assert all_cards[-1] in first_line, \
+        f"Первая строка трактовки должна содержать последнюю карту '{all_cards[-1]}', а содержит: '{first_line}'"
+    print(f"✅ Первая строка совпадает с последней картой!")
 
-    # Проверяем HTML-форматирование
     assert '<b>' in meaning_text and '</b>' in meaning_text, "Нет жирного выделения имени карты!"
     assert 'стр' in meaning_text, "Нет указания страницы!"
     print("✅ HTML-форматирование и пагинация присутствуют!")
 
-    # Проверяем три ряда кнопок
     assert len(meaning_keyboard) == 3, \
         f"Ожидалось 3 ряда кнопок, получено: {len(meaning_keyboard)}"
     print(f"✅ Три ряда кнопок подтверждены!")
@@ -429,12 +404,10 @@ def test_meaning_flow(send_webhook_update, redis_client):
         print(f"   Ряд {i+1}: {row_texts}")
         print(f"           callbacks: {[c[:50] + '...' if len(c) > 50 else c for c in row_callbacks]}")
 
-    # Проверяем структуру каждого ряда
     assert len(meaning_keyboard[0]) == 2, f"Ряд 1 должен иметь 2 кнопки, а не {len(meaning_keyboard[0])}"
     assert len(meaning_keyboard[1]) == 2, f"Ряд 2 должен иметь 2 кнопки, а не {len(meaning_keyboard[1])}"
     assert len(meaning_keyboard[2]) == 3, f"Ряд 3 должен иметь 3 кнопки, а не {len(meaning_keyboard[2])}"
 
-    # Проверяем центральную кнопку пагинации (должна быть "X / Y" с ignore)
     center_btn = meaning_keyboard[2][1]
     center_text = center_btn.get('text', '')
     center_callback = center_btn.get('callback_data', '')
@@ -444,12 +417,11 @@ def test_meaning_flow(send_webhook_update, redis_client):
         f"Центральная кнопка должна иметь callback 'meaning_ignore', а не '{center_callback}'"
     print(f"✅ Центральная кнопка пагинации: '{center_text}' → ignore")
 
-    # Обновляем message_id для шага 4
     last_message_id = _get_message_id_from_reply_markup(all_messages_3) or last_message_id
     print(f"📌 Актуальный message_id для навигации: {last_message_id}")
 
     # ═══════════════════════════════════════════
-    # ШАГ 4: Жмём вторую кнопку первого ряда до ignore (вперёд по картам)
+    # ШАГ 4: Жмём вторую кнопку первого ряда до ignore
     # ═══════════════════════════════════════════
     print("\n" + "═" * 50)
     print("ШАГ 4: Жмём вторую кнопку первого ряда до ignore-колбека")
@@ -471,7 +443,10 @@ def test_meaning_flow(send_webhook_update, redis_client):
 
         loop.run_until_complete(redis_client.delete(redis_key))
 
-        response = _send_callback(client, webhook_url, user_id, last_message_id, current_callback, 702 + click_count)
+        response = _send_callback(
+            client, webhook_url, user_id, last_message_id, current_callback, 702 + click_count,
+            reply_markup=meaning_keyboard
+        )
         assert response.status_code == 200
 
         time.sleep(0.8)
@@ -496,7 +471,6 @@ def test_meaning_flow(send_webhook_update, redis_client):
                     new_btn_text = kb[0][1].get('text', '')
                     print(f"   🔘 Клик #{click_count}: карта '{new_text[:40]}...' → кнопка '{new_btn_text}'")
 
-        # Проверяем, что текст изменился (перешли на другую карту)
         if new_text and new_text != last_text:
             new_first_line = new_text.strip().split('\n')[0] if new_text else ''
             old_first_line = last_text.strip().split('\n')[0] if last_text else ''
@@ -523,10 +497,9 @@ def test_meaning_flow(send_webhook_update, redis_client):
     # ШАГ 5: Проверяем пагинацию страниц (3-й ряд)
     # ═══════════════════════════════════════════
     print("\n" + "═" * 50)
-    print("ШАГ 5: Проверяем пагинацию страниц (◀️ ▶️)")
+    print("ШАГ 5: Проверяем пагинацию страниц")
     print("═" * 50)
 
-    # Берём последнее состояние клавиатуры из цикла шага 4
     all_data = sync_lrange(redis_client, redis_key, 0, -1)
     edit_msgs = [json.loads(r) for r in all_data if json.loads(r).get('endpoint') == 'editMessageText']
     if edit_msgs:
@@ -559,7 +532,7 @@ def test_meaning_flow(send_webhook_update, redis_client):
     # ШАГ 6: Проверяем переключение типов трактовок (2-й ряд)
     # ═══════════════════════════════════════════
     print("\n" + "═" * 50)
-    print("ШАГ 6: Проверяем переключение типов трактовок (2-й ряд)")
+    print("ШАГ 6: Проверяем переключение типов трактовок")
     print("═" * 50)
 
     if edit_msgs:
@@ -626,16 +599,16 @@ def test_meaning_flow(send_webhook_update, redis_client):
     print("✅ ВСЕ ПРОВЕРКИ meaning_flow ПРОЙДЕНЫ!")
     print("═" * 50)
     print(f"   • /card → 1 карта, кнопка 'Трактовка (1)'")
-    print(f"   • 'Еще карту' → старое удалено, кнопка 'Трактовка (2)'")
-    print(f"   • 'Трактовка (2)' → текст начинается с '{all_cards[0]}'")
+    print(f"   • 'Еще карту' → 2 карты, кнопка 'Трактовка (2)'")
+    print(f"   • Трактовка после расширения → последняя карта: «{all_cards[-1]}»")
     print(f"   • HTML-форматирование и пагинация присутствуют")
     print(f"   • 3 ряда кнопок в меню трактовки")
     print(f"   • editMessageReplyMarkup убирает кнопку Трактовка")
     print(f"   • Вторая кнопка 1-го ряда → ignore за {click_count} кликов")
     print(f"   • Ряд типов трактовок корректен")
     print(f"   • Ряд пагинации корректен")
-    
-    
+
+
 @pytest.mark.django_db
 def test_meaning_last_card(send_webhook_update, redis_client):
     """E2E: Трактовка всегда показывает последнюю выпавшую карту"""

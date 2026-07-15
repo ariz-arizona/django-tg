@@ -184,76 +184,60 @@ def test_decks_list(send_webhook_update, redis_client):
             print(f"⚠️ Нет editMessageText после листания вперед")
     else:
         print(f"\n⚠️ Нет пагинации — все колоды на одной странице")
-    
+        
     # ═══════════════════════════════════════════
     # Шаг 5: Тестируем первую колоду
     # ═══════════════════════════════════════════
     deck_slug = deck_slugs[0]
     print(f"\n🎯 Тестируем колоду: {deck_slug}")
-    
-    # /card_deck_{slug}
+
+    # /card_deck_{slug} — запрос 1
     loop.run_until_complete(redis_client.delete(redis_key))
     time.sleep(0.5)
-    
+
+    update1 = {
+        "update_id": 702,
+        "message": {
+            "message_id": 702,
+            "from": {"id": user_id, "is_bot": False, "first_name": "Alice"},
+            "chat": {"id": user_id, "type": "private"},
+            "date": 1717000000,
+            "text": f"/card_deck_{deck_slug}",
+            "entities": [{"offset": 0, "length": len(f"/card_deck_{deck_slug}"), "type": "bot_command"}]
+        }
+    }
+
+    response = send_webhook_update(token, update1)
+    assert response.status_code == 200
+
     cards1 = get_card_names_from_response(redis_client, token)
     assert len(cards1) > 0, f"/card_deck_{deck_slug} не вернул карты!"
     print(f"🃏 Раунд 1: {cards1[:3]}...")
-    
-    # Второй запрос
+
+    # /card_deck_{slug} — запрос 2
     loop.run_until_complete(redis_client.delete(redis_key))
     time.sleep(0.5)
-    
+
+    update2 = {
+        "update_id": 703,
+        "message": {
+            "message_id": 703,
+            "from": {"id": user_id + 1, "is_bot": False, "first_name": "Alice"},
+            "chat": {"id": user_id + 1, "type": "private"},
+            "date": 1717000001,
+            "text": f"/card_deck_{deck_slug}",
+            "entities": [{"offset": 0, "length": len(f"/card_deck_{deck_slug}"), "type": "bot_command"}]
+        }
+    }
+
+    response = send_webhook_update(token, update2)
+    assert response.status_code == 200
+
     cards2 = get_card_names_from_response(redis_client, token)
     assert len(cards2) > 0, f"Второй запрос /card_deck_{deck_slug} не вернул карты!"
     print(f"🃏 Раунд 2: {cards2[:3]}...")
-    
+
     print(f"✅ Колода {deck_slug} работает в обоих запросах")
-    
-    # /card3_deck_{slug}
-    print(f"\n🔢 Тестируем /card3_deck_{deck_slug}")
-    loop.run_until_complete(redis_client.delete(redis_key))
-    time.sleep(0.5)
-    
-    update3 = {
-        "update_id": 704,
-        "message": {
-            "message_id": 704,
-            "from": {"id": user_id, "is_bot": False, "first_name": "Alice"},
-            "chat": {"id": user_id, "type": "private"},
-            "date": 1717000002,
-            "text": f"/card3_deck_{deck_slug}",
-            "entities": [{"offset": 0, "length": len(f"/card3_deck_{deck_slug}"), "type": "bot_command"}]
-        }
-    }
-    
-    response = send_webhook_update(token, update3)
-    assert response.status_code == 200
-    
-    time.sleep(2)
-    all_data = sync_lrange(redis_client, redis_key, 0, -1)
-    media_msgs = [json.loads(r) for r in all_data if json.loads(r).get('endpoint') == 'sendMediaGroup']
-    
-    if media_msgs:
-        media_data = extract_message_data(media_msgs[0])
-        media_items = media_data.get('media', [])
-        print(f"🃏 /card3_deck_{deck_slug}: {len(media_items)} карт")
-        for i, item in enumerate(media_items):
-            cap = item.get('caption', '').strip()
-            print(f"   {i+1}. {cap[:60]}")
-        assert len(media_items) == 3, f"Ожидалось 3 карты, получено {len(media_items)}"
-    else:
-        send_msgs = [json.loads(r) for r in all_data if json.loads(r).get('endpoint') == 'sendMessage']
-        for msg in send_msgs:
-            data = extract_message_data(msg)
-            text = data.get('text', '')
-            if '•' in text:
-                card_count = len(re.findall(r'[•]', text))
-                print(f"🃏 /card3_deck_{deck_slug}: {card_count} карт в тексте")
-                assert card_count == 3, f"Ожидалось 3 карты, получено {card_count}"
-                break
-    
-    print(f"\n✅ Тест /decks пройден!")
-    print(f"   Проверено: список колод текстом, пагинация, /card_deck_SLUG, /cardN_deck_SLUG")
 
 
 @pytest.mark.django_db

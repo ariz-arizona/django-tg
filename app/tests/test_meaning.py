@@ -634,3 +634,202 @@ def test_meaning_flow(send_webhook_update, redis_client):
     print(f"   • Вторая кнопка 1-го ряда → ignore за {click_count} кликов")
     print(f"   • Ряд типов трактовок корректен")
     print(f"   • Ряд пагинации корректен")
+    
+    
+@pytest.mark.django_db
+def test_meaning_last_card(send_webhook_update, redis_client):
+    """E2E: Трактовка всегда показывает последнюю выпавшую карту"""
+    
+    token = "test_token_12345"
+    user_id = 7101
+    redis_key = f"intercepted_requests:{token}"
+    loop = asyncio.get_event_loop()
+    client = Client()
+    webhook_url = reverse("webhook", kwargs={"token": token})
+    
+    # ═══════════════════════════════════════════
+    # ШАГ 1: /card3 → 3 карты
+    # ═══════════════════════════════════════════
+    print("\n" + "═" * 50)
+    print("ШАГ 1: /card3 → 3 карты")
+    print("═" * 50)
+    
+    loop.run_until_complete(redis_client.delete(redis_key))
+    
+    update = {
+        "update_id": 1000,
+        "message": {
+            "message_id": 1000,
+            "from": {"id": user_id, "is_bot": False, "first_name": "Alice"},
+            "chat": {"id": user_id, "type": "private"},
+            "date": 1717000000,
+            "text": "/card3",
+            "entities": [{"offset": 0, "length": 6, "type": "bot_command"}]
+        }
+    }
+    
+    response = send_webhook_update(token, update)
+    assert response.status_code == 200
+    print("✅ /card3 отправлен\n")
+    
+    all_messages_1 = _collect_messages(
+        redis_client, redis_key,
+        endpoints=['sendMessage', 'sendMediaGroup', 'deleteMessage'],
+        stop_condition=lambda msgs: _has_media_and_text(msgs)
+    )
+    
+    final_msg_1 = None
+    for msg in all_messages_1:
+        data = extract_message_data(msg)
+        if 'reply_markup' in data:
+            final_msg_1 = data
+    
+    assert final_msg_1 is not None, "Нет финального сообщения после /card3!"
+    
+    text_1 = final_msg_1.get('text', '')
+    cards = _extract_cards_from_text(text_1)
+    assert len(cards) == 3, f"Ожидалось 3 карты, получили: {cards}"
+    print(f"🃏 Карты: {cards}")
+    
+    keyboard_1 = final_msg_1.get('reply_markup', {}).get('inline_keyboard', [])
+    meaning_btn = _find_button(keyboard_1, 'Трактовка')
+    assert meaning_btn is not None, "Нет кнопки Трактовка!"
+    assert '(3)' in meaning_btn.get('text', ''), "Кнопка должна быть Трактовка (3)"
+    print(f"✅ Кнопка: {meaning_btn.get('text')}")
+    
+    last_message_id = _get_message_id_from_reply_markup(all_messages_1)
+    
+    # ═══════════════════════════════════════════
+    # ШАГ 2: Трактовка → первая карта
+    # ═══════════════════════════════════════════
+    print("\n" + "═" * 50)
+    print("ШАГ 2: Трактовка → первая карта")
+    print("═" * 50)
+    
+    loop.run_until_complete(redis_client.delete(redis_key))
+    
+    response = _send_callback(
+        client, webhook_url, user_id, last_message_id,
+        meaning_btn.get('callback_data'), 1001,
+        reply_markup=final_msg_1.get('reply_markup')
+    )
+    assert response.status_code == 200
+    
+    all_messages_2 = _collect_messages(
+        redis_client, redis_key,
+        endpoints=['sendMessage', 'editMessageText', 'editMessageReplyMarkup'],
+        stop_condition=lambda msgs: any(
+            'reply_markup' in extract_message_data(m)
+            and m.get('endpoint') in ['sendMessage', 'editMessageText']
+            and ('<b>' in extract_message_data(m).get('text', '') or 'стр' in extract_message_data(m).get('text', ''))
+            for m in msgs
+        )
+    )
+    
+    meaning_msg = None
+    for msg in all_messages_2:
+        data = extract_message_data(msg)
+        if 'reply_markup' in data and msg.get('endpoint') in ['sendMessage', 'editMessageText']:
+            meaning_msg = data
+            break
+    
+    assert meaning_msg is not None, "Нет сообщения с трактовкой!"
+    
+    first_line = meaning_msg.get('text', '').strip().split('\n')[0]
+    assert cards[0] in first_line, \
+        f"Трактовка должна начинаться с '{cards[0]}', а начинается с '{first_line}'"
+    print(f"✅ Трактовка: «{cards[0]}»")
+    
+    # ═══════════════════════════════════════════
+    # ШАГ 3: Еще карту → 4 карты
+    # ═══════════════════════════════════════════
+    print("\n" + "═" * 50)
+    print("ШАГ 3: Еще карту → 4 карты")
+    print("═" * 50)
+    
+    more_btn = _find_button(keyboard_1, 'Еще карту')
+    assert more_btn is not None, "Нет кнопки 'Еще карту'!"
+    
+    loop.run_until_complete(redis_client.delete(redis_key))
+    
+    response = _send_callback(
+        client, webhook_url, user_id, last_message_id,
+        more_btn.get('callback_data'), 1002,
+        reply_markup=final_msg_1.get('reply_markup')
+    )
+    assert response.status_code == 200
+    
+    all_messages_3 = _collect_messages(
+        redis_client, redis_key,
+        endpoints=['sendMessage', 'sendMediaGroup', 'deleteMessage'],
+        stop_condition=lambda msgs: _has_media_and_text(msgs)
+    )
+    
+    final_msg_3 = None
+    for msg in all_messages_3:
+        data = extract_message_data(msg)
+        if 'reply_markup' in data:
+            final_msg_3 = data
+    
+    assert final_msg_3 is not None, "Нет финального сообщения после 'Еще карту'!"
+    
+    text_3 = final_msg_3.get('text', '')
+    cards = _extract_cards_from_text(text_3)
+    assert len(cards) == 4, f"Ожидалось 4 карты, получили: {cards}"
+    print(f"🃏 Карты: {cards}")
+    
+    new_card = cards[-1]
+    print(f"🆕 Новая карта: «{new_card}»")
+    
+    keyboard_3 = final_msg_3.get('reply_markup', {}).get('inline_keyboard', [])
+    meaning_btn = _find_button(keyboard_3, 'Трактовка')
+    assert meaning_btn is not None, "Нет кнопки Трактовка!"
+    assert '(4)' in meaning_btn.get('text', ''), "Кнопка должна быть Трактовка (4)"
+    print(f"✅ Кнопка: {meaning_btn.get('text')}")
+    
+    last_message_id = _get_message_id_from_reply_markup(all_messages_3)
+    
+    # ═══════════════════════════════════════════
+    # ШАГ 4: Трактовка → последняя карта
+    # ═══════════════════════════════════════════
+    print("\n" + "═" * 50)
+    print(f"ШАГ 4: Трактовка → последняя карта «{new_card}»")
+    print("═" * 50)
+    
+    loop.run_until_complete(redis_client.delete(redis_key))
+    
+    response = _send_callback(
+        client, webhook_url, user_id, last_message_id,
+        meaning_btn.get('callback_data'), 1003,
+        reply_markup=final_msg_3.get('reply_markup')
+    )
+    assert response.status_code == 200
+    
+    all_messages_4 = _collect_messages(
+        redis_client, redis_key,
+        endpoints=['sendMessage', 'editMessageText', 'editMessageReplyMarkup'],
+        stop_condition=lambda msgs: any(
+            'reply_markup' in extract_message_data(m)
+            and m.get('endpoint') in ['sendMessage', 'editMessageText']
+            and ('<b>' in extract_message_data(m).get('text', '') or 'стр' in extract_message_data(m).get('text', ''))
+            for m in msgs
+        )
+    )
+    
+    meaning_msg = None
+    for msg in all_messages_4:
+        data = extract_message_data(msg)
+        if 'reply_markup' in data and msg.get('endpoint') in ['sendMessage', 'editMessageText']:
+            meaning_msg = data
+            break
+    
+    assert meaning_msg is not None, "Нет сообщения с трактовкой!"
+    
+    first_line = meaning_msg.get('text', '').strip().split('\n')[0]
+    assert new_card in first_line, \
+        f"Трактовка должна начинаться с '{new_card}', а начинается с '{first_line}'"
+    print(f"✅ Трактовка: «{new_card}»")
+    
+    print("\n" + "═" * 50)
+    print("✅ ТЕСТ ПРОЙДЕН!")
+    print("═" * 50)

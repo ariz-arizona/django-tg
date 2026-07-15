@@ -83,10 +83,10 @@ tasks:
         echo -e "\033[0;34m🚀 Запуск всего комплекса...\033[0m"
         echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
         echo -e "\033[0;32mШаг 1/2: Запуск туннеля...\033[0m"
-      - task: tunnel-start
+      - task: tunnel:tunnel-start
       - |
         sleep 3
-      - task: tunnel-get-url
+      - task: tunnel:tunnel-get-url
       - |
         echo -e "\033[0;32mШаг 2/2: Запуск Docker...\033[0m"
         TUNNEL_URL=$(cat tunnel/.tunnel.url)

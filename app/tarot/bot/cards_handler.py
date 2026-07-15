@@ -3,26 +3,11 @@ import os
 from typing import List, Optional, Dict
 from collections import Counter
 
-import asyncio
-import json
 import redis.asyncio as aioredis
-from aiohttp import ClientError, ClientTimeout, ClientSession
-import random
-from bs4 import BeautifulSoup
-import logging
-from html import escape
 
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type,
-    before_sleep_log,
-    after_log
-)
 from telegram import (
     Update, InputMediaPhoto, InlineKeyboardButton,
-    InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove,
+    InlineKeyboardMarkup, MessageEntity
     )
 from telegram.ext import (
     CommandHandler,
@@ -32,12 +17,8 @@ from telegram.ext import (
     filters,
 )
 from telegram.constants import ParseMode
-from django.core.exceptions import ObjectDoesNotExist
 
-from tg_bot.bot.abstract import AbstractBot
-from tg_bot.models import (
-    TgUser, Bot
-)
+from tarot.messages import CardMessages, TAROT_3_TRIGGER
 from tarot.models import (
     TarotDeck,
     TarotCardItem,
@@ -45,11 +26,11 @@ from tarot.models import (
     OraculumItem,
     UserReading,
 )
-from tg_bot.models import BotFileCache
-from server.logger import logger
-from django.conf import settings
 
-from tarot.messages import CardMessages, TAROT_3_TRIGGER
+from tg_bot.models import BotFileCache
+
+from server.logger import logger
+
 
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(
@@ -155,14 +136,16 @@ class CardsHandler:
             reading = await self.bot.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,
-                text="",
                 category=category,
                 count=options.get("counter", 1),
-                deck_id=None,  # ID колоды ещё не знаем
                 is_flipped_allowed=options.get('flip', False),
                 is_major_only=options.get('major', False),
-                card_ids=[],
-                original_query=options.get('original_query'),
+                original_query=options.get('original_query', ""),
+                is_command=any(
+                    entity.type == MessageEntity.BOT_COMMAND 
+                    for entity in (update.effective_message.entities or [])
+                ),
+                original_message_text=msg_text,
             )
             reading.reading_status = UserReading.ReadingStatus.PENDING
             await reading.asave()
@@ -325,17 +308,14 @@ class CardsHandler:
             user = await self.bot.get_or_create_tg_user(update)
             options = self.bot.parse_reading_options(msg_text)
 
-            # Создаём чтение сразу после парсинга
             reading = await self.bot.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,
-                text="",
                 category=category,
                 count=options.get("counter", 1),
-                deck_id=None,
                 is_flipped_allowed=options.get('flip', False),
-                is_major_only=False,
-                card_ids=[]
+                is_command=True,
+                original_message_text=msg_text,
             )
             reading.reading_status = UserReading.ReadingStatus.PENDING
             await reading.asave()

@@ -239,14 +239,13 @@ class AllCardHandler:
             reading = await self.bot.save_reading(
                 user=user, 
                 message_id=update.effective_message.message_id,
-                text="", 
                 category=category, 
                 count=1,
-                deck_id=None,
                 is_flipped_allowed=options.get('flip', False),
                 is_major_only=options.get('major', False),
-                card_ids=[],
-                original_query=options.get('original_query'),
+                original_query=options.get('original_query', ""),
+                is_command=True,
+                original_message_text=update.effective_message.text or "",
             )
             # 2. Статус PENDING
             reading.reading_status = UserReading.ReadingStatus.PENDING

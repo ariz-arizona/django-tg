@@ -22,7 +22,7 @@ from tenacity import (
 )
 from telegram import (
     Update, InputMediaPhoto, InlineKeyboardButton,
-    InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove,
+    InlineKeyboardMarkup, ReplyKeyboardMarkup, MessageEntity
     )
 from telegram.ext import (
     CommandHandler,
@@ -151,22 +151,26 @@ class TarotBot(AbstractBot):
     async def save_reading(
         self, 
         user: TgUser, 
-        message_id: int, 
-        text: str, 
-        category: str = "tarot", 
-        count: int = 1,
-        deck_id: int = None, 
-        is_flipped_allowed: bool = False, 
-        is_major_only: bool = False,
-        card_ids: list = None,
+        message_id: int,
         **kwargs,
     ):
-        # 1. Защита от пустых значений для JSONField
+        # Извлекаем все параметры из kwargs с дефолтами
+        text = kwargs.pop("text", "")
+        category = kwargs.pop("category", "tarot")
+        count = kwargs.pop("count", 1)
+        deck_id = kwargs.pop("deck_id", None)
+        is_flipped_allowed = kwargs.pop("is_flipped_allowed", False)
+        is_major_only = kwargs.pop("is_major_only", False)
+        card_ids = kwargs.pop("card_ids", None)
+        original_query = kwargs.pop("original_query", "")
+        is_command = kwargs.pop("is_command", True)
+        original_message_text = kwargs.pop("original_message_text", "")
+        
+        # Защита от пустых значений для JSONField
         if card_ids is None:
             card_ids = []
-        original_query = kwargs.pop("original_query", "")
 
-        # 2. Создаем запись в новой типизированной модели UserReading
+        # Создаем запись
         reading = await UserReading.objects.acreate(
             bot_id=self.app_bot_id,
             user=user,
@@ -179,13 +183,18 @@ class TarotBot(AbstractBot):
             message_id=message_id,
             card_ids=card_ids, 
             original_query=original_query,
+            is_command=is_command,
+            original_message_text=original_message_text,
         )
         logger.info(f"Результат гадания сохранен: {reading}")
 
-        # 3. Сохраняем отметку в Redis
+        # Сохраняем отметку в Redis
         try:
-            # Формируем ключ, например: "user:123456789:tarot"
-            redis_key = REDIS_KEY_TEMPLATE.format(user_id=user.tg_id, category=category, app_id=self.app_bot_id)
+            redis_key = REDIS_KEY_TEMPLATE.format(
+                user_id=user.tg_id, 
+                category=category, 
+                app_id=self.app_bot_id
+            )
             await redis_client.set(redis_key, reading.id, ex=REDIS_TTL_SECONDS) 
             logger.info(f"Ключ {redis_key} успешно записан в Redis на {REDIS_TTL_SECONDS} сек.")
         except Exception as e:
@@ -815,9 +824,10 @@ class TarotBot(AbstractBot):
             reading = await self.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,
-                text="",
                 category=category,
-                count=1
+                count=1,
+                is_command=True,
+                original_message_text=update.effective_message.text or "",
             )
             # Статус: ожидание
             reading.reading_status = UserReading.ReadingStatus.PENDING
@@ -1135,9 +1145,14 @@ class TarotBot(AbstractBot):
                 deck_id=deck.id if deck else None,
                 is_flipped_allowed=options.get('flip', False),
                 is_major_only=options.get('major', False),
-                card_ids=card_records
+                card_ids=card_records,
+                is_command=any(
+                    entity.type == MessageEntity.BOT_COMMAND 
+                    for entity in (update.effective_message.entities or [])
+                ),
+                original_message_text=update.effective_message.text or "",
             )
-            reading.status = UserReading.ReadingStatus.PENDING
+            reading.reading_status = UserReading.ReadingStatus.PENDING
             await reading.asave()
 
             description_text = messages.format_description(

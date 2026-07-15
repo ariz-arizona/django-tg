@@ -146,14 +146,13 @@ class RuneHandler:
 
         reading = None
         try:
-            # 1. Создание БЕЗ текста
             reading = await self.bot.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,
-                text="",
                 category=category,
-                card_ids=[],
-                count=3 if is_triplet else 1
+                count=3 if is_triplet else 1,
+                is_command=True,
+                original_message_text=msg_text,
             )
             # 2. Статус PENDING
             reading.reading_status = UserReading.ReadingStatus.PENDING

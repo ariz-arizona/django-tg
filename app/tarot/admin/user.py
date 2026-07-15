@@ -100,6 +100,7 @@ class UserReadingAdmin(admin.ModelAdmin):
         "user_link",
         "bot_link",           
         "category_display",   
+        "is_command",
         "card_count",
         "reading_status_badge",
         "ai_status_summary",
@@ -110,6 +111,7 @@ class UserReadingAdmin(admin.ModelAdmin):
         "category",
         "bot",
         "reading_status",
+        "is_command",
         "is_flipped_allowed",
         "is_major_only",
         "ai_interpretations__status",
@@ -124,6 +126,7 @@ class UserReadingAdmin(admin.ModelAdmin):
         "bot__username",      
         "text",
         "card_ids",  
+        "original_message_text"
     )
 
     readonly_fields = ("created_at", "updated_at", "card_ids_preview", "reading_status")
@@ -133,7 +136,7 @@ class UserReadingAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ("Основная информация", {
-            "fields": ("user", "bot", "category", "count", "reading_status", "original_query")
+            "fields": ("user", "bot", "category", "count", "reading_status", "is_command", "original_query", "original_message_text")
         }),
         ("Настройки расклада", {
             "fields": ("is_flipped_allowed", "is_major_only", "deck_id"),

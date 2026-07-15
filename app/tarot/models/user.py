@@ -65,6 +65,19 @@ class UserReading(models.Model):
         verbose_name="Оригинальный запрос",
         help_text="Вопрос или тема, которую ввел пользователь перед гаданием"
     )
+    
+    is_command = models.BooleanField(
+        default=True,
+        verbose_name="Запущено командой",
+        help_text="True — через команду (/card, /card3), False — через кнопку 'Еще карту'"
+    )
+    
+    original_message_text = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Текст исходного сообщения",
+        help_text="Текст команды или сообщения, запустившего гадание"
+    )
 
     created_at = models.DateTimeField(
         auto_now_add=True, 

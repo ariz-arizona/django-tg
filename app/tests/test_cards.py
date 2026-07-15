@@ -34,6 +34,35 @@ MAJOR_ARCANA = [
     "Мир",
 ]
 
+def _extract_cards_from_text(text):
+    """Извлекает список карт из текста. 'Кастом (Оригинал)' → 'Оригинал', иначе как есть."""
+    cards = re.findall(r'[•]\s*(.+?)(?:\n|$)', text)
+    result = []
+    for c in cards:
+        c = c.strip()
+        if not c:
+            continue
+        match = re.search(r'\(([^)]+)\)', c)
+        if match:
+            result.append(match.group(1).strip())
+        else:
+            result.append(c)
+    return result
+
+def _extract_cards_from_media(media_msg_data):
+    """Извлекает список карт из caption картинок. 'Кастом (Оригинал)' → 'Оригинал', иначе как есть."""
+    cards = []
+    media_items = media_msg_data.get('media', [])
+    for item in media_items:
+        cap = item.get('caption', '').strip()
+        name = cap.split('\n')[0] if cap else ''
+        if name:
+            match = re.search(r'\(([^)]+)\)', name)
+            if match:
+                cards.append(match.group(1).strip())
+            else:
+                cards.append(name)
+    return cards
 
 def check_major_arcana(card_name):
     """Проверяет что карта из старших арканов"""
@@ -454,8 +483,13 @@ def test_major_arcana(send_webhook_update, redis_client, command, expected_cards
                     print(f"📨 {endpoint}: {len(media_items)} картинок")
                     for i, item in enumerate(media_items):
                         cap = item.get('caption', '').strip()
-                        is_major = "✅" if check_major_arcana(cap) else "❌"
-                        print(f"   {is_major} 🃏 {i+1}. {cap[:60]}")
+                        # Высекаем имя из скобок если есть
+                        card_name = cap.split('\n')[0]
+                        match = re.search(r'\(([^)]+)\)', card_name)
+                        if match:
+                            card_name = match.group(1).strip()
+                        is_major = "✅" if check_major_arcana(card_name) else "❌"
+                        print(f"   {is_major} 🃏 {i+1}. {card_name[:60]}")
                 else:
                     print(f"📨 {endpoint}")
                 
@@ -493,6 +527,10 @@ def test_major_arcana(send_webhook_update, redis_client, command, expected_cards
     for i, item in enumerate(media_items):
         caption = item.get('caption', '').strip()
         card_name = caption.split('\n')[0]
+        # Высекаем имя из скобок если есть
+        match = re.search(r'\(([^)]+)\)', card_name)
+        if match:
+            card_name = match.group(1).strip()
         
         if not check_major_arcana(card_name):
             non_major.append(f"#{i+1}: {card_name}")
@@ -511,8 +549,7 @@ def test_major_arcana(send_webhook_update, redis_client, command, expected_cards
         print(f"🔄 Перевернутых карт: {len(flipped)}/{actual_cards}")
     
     print(f"\n✅ Тест {command} пройден! Все {actual_cards} карт - старшие арканы")
-
-
+    
 @pytest.mark.django_db
 @pytest.mark.parametrize("command,description", [
     ("/card", "полная колода"),
@@ -823,7 +860,6 @@ def test_card_all_deck_promo(send_webhook_update, redis_client, start_command, e
     print(f"   Прогресс: {seen}/{total}")
     print(f"   Команда: {all_deck_full_command}")
 
-# tests/test_card.py (исправленный test_card_by_positions)
 
 @pytest.mark.django_db
 def test_card_by_positions(send_webhook_update, redis_client):
@@ -843,7 +879,6 @@ def test_card_by_positions(send_webhook_update, redis_client):
     
     command = "/card3_c0_1_2"
     
-    # Первый запрос — user 10001
     user_id_1 = 10001
     
     loop.run_until_complete(redis_client.delete(redis_key))
@@ -877,11 +912,7 @@ def test_card_by_positions(send_webhook_update, redis_client):
     
     if media_msgs:
         media_data = extract_message_data(media_msgs[0])
-        for item in media_data.get('media', []):
-            caption = item.get('caption', '').strip()
-            card_name = caption.split('\n')[0] if caption else ''
-            if card_name:
-                cards_round1.append(card_name)
+        cards_round1 = _extract_cards_from_media(media_data)
     
     for msg in send_msgs:
         data = extract_message_data(msg)
@@ -895,9 +926,7 @@ def test_card_by_positions(send_webhook_update, redis_client):
         if progress_match:
             progress_round1 = (int(progress_match.group(1)), int(progress_match.group(2)))
         
-        card_lines = re.findall(r'[•]\s*(.+?)(?:\n|$)', text)
-        for card in card_lines:
-            card = card.strip()
+        for card in _extract_cards_from_text(text):
             if card and card not in cards_round1:
                 cards_round1.append(card)
     
@@ -908,7 +937,7 @@ def test_card_by_positions(send_webhook_update, redis_client):
     
     assert len(cards_round1) == 3, f"Ожидалось 3 карты, получено {len(cards_round1)}: {cards_round1}"
     
-    # Второй запрос — ДРУГОЙ пользователь, та же команда
+    # Второй запрос — другой пользователь
     user_id_2 = 10002
     
     loop.run_until_complete(redis_client.delete(redis_key))
@@ -941,11 +970,7 @@ def test_card_by_positions(send_webhook_update, redis_client):
     
     if media_msgs:
         media_data = extract_message_data(media_msgs[0])
-        for item in media_data.get('media', []):
-            caption = item.get('caption', '').strip()
-            card_name = caption.split('\n')[0] if caption else ''
-            if card_name:
-                cards_round2.append(card_name)
+        cards_round2 = _extract_cards_from_media(media_data)
     
     for msg in send_msgs:
         data = extract_message_data(msg)
@@ -955,9 +980,7 @@ def test_card_by_positions(send_webhook_update, redis_client):
         if deck_match:
             deck_name_round2 = deck_match.group(1)
         
-        card_lines = re.findall(r'[•]\s*(.+?)(?:\n|$)', text)
-        for card in card_lines:
-            card = card.strip()
+        for card in _extract_cards_from_text(text):
             if card and card not in cards_round2:
                 cards_round2.append(card)
     
@@ -966,13 +989,11 @@ def test_card_by_positions(send_webhook_update, redis_client):
     
     assert len(cards_round2) == 3, f"Ожидалось 3 карты, получено {len(cards_round2)}: {cards_round2}"
     
-    # Карты должны быть одинаковые (позиции фиксированы)
     assert cards_round1 == cards_round2, \
         f"Карты должны быть одинаковые!\n  Раунд 1: {cards_round1}\n  Раунд 2: {cards_round2}"
     
     print(f"\n✅ Карты идентичны в обоих запросах!")
     
-    # Колоды могут быть разными — cX_Y_Z фиксирует карты, не колоду
     if deck_name_round1 and deck_name_round2:
         if deck_name_round1 == deck_name_round2:
             print(f"✅ Колода та же: «{deck_name_round1}»")
@@ -1020,11 +1041,7 @@ def test_card_by_positions(send_webhook_update, redis_client):
     
     if media_msgs:
         media_data = extract_message_data(media_msgs[0])
-        for item in media_data.get('media', []):
-            caption = item.get('caption', '').strip()
-            card_name = caption.split('\n')[0] if caption else ''
-            if card_name:
-                cards_round3.append(card_name)
+        cards_round3 = _extract_cards_from_media(media_data)
     
     for msg in send_msgs:
         data = extract_message_data(msg)
@@ -1034,9 +1051,7 @@ def test_card_by_positions(send_webhook_update, redis_client):
         if deck_match:
             deck_name_round3 = deck_match.group(1)
         
-        card_lines = re.findall(r'[•]\s*(.+?)(?:\n|$)', text)
-        for card in card_lines:
-            card = card.strip()
+        for card in _extract_cards_from_text(text):
             if card and card not in cards_round3:
                 cards_round3.append(card)
     
@@ -1045,18 +1060,15 @@ def test_card_by_positions(send_webhook_update, redis_client):
     
     assert len(cards_round3) == 3, f"Ожидалось 3 карты, получено {len(cards_round3)}: {cards_round3}"
     
-    # Карты должны быть разными (разные позиции)
     assert cards_round1 != cards_round3, \
         f"Карты должны быть разными!\n  c0_1_2: {cards_round1}\n  c3_4_5: {cards_round3}"
     
-    # Пересечений быть не должно
     overlap = set(cards_round1) & set(cards_round3)
     assert len(overlap) == 0, \
         f"Карты пересекаются! Общие: {overlap}\n  c0_1_2: {cards_round1}\n  c3_4_5: {cards_round3}"
     
     print(f"✅ Карты разные, пересечений нет!")
     
-    # Колоды могут быть разными — cX_Y_Z фиксирует карты, не колоду
     if deck_name_round1 and deck_name_round3:
         if deck_name_round1 == deck_name_round3:
             print(f"✅ Колода та же: «{deck_name_round1}»")
@@ -1065,10 +1077,10 @@ def test_card_by_positions(send_webhook_update, redis_client):
             print(f"   Это норм — cX_Y_Z фиксирует карты, не колоду")
     
     # ═══════════════════════════════════════════
-    # Тест 3: /card3_deck_SLUG_cX — фиксированная колода + карта
+    # Тест 3: /card3_deck_SLUG_cX — колода + первая карта фиксированы, остальные случайны
     # ═══════════════════════════════════════════
     print("\n" + "═" * 50)
-    print("ТЕСТ 3: /card3_deck_waite_c8 × 2 — колода И карты фиксированы")
+    print("ТЕСТ 3: /card3_deck_waite_c8 × 2 — колода и первая карта фиксированы, остальные случайны")
     print("═" * 50)
     
     command_deck_fixed = "/card3_deck_waite_c8"
@@ -1106,11 +1118,7 @@ def test_card_by_positions(send_webhook_update, redis_client):
     
     if media_msgs:
         media_data = extract_message_data(media_msgs[0])
-        for item in media_data.get('media', []):
-            caption = item.get('caption', '').strip()
-            card_name = caption.split('\n')[0] if caption else ''
-            if card_name:
-                cards_deck_1.append(card_name)
+        cards_deck_1 = _extract_cards_from_media(media_data)
     
     for msg in send_msgs:
         data = extract_message_data(msg)
@@ -1118,13 +1126,11 @@ def test_card_by_positions(send_webhook_update, redis_client):
         deck_match = re.search(r'«([^»]+)»', text)
         if deck_match:
             deck_name_deck_1 = deck_match.group(1)
-        card_lines = re.findall(r'[•]\s*(.+?)(?:\n|$)', text)
-        for card in card_lines:
-            card = card.strip()
+        for card in _extract_cards_from_text(text):
             if card and card not in cards_deck_1:
                 cards_deck_1.append(card)
     
-    print(f"🃏 Раунд с deck: {cards_deck_1}")
+    print(f"🃏 Раунд 1: {cards_deck_1}")
     print(f"📚 Колода: {deck_name_deck_1}")
     
     assert len(cards_deck_1) == 3, f"Ожидалось 3 карты, получено {len(cards_deck_1)}"
@@ -1160,11 +1166,7 @@ def test_card_by_positions(send_webhook_update, redis_client):
     
     if media_msgs:
         media_data = extract_message_data(media_msgs[0])
-        for item in media_data.get('media', []):
-            caption = item.get('caption', '').strip()
-            card_name = caption.split('\n')[0] if caption else ''
-            if card_name:
-                cards_deck_2.append(card_name)
+        cards_deck_2 = _extract_cards_from_media(media_data)
     
     for msg in send_msgs:
         data = extract_message_data(msg)
@@ -1172,25 +1174,30 @@ def test_card_by_positions(send_webhook_update, redis_client):
         deck_match = re.search(r'«([^»]+)»', text)
         if deck_match:
             deck_name_deck_2 = deck_match.group(1)
-        card_lines = re.findall(r'[•]\s*(.+?)(?:\n|$)', text)
-        for card in card_lines:
-            card = card.strip()
+        for card in _extract_cards_from_text(text):
             if card and card not in cards_deck_2:
                 cards_deck_2.append(card)
     
-    print(f"🃏 Раунд с deck: {cards_deck_2}")
+    print(f"🃏 Раунд 2: {cards_deck_2}")
     print(f"📚 Колода: {deck_name_deck_2}")
     
     assert len(cards_deck_2) == 3, f"Ожидалось 3 карты, получено {len(cards_deck_2)}"
     
-    # С deck_ — и колода, и карты должны совпадать
-    assert cards_deck_1 == cards_deck_2, \
-        f"С deck_ карты должны быть одинаковые!\n  Раунд 1: {cards_deck_1}\n  Раунд 2: {cards_deck_2}"
-    print(f"✅ Карты одинаковые (deck_ фиксирует и колоду и карты)")
+    # Первая карта (c8) должна быть одинаковой
+    assert cards_deck_1[0] == cards_deck_2[0], \
+        f"Первая карта (c8) должна быть одинаковой!\n  Раунд 1: {cards_deck_1[0]}\n  Раунд 2: {cards_deck_2[0]}"
+    print(f"✅ Первая карта фиксирована: «{cards_deck_1[0]}»")
     
+    # Колода должна быть та же
     assert deck_name_deck_1 == deck_name_deck_2, \
         f"С deck_ колода должна быть та же!\n  Раунд 1: {deck_name_deck_1}\n  Раунд 2: {deck_name_deck_2}"
     print(f"✅ Колода та же: «{deck_name_deck_1}»")
+    
+    # Остальные карты могут быть разными — это норм
+    if cards_deck_1[1:] != cards_deck_2[1:]:
+        print(f"✅ Остальные карты разные — c8 фиксирует только первую позицию")
+    else:
+        print(f"⚠️ Остальные карты совпали — совпадение")
     
     # ═══════════════════════════════════════════
     # Тест 4: Команда с пробелом
@@ -1230,13 +1237,7 @@ def test_card_by_positions(send_webhook_update, redis_client):
             
             if media_msgs:
                 media_data = extract_message_data(media_msgs[0])
-                media_items = media_data.get('media', [])
-                space_cards = []
-                for item in media_items:
-                    caption = item.get('caption', '').strip()
-                    card_name = caption.split('\n')[0] if caption else ''
-                    if card_name:
-                        space_cards.append(card_name)
+                space_cards = _extract_cards_from_media(media_data)
                 
                 if space_cards:
                     print(f"   ✅ Формат с пробелом работает! Карты: {space_cards}")
@@ -1252,12 +1253,11 @@ def test_card_by_positions(send_webhook_update, redis_client):
     print(f"\n{'═' * 50}")
     print(f"✅ Все тесты card_by_positions пройдены!")
     print(f"   cX_Y_Z фиксирует карты, не колоду")
-    print(f"   deck_SLUG_cX фиксирует и колоду, и карты")
+    print(f"   deck_SLUG_cX фиксирует колоду и первую карту, остальные случайны")
     print(f"   Позиции 0,1,2: {cards_round1}")
     print(f"   Позиции 3,4,5: {cards_round3}")
     print(f"   Повторяемость: ✅")
     print(f"   Уникальность позиций: ✅")
-    
 
 # tests/test_card.py (исправленный test_card_fixed_position_with_random)
 

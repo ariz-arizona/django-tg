@@ -132,8 +132,10 @@ class TarotCardItem(models.Model, BotFileMixin):
     
     @property
     def display_name(self):
-        """Возвращает custom_name, если он задан, иначе стандартное название карты."""
-        return self.custom_name or self.tarot_card.name
+        """Возвращает custom_name (tarot_card.name), если задан, иначе tarot_card.name."""
+        if self.custom_name:
+            return f"{self.custom_name} ({self.tarot_card.name})"
+        return self.tarot_card.name
     
     @property
     def display_description(self):

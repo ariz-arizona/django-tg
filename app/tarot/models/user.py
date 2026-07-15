@@ -54,6 +54,12 @@ class UserReading(models.Model):
     deck_id = models.IntegerField(
         null=True, blank=True, verbose_name="ID колоды"
     )  # Для аргумента deck НОМЕР
+    
+    initial_count = models.PositiveSmallIntegerField(
+        default=1,
+        verbose_name="Изначальное количество карт",
+        help_text="Сколько карт было при создании расклада (до нажатий 'Еще карту')"
+    )
     count = models.PositiveSmallIntegerField(
         default=1, 
         verbose_name="Количество карт/рун"

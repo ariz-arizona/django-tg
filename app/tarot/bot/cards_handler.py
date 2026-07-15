@@ -27,8 +27,6 @@ from tarot.models import (
     UserReading,
 )
 
-from tg_bot.models import BotFileCache
-
 from server.logger import logger
 
 

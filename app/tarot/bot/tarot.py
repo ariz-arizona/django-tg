@@ -157,7 +157,7 @@ class TarotBot(AbstractBot):
         # Извлекаем все параметры из kwargs с дефолтами
         text = kwargs.pop("text", "")
         category = kwargs.pop("category", "tarot")
-        count = kwargs.pop("count", 1)
+        initial_count = kwargs.pop("count", 1)
         deck_id = kwargs.pop("deck_id", None)
         is_flipped_allowed = kwargs.pop("is_flipped_allowed", False)
         is_major_only = kwargs.pop("is_major_only", False)
@@ -175,7 +175,8 @@ class TarotBot(AbstractBot):
             bot_id=self.app_bot_id,
             user=user,
             category=category,
-            count=count,
+            initial_count=initial_count,
+            count=initial_count,
             deck_id=deck_id,
             is_flipped_allowed=is_flipped_allowed,
             is_major_only=is_major_only,

@@ -18,10 +18,16 @@ services:
       <<: *webhook_env
 
   bot_processor_tarot:
+    volumes:
+      - ./app:/app
+      - ./.env:/app/.env
     environment:
       <<: *webhook_env
 
   bot_processor_cardparser:
+    volumes:
+      - ./app:/app
+      - ./.env:/app/.env
     environment:
       <<: *webhook_env
 

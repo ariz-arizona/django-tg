@@ -100,7 +100,6 @@ class UserReadingAdmin(admin.ModelAdmin):
         "user_link",
         "bot_link",           
         "category_display",   
-        "is_command",
         "card_count",
         "reading_status_badge",
         "ai_status_summary",
@@ -139,7 +138,7 @@ class UserReadingAdmin(admin.ModelAdmin):
             "fields": ("user", "bot", "category", "count", "reading_status", "is_command", "original_query", "original_message_text")
         }),
         ("Настройки расклада", {
-            "fields": ("is_flipped_allowed", "is_major_only", "deck_id"),
+            "fields": ("is_flipped_allowed", "is_major_only", "deck_id", "initial_count"),
             "classes": ("collapse",)  
         }),
         ("Результат карт", {

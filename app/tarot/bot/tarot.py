@@ -6,7 +6,7 @@ from typing import List, Optional, Dict
 import asyncio
 import json
 import redis.asyncio as aioredis
-from aiohttp import ClientError, ClientTimeout, ClientSession
+import aiohttp
 import random
 from bs4 import BeautifulSoup
 import logging
@@ -54,6 +54,8 @@ from server.logger import logger
 from django.conf import settings
 
 from tarot.utils.image_utils import create_spread_image
+from tarot.utils.flaresolverr import fetch_via_flaresolverr
+
 from tarot.bot.allcard_handler import AllCardHandler
 from tarot.bot.ai_interpret_handler import AIInterpretHandler
 from tarot.bot.rune_handler import RuneHandler
@@ -78,6 +80,7 @@ redis_client_bot = aioredis.StrictRedis(
 
 REDIS_TTL_SECONDS = 10
 REDIS_KEY_TEMPLATE = "user:{user_id}:{category}:{app_id}"
+
 
 class TarotBot(AbstractBot):
     def __init__(self):
@@ -599,7 +602,6 @@ class TarotBot(AbstractBot):
         except Exception as e:
             raise RuntimeError(f"Ошибка: {str(e)}") from e
 
-
     async def _log_search(self, deck_keyword: str, status: str, decks=None):
         found = None
         if decks is not None:
@@ -619,7 +621,6 @@ class TarotBot(AbstractBot):
             status=status,
             found_decks=found
         )
-        
         
     async def get_deck(self, deck_id=None, deck_keyword=None, deck_type="tarot", return_all=False):
         """
@@ -797,20 +798,6 @@ class TarotBot(AbstractBot):
 
         return text_join.join(str(p) for p in parts if p)
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type((ClientError, asyncio.TimeoutError)),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
-        after=after_log(logger, logging.DEBUG),
-        reraise=True
-    )
-    async def load_page(self, url):
-        timeout = ClientTimeout(total=5) 
-        async with ClientSession(timeout=timeout) as session:
-            async with session.get(url) as response:
-                return await response.text()
-
     async def handle_one_command(self, update: Update, context: CallbackContext):
         category = UserReading.ReadingCategory.ONE
         is_locked = await self.check_reading_cooldown(update, category)
@@ -821,7 +808,6 @@ class TarotBot(AbstractBot):
         try:
             user = await self.get_or_create_tg_user(update)
             
-            # Создаём чтение сразу после команды
             reading = await self.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,
@@ -830,7 +816,6 @@ class TarotBot(AbstractBot):
                 is_command=True,
                 original_message_text=update.effective_message.text or "",
             )
-            # Статус: ожидание
             reading.reading_status = UserReading.ReadingStatus.PENDING
             await reading.asave()
 
@@ -842,7 +827,8 @@ class TarotBot(AbstractBot):
             )
             tech_msg_id = tech_msg.message_id
 
-            content = await self.load_page(f"{tarot_url}{decks_url}")
+            # 🔥 Обход Cloudflare через FlareSolverr
+            content = await fetch_via_flaresolverr(f"{tarot_url}{decks_url}")
             dom = BeautifulSoup(content, "html.parser")
 
             decks_raw = dom.select(".tarot-deck-list a")
@@ -857,7 +843,8 @@ class TarotBot(AbstractBot):
                 message_id=tech_msg_id,
             )
 
-            content = await self.load_page(f"{tarot_url}{random_deck}")
+            # 🔥 И здесь тоже
+            content = await fetch_via_flaresolverr(f"{tarot_url}{random_deck}")
             dom = BeautifulSoup(content, "html.parser")
 
             cards_raw = dom.select('#majorarcana ~ row a[data-category*="Tarot Decks:"]')
@@ -875,7 +862,6 @@ class TarotBot(AbstractBot):
 
             result_text = f"{random_card['name']}\n{random_card['url']}"
 
-            # ✅ Успех — вставляем данные в текст и меняем статус
             reading.text = result_text
             reading.reading_status = UserReading.ReadingStatus.SUCCESS
             await reading.asave()
@@ -889,7 +875,6 @@ class TarotBot(AbstractBot):
 
         except Exception as e:
             logger.error(f"Ошибка в handle_one_command: {e}", exc_info=True)
-            # ❌ Ошибка
             if reading:
                 reading.reading_status = UserReading.ReadingStatus.ERROR
                 await reading.asave()

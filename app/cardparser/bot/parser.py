@@ -3,8 +3,9 @@ import re
 import aiohttp
 import json
 import requests
-from curl_cffi.requests import AsyncSession
-from curl_cffi.curl import CurlHttpVersion
+import asyncio
+import httpx
+
 from asgiref.sync import sync_to_async
 from telegram import Update, InputMediaPhoto, Chat
 from telegram.constants import ChatType
@@ -172,19 +173,62 @@ class ParserBot(AbstractBot):
         card_url = f"https://card.wb.ru/cards/v4/detail?curr=rub&dest=-1059500,-72639,-3826860,-5551776&nm={card_id}"
         REQUEST_TIMEOUT = 30
         
-        async with AsyncSession(http_version=CurlHttpVersion.V2_0, impersonate="chrome128") as session:
-            # Загружаем данные карточки
-            response = await session.get(card_url, timeout=REQUEST_TIMEOUT)
-            # Проверяем успешность запроса
-            if response.status_code != 200:
-                logger.info(f"Ошибка запроса: {response.status_code}")
-                logger.error(f"Ошибка {response.status_code}: {response.text}")
-                return None  # ОБЯЗАТЕЛЬНО выходим из функции, если данных нет
-            
+        HOUND_API_URL = "http://hound:8080/fetch"
+        
+        # ✅ Правильно: используем AsyncClient, а не AsyncSession
+        async with httpx.AsyncClient(timeout=httpx.Timeout(REQUEST_TIMEOUT + 5)) as client:
             try:
-                data = response.json()
+                hound_payload = {
+                    "url": card_url,
+                    "method": "GET",
+                    "timeout": REQUEST_TIMEOUT * 1000,
+                    "smart_fetch": True,
+                    "spoof_headers": True,
+                    "headless": True,
+                    "wait_for": "networkidle0",
+                    "wait_timeout": 30000,
+                }
+                
+                # Отправляем запрос в Hound
+                hound_response = await client.post(
+                    HOUND_API_URL,
+                    json=hound_payload
+                )
+                
+                if hound_response.status_code != 200:
+                    logger.error(f"Hound error: {hound_response.status_code} - {hound_response.text}")
+                    return None
+                
+                result = hound_response.json()
+                
+                if not result.get("success", False):
+                    logger.error(f"Hound fetch failed: {result.get('error', 'Unknown error')}")
+                    return None
+                
+                response_data = result.get("data", {})
+                if not response_data:
+                    logger.error("Empty response from Hound")
+                    return None
+                
+                # Парсим JSON-ответ
+                if isinstance(response_data, str):
+                    try:
+                        data = json.loads(response_data)
+                    except json.JSONDecodeError:
+                        logger.error(f"Failed to parse JSON from Hound response: {response_data[:200]}")
+                        return None
+                else:
+                    data = response_data
+                
+                # Проверяем наличие продуктов
+                if not data.get("products") or len(data["products"]) == 0:
+                    logger.error(f"No products found for card_id {card_id}")
+                    return None
+                    
                 product = data["products"][0]
-                image_url = await self.wb_image_url_get(context, card_id, session)
+                
+                # Получаем изображение (передаем client)
+                image_url = await self.wb_image_url_get(context, card_id, client)
                 if not image_url:
                     return None
 
@@ -203,15 +247,11 @@ class ParserBot(AbstractBot):
                         "available": available,
                     }
 
-                    # Защита от отсутствия поля price
                     price_data = size.get("price", None)
                     if price_data:
                         current_price = price_data.get("product")
                         if current_price is None:
-                            current_price = price_data.get(
-                                "basic", 0
-                            )  # fallback на basic
-
+                            current_price = price_data.get("basic", 0)
                         price_rub = current_price / 100
                         obj["price"] = price_rub
 
@@ -242,10 +282,13 @@ class ParserBot(AbstractBot):
                         "name": product.get("entity"),
                     },
                 }
-            except Exception as e:
-                logger.error(e, exc_info=True)
+            except asyncio.TimeoutError:
+                logger.error(f"Timeout while fetching card {card_id} through Hound")
                 return None
-
+            except Exception as e:
+                logger.error(f"Error in wb method for card {card_id}: {e}", exc_info=True)
+                return None
+            
     async def get_or_update_product_data(
         self,
         p: dict,

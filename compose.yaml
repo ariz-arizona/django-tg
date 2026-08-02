@@ -7,8 +7,8 @@ x-common-settings: &common_settings
     context: ./app
     dockerfile: Dockerfile
   volumes:
-    - ./.env:/app/.env  # Примонтируем файл .env в контейнер
-    - static_volume:/app/static  # Монтируем том для статики
+    - ./.env:/app/.env
+    - static_volume:/app/static
   env_file:
     - .env
   <<: *app_labels
@@ -35,6 +35,29 @@ services:
     command: poetry run python manage.py start_bot_processing
     restart: always
 
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    restart: unless-stopped
+    ports:
+      - "${FLARESOLVERR_PORT:-8191}:8191"
+    environment:
+      - LOG_LEVEL=info
+      - BROWSER_TIMEOUT=120000
+      - HEADLESS=true
+      - BROWSER_MAX_CONCURRENT=5
+      - BROWSER_MAX_TIMEOUT=120000
+      - BROWSER_USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+      - PYTHONUNBUFFERED=1
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    <<: *app_labels
+
   celery:
     <<: *common_settings
     command: poetry run celery -A server worker --loglevel=info
@@ -46,6 +69,7 @@ services:
   redis:
     image: redis:7
     <<: *app_labels
+
   db:
     image: postgres:18
     volumes:
@@ -57,14 +81,14 @@ services:
   nginx:
     image: nginx:latest
     ports:
-      - "${NGINX_PORT:-80}:80"  # Если переменная не задана, по умолчанию 80
+      - "${NGINX_PORT:-80}:80"
     volumes:
       - ./nginx:/etc/nginx/conf.d
-      - static_volume:/app/static  # Монтируем том для статики
+      - static_volume:/app/static
     depends_on:
       - web
     <<: *app_labels
-    
+
 volumes:
   postgres_data:
-  static_volume:  # Общий том для статики
+  static_volume:

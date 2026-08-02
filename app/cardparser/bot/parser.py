@@ -4,7 +4,8 @@ import aiohttp
 import json
 import requests
 import asyncio
-import httpx
+import os
+from curl_cffi import requests as curl_requests 
 
 from asgiref.sync import sync_to_async
 from telegram import Update, InputMediaPhoto, Chat
@@ -22,6 +23,7 @@ from tg_bot.models import (
     TgUser,
 )
 from cardparser.utils import render_template
+from cardparser.services.wb_proxy import wb_fetch_with_session, wb_fetch_head, wb_fetch_image
 from cardparser.services.wb_link_builder import Se
 from cardparser.services.marketing_queryset import (
     get_popular_products,
@@ -125,8 +127,8 @@ class ParserBot(AbstractBot):
             CommandHandler("top_category", self.handle_topcategory_command),
         ]
 
-    async def wb_image_url_get(self, context, card_id, session):
-        max_size = 51000  # Максимальный размер изображения
+    async def wb_image_url_get(self, context, card_id):
+        max_size = 51000
         image_size = None
         image_url = None
         REQUEST_TIMEOUT = 30
@@ -135,159 +137,115 @@ class ParserBot(AbstractBot):
             try:
                 image_url = f"{Se.construct_host_v2(card_id, 'nm')}/images/big/{image}"
                 logger.info(f"Проверка URL: {image_url}")
-
-                response = await session.head(image_url, timeout=REQUEST_TIMEOUT)
-
+                response = await wb_fetch_head(image_url, timeout=REQUEST_TIMEOUT)
                 logger.debug(f"Ответ сервера: {response.status_code}")
 
-                # Обратите внимание: проверяем status_code, а не status
                 if response.status_code == 200:
-                    # Заголовки в curl_cffi доступны через словарь headers
                     image_size = int(response.headers.get("content-length", 0))
                     logger.info(f"Размер изображения: {image_size} байт")
                     break
 
-            except aiohttp.ClientError as e:
-                logger.error(f"Ошибка при запросе к {image_url}: {e}")
             except Exception as e:
-                logger.error(f"Неожиданная ошибка: {e}")
+                logger.error(f"Ошибка при запросе к {image_url}: {e}")
 
-        # Убираем async with, используем просто await
-        img_response = await session.get(image_url, timeout=REQUEST_TIMEOUT)
-        
-        # В curl_cffi статус проверяем через status_code
+        if not image_url:
+            return None
+
+        img_response = await wb_fetch_image(image_url, timeout=REQUEST_TIMEOUT)
+
         if img_response.status_code == 200:
             picture_chat_id = (await BotSettings.get_active()).picture_chat_id
-            
-            # В curl_cffi тело ответа лежит в атрибуте .content (это bytes)
-            image_data = img_response.content 
+            image_data = img_response.content
             
             sent_photo = await context.bot.send_photo(picture_chat_id, image_data)
             image_url = sent_photo.photo[-1].file_id
         else:
             image_url = None
+
         logger.info(f"IMAGE URL {image_url}")
         return image_url
 
     async def wb(self, card_id, context: CallbackContext):
         card_url = f"https://card.wb.ru/cards/v4/detail?curr=rub&dest=-1059500,-72639,-3826860,-5551776&nm={card_id}"
-        REQUEST_TIMEOUT = 30
-        
-        HOUND_API_URL = "http://hound:8080/fetch"
-        
-        # ✅ Правильно: используем AsyncClient, а не AsyncSession
-        async with httpx.AsyncClient(timeout=httpx.Timeout(REQUEST_TIMEOUT + 5)) as client:
-            try:
-                hound_payload = {
-                    "url": card_url,
-                    "method": "GET",
-                    "timeout": REQUEST_TIMEOUT * 1000,
-                    "smart_fetch": True,
-                    "spoof_headers": True,
-                    "headless": True,
-                    "wait_for": "networkidle0",
-                    "wait_timeout": 30000,
-                }
-                
-                # Отправляем запрос в Hound
-                hound_response = await client.post(
-                    HOUND_API_URL,
-                    json=hound_payload
-                )
-                
-                if hound_response.status_code != 200:
-                    logger.error(f"Hound error: {hound_response.status_code} - {hound_response.text}")
-                    return None
-                
-                result = hound_response.json()
-                
-                if not result.get("success", False):
-                    logger.error(f"Hound fetch failed: {result.get('error', 'Unknown error')}")
-                    return None
-                
-                response_data = result.get("data", {})
-                if not response_data:
-                    logger.error("Empty response from Hound")
-                    return None
-                
-                # Парсим JSON-ответ
-                if isinstance(response_data, str):
-                    try:
-                        data = json.loads(response_data)
-                    except json.JSONDecodeError:
-                        logger.error(f"Failed to parse JSON from Hound response: {response_data[:200]}")
-                        return None
-                else:
-                    data = response_data
-                
-                # Проверяем наличие продуктов
-                if not data.get("products") or len(data["products"]) == 0:
-                    logger.error(f"No products found for card_id {card_id}")
-                    return None
-                    
-                product = data["products"][0]
-                
-                # Получаем изображение (передаем client)
-                image_url = await self.wb_image_url_get(context, card_id, client)
-                if not image_url:
-                    return None
-
-                # Парсинг данных
-                sku = card_id
-                brand = product["brand"]
-                link = f"https://wildberries.ru/catalog/{card_id}/detail.aspx"
-                name = product["name"]
-
-                sizes = []
-                for size in product["sizes"]:
-                    size_name = size["name"]
-                    available = len(size["stocks"]) > 0
-                    obj = {
-                        "name": size_name,
-                        "available": available,
-                    }
-
-                    price_data = size.get("price", None)
-                    if price_data:
-                        current_price = price_data.get("product")
-                        if current_price is None:
-                            current_price = price_data.get("basic", 0)
-                        price_rub = current_price / 100
-                        obj["price"] = price_rub
-
-                    sizes.append(obj)
-
-                caption_data = {
-                    "sku": sku,
-                    "name": name,
-                    "link": link,
-                    "sizes": sizes,
-                    "availability": any(size["available"] for size in sizes),
-                }
-                if brand:
-                    caption_data["brand"] = brand
-
-                return {
-                    "sku": sku,
-                    "media": image_url,
-                    "parse_mode": "HTML",
-                    "name": product.get("name"),
-                    "caption_data": caption_data,
-                    "brand": {
-                        "id": product.get("brandId"),
-                        "name": product.get("brand"),
-                    },
-                    "category": {
-                        "id": product.get("subjectId"),
-                        "name": product.get("entity"),
-                    },
-                }
-            except asyncio.TimeoutError:
-                logger.error(f"Timeout while fetching card {card_id} through Hound")
+        try:
+            response = await wb_fetch_with_session(card_url)
+            
+            if response.status_code != 200:
+                logger.error(f"WB returned {response.status_code}")
+                logger.info(response)
+                logger.info(response.url)
                 return None
-            except Exception as e:
-                logger.error(f"Error in wb method for card {card_id}: {e}", exc_info=True)
+            
+            data = response.json()
+            
+            # Проверяем наличие продуктов
+            if not data.get("products") or len(data["products"]) == 0:
+                logger.error(f"No products found for card_id {card_id}")
                 return None
+                
+            product = data["products"][0]
+            
+            # Получаем изображение
+            image_url = await self.wb_image_url_get(context, card_id)
+            if not image_url:
+                return None
+
+            # Парсинг данных
+            sku = card_id
+            brand = product["brand"]
+            link = f"https://wildberries.ru/catalog/{card_id}/detail.aspx"
+            name = product["name"]
+
+            sizes = []
+            for size in product["sizes"]:
+                size_name = size["name"]
+                available = len(size["stocks"]) > 0
+                obj = {
+                    "name": size_name,
+                    "available": available,
+                }
+
+                price_data = size.get("price", None)
+                if price_data:
+                    current_price = price_data.get("product")
+                    if current_price is None:
+                        current_price = price_data.get("basic", 0)
+                    price_rub = current_price / 100
+                    obj["price"] = price_rub
+
+                sizes.append(obj)
+
+            caption_data = {
+                "sku": sku,
+                "name": name,
+                "link": link,
+                "sizes": sizes,
+                "availability": any(size["available"] for size in sizes),
+            }
+            if brand:
+                caption_data["brand"] = brand
+
+            return {
+                "sku": sku,
+                "media": image_url,
+                "parse_mode": "HTML",
+                "name": product.get("name"),
+                "caption_data": caption_data,
+                "brand": {
+                    "id": product.get("brandId"),
+                    "name": product.get("brand"),
+                },
+                "category": {
+                    "id": product.get("subjectId"),
+                    "name": product.get("entity"),
+                },
+            }
+        except asyncio.TimeoutError:
+            logger.error(f"Timeout while fetching card {card_id} through Hound")
+            return None
+        except Exception as e:
+            logger.error(f"Error in wb method for card {card_id}: {e}", exc_info=True)
+            return None
             
     async def get_or_update_product_data(
         self,

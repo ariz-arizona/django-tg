@@ -10,7 +10,7 @@ from tenacity import (
     wait_exponential,
 )
 
-logger = logging.getLogger(__name__)
+from server.logger import logger
 
 FLARESOLVERR_URL = "http://flaresolverr:8191/v1"
 

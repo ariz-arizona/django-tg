@@ -799,12 +799,25 @@ class TarotBot(AbstractBot):
         return text_join.join(str(p) for p in parts if p)
 
     async def handle_one_command(self, update: Update, context: CallbackContext):
+        """
+        Обработчик /one — мгновенно возвращает управление боту,
+        вся работа выполняется в фоновой задаче.
+        """
         category = UserReading.ReadingCategory.ONE
         is_locked = await self.check_reading_cooldown(update, category)
         if is_locked:
             return
 
+        asyncio.create_task(self._handle_one_background(update, context))
+
+    async def _handle_one_background(self, update: Update, context: CallbackContext):
+        """
+        Фоновая задача с полной логикой /one.
+        Выполняется параллельно с обработкой других сообщений ботом.
+        """
+        category = UserReading.ReadingCategory.ONE
         reading = None
+        tech_msg = None
         try:
             user = await self.get_or_create_tg_user(update)
             
@@ -879,7 +892,8 @@ class TarotBot(AbstractBot):
                 reading.reading_status = UserReading.ReadingStatus.ERROR
                 await reading.asave()
             try:
-                await context.bot.delete_message(update.effective_chat.id, tech_msg_id)
+                if tech_msg:
+                    await context.bot.delete_message(update.effective_chat.id, tech_msg.message_id)
             except:
                 pass
         
@@ -1052,6 +1066,10 @@ class TarotBot(AbstractBot):
             )
 
     async def handle_spread(self, update: Update, context: CallbackContext):
+        """
+        Обработчик /spread и /canvas — мгновенно возвращает управление боту.
+        Тяжёлая работа (внешние запросы к FlareSolverr) выполняется в фоне.
+        """
         msg_text = update.message.text
         user = await self.get_or_create_tg_user(update)
         logger.info(f"Обработка команды /spread с текстом: {msg_text[:100]}")
@@ -1060,11 +1078,17 @@ class TarotBot(AbstractBot):
         category = UserReading.ReadingCategory.CANVAS_SPREAD
         is_locked = await self.check_reading_cooldown(update, category)
         if is_locked:
-            # Использование сообщения об ошибке через класс
-            error_msg = self.messages.get_error_message("cooldown", wait_time="60")
-            await update.message.reply_text(error_msg, parse_mode=ParseMode.HTML)
             return
 
+        # Запускаем тяжёлую работу в фоне, сразу возвращаем управление боту
+        asyncio.create_task(self._handle_spread_background(update, context, user, msg_text, messages))
+
+    async def _handle_spread_background(self, update: Update, context: CallbackContext, user, msg_text, messages):
+        """
+        Фоновая задача с полной логикой /spread.
+        Выполняется параллельно с обработкой других сообщений ботом.
+        """
+        category = UserReading.ReadingCategory.CANVAS_SPREAD
         reading = None
         tech_msg = None
         

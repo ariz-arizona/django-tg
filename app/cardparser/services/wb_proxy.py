@@ -32,7 +32,7 @@ _proxy_lock = Lock()
 
 # Счётчик неудач по прокси (для возврата в пул через время)
 _proxy_failures = {}  # proxy_url -> timestamp
-_PROXY_BAN_TIME = 3600  # 1 час — потом попробуем снова
+_PROXY_BAN_TIME = 6 # в секундах
 
 
 def _get_working_proxies() -> list[str]:
@@ -143,26 +143,15 @@ async def wb_fetch_with_session(api_url: str, timeout: int = 30, max_retries: in
 
 
 async def wb_fetch_image(url: str, timeout: int = 30) -> curl_requests.Response:
-    """Для картинок — без фронта, с авто-ротацией прокси при 403."""
-    proxy_dict = get_next_proxy()
-    
+    """Для картинок — простой запрос без прокси."""
     def _fetch():
-        kwargs = {
-            "impersonate": "chrome120",
-            "timeout": timeout,
-        }
-        if proxy_dict:
-            kwargs["proxies"] = proxy_dict
-        return curl_requests.get(url, **kwargs)
+        return curl_requests.get(
+            url,
+            impersonate="chrome120",
+            timeout=timeout,
+        )
 
-    response = await asyncio.to_thread(_fetch)
-    
-    # Если 403 — баним и пробуем ещё раз с другим
-    if response.status_code == 403 and proxy_dict:
-        _ban_proxy(proxy_dict["http"])
-        return await wb_fetch_image(url, timeout)  # рекурсия с новым прокси
-    
-    return response
+    return await asyncio.to_thread(_fetch)
 
 
 async def wb_fetch_head(url: str, timeout: int = 30) -> curl_requests.Response:

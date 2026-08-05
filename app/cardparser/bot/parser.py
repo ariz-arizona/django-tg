@@ -128,125 +128,190 @@ class ParserBot(AbstractBot):
         ]
 
     async def wb_image_url_get(self, context, card_id):
-        max_size = 51000
-        image_size = None
-        image_url = None
+        """Максимально простой вариант: строим URL, пробуем webp, потом jpg."""
         REQUEST_TIMEOUT = 30
-
-        for image in ["1.webp", "1.jpg"]:
-            try:
-                image_url = f"{Se.construct_host_v2(card_id, 'nm')}/images/big/{image}"
-                logger.info(f"Проверка URL: {image_url}")
-                response = await wb_fetch_head(image_url, timeout=REQUEST_TIMEOUT)
-                logger.debug(f"Ответ сервера: {response.status_code}")
-
-                if response.status_code == 200:
-                    image_size = int(response.headers.get("content-length", 0))
-                    logger.info(f"Размер изображения: {image_size} байт")
-                    break
-
-            except Exception as e:
-                logger.error(f"Ошибка при запросе к {image_url}: {e}")
-
-        if not image_url:
-            return None
-
-        img_response = await wb_fetch_image(image_url, timeout=REQUEST_TIMEOUT)
-
-        if img_response.status_code == 200:
-            picture_chat_id = (await BotSettings.get_active()).picture_chat_id
-            image_data = img_response.content
+        base_url = Se.construct_host_v2(card_id, 'nm')
+        
+        for ext in ["webp", "jpg"]:
+            image_url = f"{base_url}/images/big/1.{ext}"
+            img_response = await wb_fetch_image(image_url, timeout=REQUEST_TIMEOUT)
             
-            sent_photo = await context.bot.send_photo(picture_chat_id, image_data)
-            image_url = sent_photo.photo[-1].file_id
-        else:
-            image_url = None
+            if img_response.status_code == 200:
+                picture_chat_id = (await BotSettings.get_active()).picture_chat_id
+                sent_photo = await context.bot.send_photo(picture_chat_id, img_response.content)
+                return sent_photo.photo[-1].file_id
+        
+        return None
+    
+    async def wb(self, card_id, context: CallbackContext, update: Update = None):
+        """
+        Фаза 1: Строим URL картинки, загружаем в Telegram, возвращаем данные для медиагруппы.
+        Не отправляем пользователю напрямую — отправка происходит в _handle_links_background.
+        """
+        # Строим URL картинки напрямую
+        image_url = Se.construct_host_v2(card_id, 'nm') + "/images/big/1.webp"
+        
+        # Пробуем загрузить картинку (без прокси)
+        img_response = await wb_fetch_image(image_url, timeout=30)
+        
+        # Если webp не сработал — пробуем jpg
+        if img_response.status_code != 200:
+            image_url = Se.construct_host_v2(card_id, 'nm') + "/images/big/1.jpg"
+            img_response = await wb_fetch_image(image_url, timeout=30)
+        
+        if img_response.status_code != 200:
+            logger.error(f"Не удалось загрузить картинку для {card_id}")
+            return None
+        
+        # Загружаем на сервер Telegram
+        picture_chat_id = (await BotSettings.get_active()).picture_chat_id
+        sent_photo = await context.bot.send_photo(picture_chat_id, img_response.content)
+        file_id = sent_photo.photo[-1].file_id
+        
+        # Базовая подпись для медиагруппы
+        base_caption = (
+            f"📦 Арт. {card_id}\n"
+            f"🔗 <a href='https://wildberries.ru/catalog/{card_id}/detail.aspx'>Ссылка на товар</a>"
+        )
+        
+        # Возвращаем структуру для медиагруппы + данные для фонового обогащения
+        return {
+            "sku": card_id,
+            "media": file_id,
+            "parse_mode": "HTML",
+            "name": f"WB-{card_id}",
+            "caption": base_caption,  # для медиагруппы
+            "caption_data": {
+                "sku": card_id,
+                "name": f"WB-{card_id}",
+                "link": f"https://wildberries.ru/catalog/{card_id}/detail.aspx",
+                "sizes": [],
+                "availability": True,
+            },
+            "brand": None,
+            "category": None,
+        }
 
-        logger.info(f"IMAGE URL {image_url}")
-        return image_url
-
-    async def wb(self, card_id, context: CallbackContext):
+    async def _wb_enrich_background(
+        self,
+        card_id: str,
+        file_id: str,
+        message_id: int,
+        chat_id,
+        context: CallbackContext,
+    ):
+        """
+        Фоновая задача: достаём данные через API WB и обновляем сообщение в группе.
+        """
         card_url = f"https://card.wb.ru/cards/v4/detail?curr=rub&dest=-1059500,-72639,-3826860,-5551776&nm={card_id}"
+        
         try:
             response = await wb_fetch_with_session(card_url)
             
-            if response.status_code != 200:
-                logger.error(f"WB returned {response.status_code}")
-                logger.info(response)
-                logger.info(response.url)
-                return None
+            # Если статус не 200 или тело пустое — выходим
+            if response.status_code != 200 or not response.content:
+                return
             
-            data = response.json()
+            # Пробуем распарсить JSON с защитой
+            try:
+                data = response.json()
+            except json.JSONDecodeError:
+                logger.warning(f"WB API вернул не-JSON для {card_id}: {response.text[:200]}")
+                return
             
-            # Проверяем наличие продуктов
+            # Если нет продуктов — просто выходим
             if not data.get("products") or len(data["products"]) == 0:
-                logger.error(f"No products found for card_id {card_id}")
-                return None
-                
+                return
+            
             product = data["products"][0]
             
-            # Получаем изображение
-            image_url = await self.wb_image_url_get(context, card_id)
-            if not image_url:
-                return None
-
-            # Парсинг данных
-            sku = card_id
-            brand = product["brand"]
+            # Парсим данные
+            brand = product.get("brand", "")
+            name = product.get("name", f"WB-{card_id}")
             link = f"https://wildberries.ru/catalog/{card_id}/detail.aspx"
-            name = product["name"]
-
+            
             sizes = []
-            for size in product["sizes"]:
-                size_name = size["name"]
-                available = len(size["stocks"]) > 0
+            for size in product.get("sizes", []):
+                size_name = size.get("name", "")
+                available = len(size.get("stocks", [])) > 0
                 obj = {
                     "name": size_name,
                     "available": available,
                 }
-
-                price_data = size.get("price", None)
+                price_data = size.get("price")
                 if price_data:
                     current_price = price_data.get("product")
                     if current_price is None:
                         current_price = price_data.get("basic", 0)
                     price_rub = current_price / 100
                     obj["price"] = price_rub
-
                 sizes.append(obj)
-
+            
+            availability = any(s["available"] for s in sizes)
+            
             caption_data = {
-                "sku": sku,
+                "sku": card_id,
                 "name": name,
                 "link": link,
                 "sizes": sizes,
-                "availability": any(size["available"] for size in sizes),
+                "availability": availability,
             }
             if brand:
                 caption_data["brand"] = brand
-
-            return {
-                "sku": sku,
-                "media": image_url,
-                "parse_mode": "HTML",
-                "name": product.get("name"),
-                "caption_data": caption_data,
-                "brand": {
-                    "id": product.get("brandId"),
-                    "name": product.get("brand"),
-                },
-                "category": {
-                    "id": product.get("subjectId"),
-                    "name": product.get("entity"),
-                },
-            }
-        except asyncio.TimeoutError:
-            logger.error(f"Timeout while fetching card {card_id} through Hound")
-            return None
-        except Exception as e:
-            logger.error(f"Error in wb method for card {card_id}: {e}", exc_info=True)
-            return None
             
+            # Сохраняем в БД (без привязки к пользователю — это делает _handle_links_background)
+            # Рендерим подпись через временный объект
+            # Создаём минимальный продукт для render_product_caption
+            from dataclasses import dataclass
+            
+            # Используем существующий продукт из БД или создаём временный
+            try:
+                product_obj = await ParseProduct.objects.aget(product_id=card_id)
+                product_obj.caption_data = caption_data
+                product_obj.name = name
+            except ParseProduct.DoesNotExist:
+                # Временный объект — не сохраняем, только для рендера
+                product_obj = ParseProduct(
+                    product_id=card_id,
+                    name=name,
+                    caption_data=caption_data,
+                    product_type="wb",
+                )
+            
+            # Получаем шаблон
+            default_template = await ProductTemplate.aget_default_template()
+            if not default_template:
+                default_template = default_caption_template
+            
+            settings = await BotSettings.get_active()
+            chat_instance = None
+            try:
+                chat_instance = await context.bot.get_chat(settings.marketing_group_id)
+            except:
+                pass
+            
+            rendered_caption = await self.render_product_caption(
+                product_obj,
+                default_template,
+                context,
+                chat_instance.link if chat_instance else None,
+            )
+            
+            # Редактируем сообщение в группе
+            try:
+                await context.bot.edit_message_caption(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    caption=rendered_caption,
+                    parse_mode="HTML",
+                )
+            except Exception as e:
+                logger.warning(f"Не удалось отредактировать сообщение {message_id}: {e}")
+            
+        except Exception as e:
+            logger.error(f"Error in _wb_enrich_background for {card_id}: {e}", exc_info=True)
+            # При ошибке базовая подпись остаётся как есть
+    
     async def get_or_update_product_data(
         self,
         p: dict,
@@ -492,11 +557,156 @@ class ParserBot(AbstractBot):
 
         return render_template(template, template_context)
 
-    async def handle_links(
+    async def handle_links_based_on_message(
+        self, update: Update, context: CallbackContext
+    ):
+        if not update.effective_message:
+            return
+        message_text = update.effective_message.caption or update.effective_message.text
+
+        # Ищем ссылки Wildberries
+        wb_matches = re.findall(wb_regexp, message_text)
+        wb_items = [match[1] or match[2] for match in wb_matches]
+
+        # Ищем ссылки Ozon
+        ozon_matches = re.findall(ozon_regexp, message_text)
+
+        total = len(wb_items) + len(ozon_matches)
+        if total == 0:
+            return
+
+        # Мгновенно возвращаем управление боту, тяжёлая работа — в фоне
+        if wb_items:
+            asyncio.create_task(
+                self._handle_links_background(wb_items, "wb", self.wb, update, context)
+            )
+        if ozon_matches:
+            asyncio.create_task(
+                self._handle_links_background(ozon_matches, "ozon", self.parse_ozon, update, context)
+            )
+
+        logger.info(
+            f"🔍 Найдено {len(wb_items)} WB + {len(ozon_matches)} Ozon. "
+            f"Парсинг запущен в фоне, результаты придут отдельными сообщениями."
+        )
+    
+    async def _handle_links_background(
         self, items, product_type, parse_func, update: Update, context: CallbackContext
     ):
+        """
+        Фоновая задача парсинга и отправки товаров.
+        Для WB: собираем медиагруппу с базовыми подписями, отправляем, потом обновляем.
+        Для Ozon: старая логика.
+        """
+        # === WB: медиагруппа + фоновое обогащение ===
+        if product_type == "wb":
+            pictures = []
+            enrich_tasks = []  # (card_id, file_id, future_message_index)
+            
+            for card_id in items:
+                try:
+                    p = await self.wb(card_id, context, update)
+                    if p is None:
+                        logger.warning(f"WB вернул None для {card_id}, пропускаем")
+                        continue
+                    
+                    pictures.append({
+                        "media": p["media"],
+                        "caption": p["caption"],
+                        "parse_mode": p["parse_mode"],
+                    })
+                    # Запоминаем для фонового обогащения
+                    enrich_tasks.append({
+                        "card_id": card_id,
+                        "file_id": p["media"],
+                    })
+                except Exception as e:
+                    logger.error(f"Ошибка WB товара {card_id}: {e}", exc_info=True)
+                    continue
+            
+            if not pictures:
+                return
+            
+            # Отправляем медиагруппу
+            media_group = [InputMediaPhoto(**photo) for photo in pictures]
+            sent_messages = []
+            
+            try:
+                sent_messages = await update.message.reply_media_group(
+                    media=media_group,
+                    reply_to_message_id=update.message.message_id,
+                )
+            except Exception as e:
+                logger.error(f"Ошибка отправки медиагруппы WB: {e}", exc_info=True)
+                # Fallback: отправляем по одному
+                for photo in pictures:
+                    try:
+                        msg = await update.message.reply_photo(
+                            photo=photo["media"],
+                            caption=photo["caption"],
+                            parse_mode=photo["parse_mode"],
+                        )
+                        sent_messages.append(msg)
+                    except Exception as e2:
+                        logger.error(f"Fallback ошибка: {e2}")
+                        continue
+            
+            # Запускаем фоновое обогащение для каждого сообщения
+            chat_id = update.effective_chat.id
+            for idx, task in enumerate(enrich_tasks):
+                if idx < len(sent_messages):
+                    asyncio.create_task(
+                        self._wb_enrich_background(
+                            task["card_id"],
+                            task["file_id"],
+                            sent_messages[idx].message_id,
+                            chat_id,
+                            context,
+                        )
+                    )
+            
+            # Сохраняем в БД (пользователь, продукт)
+            user_obj = update.effective_user
+            user, _ = await TgUser.objects.aget_or_create(
+                tg_id=user_obj.id,
+                defaults={
+                    "username": user_obj.username,
+                    "first_name": user_obj.first_name,
+                    "last_name": user_obj.last_name,
+                    "language_code": user_obj.language_code,
+                    "is_bot": user_obj.is_bot,
+                },
+            )
+            
+            for idx, task in enumerate(enrich_tasks):
+                if idx < len(sent_messages):
+                    # Сохраняем базовый продукт (без данных API)
+                    p = {
+                        "sku": task["card_id"],
+                        "media": task["file_id"],
+                        "parse_mode": "HTML",
+                        "name": f"WB-{task['card_id']}",
+                        "caption_data": {
+                            "sku": task["card_id"],
+                            "name": f"WB-{task['card_id']}",
+                            "link": f"https://wildberries.ru/catalog/{task['card_id']}/detail.aspx",
+                            "sizes": [],
+                            "availability": True,
+                        },
+                        "brand": None,
+                        "category": None,
+                    }
+                    try:
+                        await self.get_or_update_product_data(
+                            p, "wb", user, task["card_id"], context
+                        )
+                    except Exception as e:
+                        logger.error(f"Ошибка сохранения {task['card_id']}: {e}")
+            
+            return
+
+        # === Ozon: старая логика ===
         user_obj = update.effective_user
-        # Получаем или создаем пользователя
         user, created = await TgUser.objects.aget_or_create(
             tg_id=update.effective_user.id,
             defaults={
@@ -519,9 +729,16 @@ class ParserBot(AbstractBot):
             chat_instance = await context.bot.get_chat(settings.marketing_group_id)
         except:
             logger.info("Не найден маркетинговый чат")
+
         for i in items:
-            p = await parse_func(i, context)
             try:
+                p = await parse_func(i, context)
+                if p is None:
+                    logger.warning(
+                        f"Парсинг {product_type} вернул None для товара {i}, пропускаем"
+                    )
+                    continue
+
                 product, product_image = await self.get_or_update_product_data(
                     p,
                     product_type,
@@ -549,7 +766,7 @@ class ParserBot(AbstractBot):
                 )
             except Exception as e:
                 logger.error(f"Ошибка при обработке товара {i}: {e}", exc_info=True)
-                continue  # Продолжаем, даже если один товар сломался
+                continue
 
         for i in range(0, len(pictures), 10):
             group = pictures[i : i + 10]
@@ -568,30 +785,6 @@ class ParserBot(AbstractBot):
                     except Exception as e:
                         logger.info(media_group)
                         logger.error("Ошибка отправки медиагруппы", exc_info=True)
-
-    async def handle_links_based_on_message(
-        self, update: Update, context: CallbackContext
-    ):
-        if not update.effective_message:
-            return
-        message_text = update.effective_message.caption or update.effective_message.text
-
-        # Ищем ссылки Wildberries
-        wb_matches = re.findall(wb_regexp, message_text)
-        wb_items = [match[1] or match[2] for match in wb_matches]
-
-        # Ищем ссылки Ozon
-        ozon_matches = re.findall(ozon_regexp, message_text)
-
-        # Если нашли ссылки на Wildberries, обрабатываем их
-        if wb_items:
-            await self.handle_links(wb_items, "wb", self.wb, update, context)
-
-        # Если нашли ссылки на Ozon, обрабатываем их
-        if ozon_matches:
-            await self.handle_links(
-                ozon_matches, "ozon", self.parse_ozon, update, context
-            )
 
     def get_ozon_widget(self, widget_states, key):
         try:

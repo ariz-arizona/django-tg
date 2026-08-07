@@ -44,6 +44,7 @@ services:
       - LOG_LEVEL=info
       - BROWSER_TIMEOUT=120000
       - HEADLESS=true
+      - MAX_SESSIONS=1
       - BROWSER_MAX_CONCURRENT=5
       - BROWSER_MAX_TIMEOUT=120000
       - BROWSER_USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
@@ -51,11 +52,14 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
-          memory: 2G
+          cpus: '0.6'
+          memory: 512MB
         reservations:
-          cpus: '1.0'
-          memory: 1G
+          cpus: '0.3'
+          memory: 256MB
+    tmpfs:
+      - /tmp:size=128M,exec
+    memswap_limit: 1536M
     <<: *app_labels
 
   celery:

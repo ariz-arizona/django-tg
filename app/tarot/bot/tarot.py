@@ -54,7 +54,7 @@ from server.logger import logger
 from django.conf import settings
 
 from tarot.utils.image_utils import create_spread_image
-from tarot.utils.flaresolverr import fetch_via_flaresolverr
+from tarot.utils.flaresolverr import tarot_fetch
 
 from tarot.bot.allcard_handler import AllCardHandler
 from tarot.bot.ai_interpret_handler import AIInterpretHandler
@@ -841,7 +841,7 @@ class TarotBot(AbstractBot):
             tech_msg_id = tech_msg.message_id
 
             # 🔥 Обход Cloudflare через FlareSolverr
-            content = await fetch_via_flaresolverr(f"{tarot_url}{decks_url}")
+            content = await tarot_fetch(f"{tarot_url}{decks_url}")
             dom = BeautifulSoup(content, "html.parser")
 
             decks_raw = dom.select(".tarot-deck-list a")
@@ -857,7 +857,7 @@ class TarotBot(AbstractBot):
             )
 
             # 🔥 И здесь тоже
-            content = await fetch_via_flaresolverr(f"{tarot_url}{random_deck}")
+            content = await tarot_fetch(f"{tarot_url}{random_deck}")
             dom = BeautifulSoup(content, "html.parser")
 
             cards_raw = dom.select('#majorarcana ~ row a[data-category*="Tarot Decks:"]')

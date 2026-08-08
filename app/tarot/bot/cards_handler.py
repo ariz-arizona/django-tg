@@ -2,6 +2,7 @@ import re
 import os
 from typing import List, Optional, Dict
 from collections import Counter
+import random
 
 import redis.asyncio as aioredis
 
@@ -22,6 +23,7 @@ from tarot.messages import CardMessages, TAROT_3_TRIGGER
 from tarot.models import (
     TarotDeck,
     TarotCardItem,
+    TarotCardSticker,
     OraculumDeck,
     OraculumItem,
     UserReading,
@@ -58,7 +60,6 @@ class CardsHandler:
             bot_instance: Экземпляр основного бота для доступа к его методам и атрибутам
         """
         self.bot = bot_instance
-        self.messages = CardMessages()
     
     @property
     def app_bot_id(self):
@@ -98,6 +99,12 @@ class CardsHandler:
             CallbackQueryHandler(
                 self.handle_moreoracle_button, pattern=r"^moreoracle_"
             ),
+            
+            MessageHandler(                
+                filters.COMMAND
+                & filters.TEXT
+                & filters.ChatType.PRIVATE
+                & filters.Regex(r"^\/tarot(\d+)?"), self.handle_tarot_sticker),
         ]
     
     
@@ -149,7 +156,7 @@ class CardsHandler:
             await reading.asave()
 
             status_message = await update.message.reply_text(
-                self.messages.get_loading(), parse_mode=ParseMode.HTML
+                self.bot.messages.get_loading(), parse_mode=ParseMode.HTML
             )
 
             # 1. Получение колоды
@@ -211,7 +218,7 @@ class CardsHandler:
                 reading.reading_status = UserReading.ReadingStatus.ERROR
                 await reading.asave()
             await update.message.reply_text(
-                self.messages.get_error_message("generic", error_details=str(e)),
+                self.bot.messages.get_error_message("generic", error_details=str(e)),
                 parse_mode=ParseMode.HTML
             )
 
@@ -231,7 +238,7 @@ class CardsHandler:
             if not reading:
                 logger.warning(f"Расклад {reading_id} не найден.")
                 await query.edit_message_text(
-                    self.messages.get_error_message("no_cards")
+                    self.bot.messages.get_error_message("no_cards")
                 )
                 await query.edit_message_reply_markup(reply_markup=None)
                 return
@@ -256,7 +263,7 @@ class CardsHandler:
                 reading.reading_status = UserReading.ReadingStatus.ERROR
                 await reading.asave()
                 await query.edit_message_text(
-                    self.messages.get_error_message("no_cards")
+                    self.bot.messages.get_error_message("no_cards")
                 )
                 await query.edit_message_reply_markup(reply_markup=None)
                 return
@@ -289,7 +296,7 @@ class CardsHandler:
                 reading.reading_status = UserReading.ReadingStatus.ERROR
                 await reading.asave()
             await query.edit_message_text(
-                self.messages.get_error_message("generic", error_details=str(e)),
+                self.bot.messages.get_error_message("generic", error_details=str(e)),
                 parse_mode=ParseMode.HTML
             )
 
@@ -319,7 +326,7 @@ class CardsHandler:
             await reading.asave()
 
             status_message = await update.message.reply_text(
-                self.messages.get_loading(), parse_mode=ParseMode.HTML,
+                self.bot.messages.get_loading(), parse_mode=ParseMode.HTML,
             )
             
             # 1. Получение колоды
@@ -368,7 +375,7 @@ class CardsHandler:
                 reading.reading_status = UserReading.ReadingStatus.ERROR
                 await reading.asave()
             await update.message.reply_text(
-                self.messages.get_error_message("generic", error_details=str(e)),
+                self.bot.messages.get_error_message("generic", error_details=str(e)),
                 parse_mode=ParseMode.HTML
             )
 
@@ -389,7 +396,7 @@ class CardsHandler:
             if not reading:
                 logger.warning(f"Расклад с ID {reading_id} не найден.")
                 await query.edit_message_text(
-                    self.messages.get_error_message("no_cards")
+                    self.bot.messages.get_error_message("no_cards")
                 )
                 return
 
@@ -416,7 +423,7 @@ class CardsHandler:
                 reading.reading_status = UserReading.ReadingStatus.ERROR
                 await reading.asave()
                 await query.edit_message_text(
-                    self.messages.get_error_message("no_cards")
+                    self.bot.messages.get_error_message("no_cards")
                 )
                 return
 
@@ -448,7 +455,7 @@ class CardsHandler:
                 reading.reading_status = UserReading.ReadingStatus.ERROR
                 await reading.asave()
             await query.edit_message_text(
-                self.messages.get_error_message("generic", error_details=str(e)),
+                self.bot.messages.get_error_message("generic", error_details=str(e)),
                 parse_mode=ParseMode.HTML,
             )
 
@@ -479,7 +486,7 @@ class CardsHandler:
             
             base_command = "_".join(command_parts)
             
-            info_text = self.messages.get_deck_search_result(
+            info_text = self.bot.messages.get_deck_search_result(
                 decks=decks,
                 keyword=options.get('deck_keyword', ''),
                 base_command=base_command
@@ -489,7 +496,7 @@ class CardsHandler:
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /card: {e}", exc_info=True)
             await update.message.reply_text(
-                self.messages.get_error_message("generic", error_details=str(e)),
+                self.bot.messages.get_error_message("generic", error_details=str(e)),
                 parse_mode=ParseMode.HTML
             )
     
@@ -506,12 +513,6 @@ class CardsHandler:
 
         reply_markup = []
         text = []
-        
-        def local_format_card_name(card_name: str, is_flipped: bool) -> str:
-            clean_name = self.messages.clean_card_name(card_name)
-            if is_flipped:
-                return f"{clean_name} ⬇️"
-            return clean_name
 
         # 2. Логика для ТАРО
         if send_type == 'tarot':
@@ -545,10 +546,13 @@ class CardsHandler:
             current_count = len(all_cards)
 
             # Формируем описание карт как список строк
-            cards_description = [local_format_card_name(c["card_instance"].display_name, c['flipped']) for c in all_cards]
+            cards_description = [
+                self.bot.messages.format_card_name(c["card_instance"].display_name, c['flipped']) 
+                for c in all_cards
+            ]
             
             # Статистика по колоде
-            stats_str = self.messages.get_deck_stats(current_count, total_cards)
+            stats_str = self.bot.messages.get_deck_stats(current_count, total_cards)
             
             # Текст для больших раскладов
             try_all_str = None
@@ -558,12 +562,12 @@ class CardsHandler:
                     flag += "_flip"
                 if reading.is_major_only:
                     flag += "_major"
-                try_all_str = self.messages.get_try_all_deck(
+                try_all_str = self.bot.messages.get_try_all_deck(
                     deck_id=current_deck.id,
                     flag=flag
                 )
                 
-            text = [self.messages.format_description(
+            text = [self.bot.messages.format_description(
                 deck_name=current_deck.name,
                 deck_link=current_deck.link,
                 cards_description=cards_description,
@@ -580,7 +584,7 @@ class CardsHandler:
                 and all(r.deck_id == current.deck_id for r in last_readings)
             ):
                 favorite_cmd = f"/card{current.count}_deck_{current.deck_id}"
-                favorite_text = self.messages.get_favorite_command(command=favorite_cmd)
+                favorite_text = self.bot.messages.get_favorite_command(command=favorite_cmd)
                 # Добавляем любимую команду в конец текста
                 text.append(f"\n{favorite_text}")
                 
@@ -619,10 +623,13 @@ class CardsHandler:
             total_cards = await OraculumItem.objects.filter(deck_id=current_deck.id).acount()
             current_count = len(all_cards)
             
-            card_names = [local_format_card_name(c['name'], c['flipped']) for c in all_cards]
-            stats_str = self.messages.get_deck_stats(current_count, total_cards)
+            card_names = [
+                self.bot.messages.format_card_name(c['name'], c['flipped']) 
+                for c in all_cards
+            ]
+            stats_str = self.bot.messages.get_deck_stats(current_count, total_cards)
             
-            text = [self.messages.format_description(
+            text = [self.bot.messages.format_description(
                 deck_name=current_deck.name,
                 deck_description=current_deck.description, 
                 cards_description=card_names,
@@ -646,3 +653,66 @@ class CardsHandler:
             params["reply_markup"] = InlineKeyboardMarkup(reply_markup)
 
         await update.effective_message.reply_text(**params)
+        
+    async def handle_tarot_sticker(self, update: Update, context: CallbackContext):
+        """
+        Обработчик команды /tarot.
+        Случайная карта из стикеров TarotCardSticker, как в рунах.
+        """
+        msg_text = update.message.text
+        logger.info(f"Обработка команды /tarot: {msg_text[:100]}")
+
+        category = UserReading.ReadingCategory.TAROT_STICKER
+        if await self.bot.check_reading_cooldown(update, category):
+            return
+
+        reading = None
+        try:
+            user = await self.bot.get_or_create_tg_user(update)
+            options = self.bot.parse_reading_options(msg_text)
+
+            reading = await self.bot.save_reading(
+                user=user,
+                message_id=update.effective_message.message_id,
+                category=category,
+                count=1,
+                is_flipped_allowed=options.get('flip', False),
+                is_command=True,
+                original_message_text=msg_text,
+            )
+            reading.reading_status = UserReading.ReadingStatus.PENDING
+            await reading.asave(update_fields=['reading_status'])
+
+            # Получаем все стикеры
+            stickers = [s async for s in TarotCardSticker.objects.select_related('tarot_card').all()]
+            
+            if not stickers:
+                raise ValueError("Стикеры Таро не настроены")
+
+            # Случайный выбор
+            random_sticker = random.choice(stickers)
+            inverted = options.get('flip', False) and random.choice([True, False])
+            
+            # Сохраняем в reading
+            reading.card_ids = [{"id": random_sticker.tarot_card.card_id, "inverted": inverted}]
+            reading.text = self.bot.messages.format_card_name(random_sticker.tarot_card.name, inverted)
+            await reading.asave(update_fields=['text', 'card_ids'])
+            
+            reading.reading_status = UserReading.ReadingStatus.SUCCESS
+            await reading.asave(update_fields=['reading_status'])
+
+            # Отправка
+            await update.message.reply_text(reading.text, parse_mode=ParseMode.HTML)
+            await update.message.reply_sticker(random_sticker.sticker)
+
+            logger.info(f"Отправлен стикер {random_sticker.tarot_card.name}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при обработке /tarot: {e}", exc_info=True)
+            if reading:
+                reading.reading_status = UserReading.ReadingStatus.ERROR
+                await reading.asave(update_fields=['reading_status'])
+            await update.message.reply_text(
+                self.bot.messages.get_error_message("generic", error_details=str(e)),
+                parse_mode=ParseMode.HTML
+            )

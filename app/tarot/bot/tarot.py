@@ -62,6 +62,7 @@ from tarot.bot.rune_handler import RuneHandler
 from tarot.bot.meaning_handler import MeaningHandler
 from tarot.bot.cards_handler import CardsHandler
 
+from tarot.messages import CardMessages
 from tarot.messages import CanvasMessages, CANVAS_3_TRIGGER, TAROT_3_TRIGGER
 
 # Инициализируем асинхронный клиент
@@ -89,6 +90,7 @@ class TarotBot(AbstractBot):
         self.rune_handler = RuneHandler(self)
         self.meaning_handler = MeaningHandler(self)
         self.cards_handler = CardsHandler(self)
+        self.messages = CardMessages()
         self.handlers = self.get_handlers()
 
     def get_handlers(self):
@@ -770,7 +772,7 @@ class TarotBot(AbstractBot):
         except Exception as e:
             raise RuntimeError(f"Ошибка: {str(e)}") from e
 
-    async def format_card_name(self, card, text_join = '\n'):
+    async def format_card_name(self, card, text_join='\n'):
         instance = card.get("card_instance")
         flipped = card.get("flipped", False)
 
@@ -789,10 +791,12 @@ class TarotBot(AbstractBot):
             else:
                 value_text = instance.direct or ""
 
+        # Форматируем имя карты через Messages (с ⬇️ вместо "Перевернуто")
+        formatted_name = self.messages.format_card_name(instance.display_name, flipped)
+
         # Собираем все части
         parts = [
-            instance.display_name,
-            "Перевернуто" if flipped else None,
+            formatted_name,
             " ".join([s.strip() for s in [main_desc, value_text]])
         ]
 

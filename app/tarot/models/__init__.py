@@ -1,5 +1,5 @@
 from .base import bot_prefix
-from .tarot import TarotCard, TarotMeaningCategory, ExtendedMeaning, TarotDeck, TarotCardItem
+from .tarot import TarotCard, TarotMeaningCategory, ExtendedMeaning, TarotDeck, TarotCardItem, TarotCardSticker
 from .oraculum import OraculumDeck, OraculumItem
 from .runes import Rune
 from .user import UserReading, AIReadingInterpretation, AIReadingPage
@@ -12,6 +12,7 @@ __all__ = [
     "ExtendedMeaning",
     "TarotDeck",
     "TarotCardItem",
+    "TarotCardSticker",
     "OraculumDeck",
     "OraculumItem",
     "Rune",

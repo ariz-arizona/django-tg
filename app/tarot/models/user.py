@@ -7,6 +7,7 @@ class UserReading(models.Model):
     class ReadingCategory(models.TextChoices):
         ONE = "one", "Одна карта"                      # Для команды /one
         TAROT = "tarot", "Таро"                        # Для /card, /card3
+        TAROT_STICKER = "tarot_sticker", "Таро Стикер"  # Для /tarot
         ORACLE = "oracle", "Оракул"                    # Для /oraculum, /oraculum3
         RUNES = "runes", "Руны (Футарк)"               # Для /futark, /futark triplet
         CANVAS_SPREAD = "canvas_spread", "Расклад на холсте" # Для /spread

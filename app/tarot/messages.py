@@ -185,6 +185,16 @@ class CardMessages(Messages):
     def clean_card_name(self, card_name: str) -> str:
         """Очищает имя карты от лишних пробелов и переносов строк"""
         return " ".join(card_name.split())
+
+    def format_card_name(self, card_name: str, is_flipped: bool = False) -> str:
+        """Очищает имя карты и добавляет индикатор перевёрнутого положения"""
+        def local_format_card_name(card_name: str, is_flipped: bool) -> str:
+            clean_name = self.clean_card_name(card_name)
+            if is_flipped:
+                return f"{clean_name} ⬇️"
+            return clean_name
+        
+        return local_format_card_name(card_name, is_flipped)
     
     def format_description(self, deck_name: str, cards_description: List[str], 
                           stats_str: Optional[str] = None, 

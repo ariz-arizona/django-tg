@@ -1,6 +1,6 @@
 from django.contrib import admin
 from tg_bot.admin import BotFileInline
-from ..models.tarot import TarotCard, ExtendedMeaning, TarotMeaningCategory, TarotDeck, TarotCardItem
+from ..models.tarot import TarotCard, ExtendedMeaning, TarotMeaningCategory, TarotDeck, TarotCardItem, TarotCardSticker
 
 
 @admin.register(TarotCard)
@@ -66,6 +66,14 @@ class TarotCardItemAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('deck', 'tarot_card')
+
+
+@admin.register(TarotCardSticker)
+class TarotCardStickerAdmin(admin.ModelAdmin):
+    list_display = ("id", "tarot_card", "sticker")
+    list_filter = ("tarot_card__is_major",)
+    search_fields = ("tarot_card__name", "tarot_card__card_id", "sticker")
+    autocomplete_fields = ("tarot_card",)
 
 
 @admin.register(ExtendedMeaning)

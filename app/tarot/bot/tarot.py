@@ -408,6 +408,7 @@ class TarotBot(AbstractBot):
                     UserReading.ReadingCategory.ORACLE: "/oraculum",
                     UserReading.ReadingCategory.RUNES: "/futark",
                     UserReading.ReadingCategory.CANVAS_SPREAD: "/spread",
+                    UserReading.ReadingCategory.TAROT_STICKER: "/tarot",
                 }
 
                 # Проверяем каждую категорию

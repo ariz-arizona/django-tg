@@ -322,10 +322,11 @@ def populate_stickers(apps, schema_editor):
     ]
 
     for item in TAROT_STICKER_MAP:
-        card = TarotCard.objects.get(card_id=item["card_id"])
-        TarotCardSticker.objects.get_or_create(
-            tarot_card=card, defaults={"sticker": item["sticker"]}
-        )
+        if TarotCard.objects.filter(card_id=item["card_id"]).exists():
+            card = TarotCard.objects.get(card_id=item["card_id"])
+            TarotCardSticker.objects.get_or_create(
+                tarot_card=card, defaults={"sticker": item["sticker"]}
+            )
 
 
 def reverse_populate_stickers(apps, schema_editor):

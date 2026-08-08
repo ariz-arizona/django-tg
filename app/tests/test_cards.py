@@ -342,7 +342,7 @@ def test_card_flip(send_webhook_update, redis_client, command):
     all_captions = []
     wait_and_collect_captions(redis_client, token, all_captions)
     
-    flipped_found = any('Перевернуто' in cap for cap in all_captions)
+    flipped_found = any('⬇️' in cap for cap in all_captions)
     print(f"🔄 После первого запроса: {'✅ Есть перевернутые' if flipped_found else '❌ Нет перевернутых'}")
     
     max_clicks = 20
@@ -403,12 +403,12 @@ def test_card_flip(send_webhook_update, redis_client, command):
         
         wait_and_collect_captions(redis_client, token, all_captions)
         
-        flipped_found = any('Перевернуто' in cap for cap in all_captions)
+        flipped_found = any('⬇️' in cap for cap in all_captions)
         if flipped_found:
             print(f"   🎉 Найдена перевернутая карта!")
     
     print(f"\n📊 Всего собрано подписей: {len(all_captions)}")
-    print(f"🔄 Перевернутых карт: {sum(1 for c in all_captions if 'Перевернуто' in c)}")
+    print(f"🔄 Перевернутых карт: {sum(1 for c in all_captions if '⬇️' in c)}")
     
     assert flipped_found, \
         f"Перевернутая карта не найдена за {clicks} кликов! Подписи: {[c[:50] for c in all_captions]}"
@@ -545,7 +545,7 @@ def test_major_arcana(send_webhook_update, redis_client, command, expected_cards
     
     # Если команда с flip - проверяем что есть перевернутые
     if 'flip' in command:
-        flipped = [item.get('caption', '') for item in media_items if 'Перевернуто' in item.get('caption', '')]
+        flipped = [item.get('caption', '') for item in media_items if '⬇️' in item.get('caption', '')]
         print(f"🔄 Перевернутых карт: {len(flipped)}/{actual_cards}")
     
     print(f"\n✅ Тест {command} пройден! Все {actual_cards} карт - старшие арканы")

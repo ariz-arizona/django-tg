@@ -976,9 +976,9 @@ class TarotBot(AbstractBot):
         if deck_type == "oraculum":
             command_name = "oraculum"
         async for deck in decks_page:
-            command = self.cards_handler.messages.build_deck_command(f"/{command_name}", deck.slug)
+            command = self.messages.build_deck_command(f"/{command_name}", deck.slug)
             decks_text.append(
-                self.cards_handler.messages.get_deck_list_item(command, deck.name)
+                self.messages.get_deck_list_item(command, deck.name)
             )
 
         # Если режим возврата данных

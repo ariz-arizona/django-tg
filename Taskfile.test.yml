@@ -127,6 +127,7 @@ tasks:
           -t tarot_tarotmeaningcategory \
           -t tarot_extendedmeaning \
           -t tarot_tarotcarditem \
+          -t tarot_tarotcardsticker \
           -t tarot_oraculumdeck \
           -t tarot_oraculumitem \
           > {{.DUMP_FILE}} 2>/dev/null

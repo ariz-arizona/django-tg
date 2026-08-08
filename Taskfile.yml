@@ -54,7 +54,7 @@ tasks:
         fi
         echo -e "\033[0;32m🐳 Запуск Docker контейнеров...\033[0m"
         TG_WEBHOOK_HOST=$(cat tunnel/.tunnel.url) \
-        docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} up --build -d
+        docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} up -d
         echo -e "\033[0;32m✅ Docker контейнеры запущены!\033[0m"
         echo -e "\033[0;34m📋 Проверить статус: task status\033[0m"
         echo -e "\033[0;34m📋 Посмотреть логи: task logs\033[0m"

@@ -593,6 +593,7 @@ class CardsHandler:
             row = [InlineKeyboardButton("Еще карту", callback_data=f"more_{reading_id}")] if can_draw else []
             row.append(InlineKeyboardButton(f"Трактовка карт ({len(all_cards)})", callback_data=f"desc_{reading_id}"))
             reply_markup.append(row)
+            reply_markup.append([InlineKeyboardButton(text="RWS", callback_data=f"rwsrender_{reading_id}")])
             if ai_btn := kwargs.get("add_ai_button"):
                 reply_markup.append([InlineKeyboardButton(text=ai_btn, callback_data=f"aireading_{reading_id}")])
 

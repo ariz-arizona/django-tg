@@ -173,24 +173,3 @@ class TarotCardItem(models.Model, BotFileMixin):
         verbose_name_plural = f"{bot_prefix}: Карты в колодах"
         unique_together = ("deck", "tarot_card")
         
-class TarotCardSticker(models.Model):
-    """
-    Модель для привязки стикера к карте Таро.
-    Одна карта — один стикер (или несколько стикеров на выбор).
-    """
-
-    tarot_card = models.ForeignKey(
-        TarotCard,
-        on_delete=models.CASCADE,
-        related_name="stickers",
-        verbose_name="Карта Таро",
-    )
-    sticker = models.CharField(max_length=100, verbose_name="ID стикера")
-
-    def __str__(self):
-        return f"{self.tarot_card.name} — {self.sticker}"
-
-    class Meta:
-        verbose_name = f"{bot_prefix}: Стикер карты Таро"
-        verbose_name_plural = f"{bot_prefix}: Стикеры карт Таро"
-        unique_together = ("tarot_card", "sticker")

@@ -682,28 +682,48 @@ class CardsHandler:
             )
             reading.reading_status = UserReading.ReadingStatus.PENDING
             await reading.asave(update_fields=['reading_status'])
-
-            # Получаем все стикеры
-            stickers = [s async for s in TarotCardSticker.objects.select_related('tarot_card').all()]
             
-            if not stickers:
+            card_ids = options.get("card_ids", []) 
+
+            # Получаем все доступные card_id через связь tarot_card
+            available_card_qs = TarotCardSticker.objects.prefetch_related('tarot_card').values_list(
+                'tarot_card__card_id', flat=True
+            )
+            
+            available_card_ids = []
+            async for q in available_card_qs:
+                available_card_ids.append(q)
+                
+            if not available_card_ids:
                 raise ValueError("Стикеры Таро не настроены")
 
-            # Случайный выбор
-            random_sticker = random.choice(stickers)
+            # Определяем ID карты: используем переданный или выбираем случайный
+            if card_ids and len(card_ids) > 0:
+                requested_card_id = str(card_ids[0])
+                if requested_card_id in available_card_ids:
+                    selected_card_id = requested_card_id
+                else:
+                    selected_card_id = random.choice(available_card_ids)
+            else:
+                selected_card_id = random.choice(available_card_ids)
+
+            # Получаем стикер по card_id из tarot_card
+            random_sticker = await TarotCardSticker.objects.prefetch_related('tarot_card').aget(tarot_card__card_id=selected_card_id)
+
             inverted = options.get('flip', False) and random.choice([True, False])
-            
+
             # Сохраняем в reading
-            reading.card_ids = [{"id": random_sticker.tarot_card.card_id, "inverted": inverted}]
+            reading.card_ids = [{"id": selected_card_id, "inverted": inverted}]
             reading.text = self.bot.messages.format_card_name(random_sticker.tarot_card.name, inverted)
+            
             await reading.asave(update_fields=['text', 'card_ids'])
             
             reading.reading_status = UserReading.ReadingStatus.SUCCESS
             await reading.asave(update_fields=['reading_status'])
 
             # Отправка
-            await update.message.reply_text(reading.text, parse_mode=ParseMode.HTML)
-            await update.message.reply_sticker(random_sticker.sticker)
+            # await update.message.reply_text(reading.text, parse_mode=ParseMode.HTML)
+            await update.message.reply_sticker(random_sticker.sticker, reply_to_message_id=reading.message_id)
 
             logger.info(f"Отправлен стикер {random_sticker.tarot_card.name}")
 

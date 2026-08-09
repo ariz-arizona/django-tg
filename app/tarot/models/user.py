@@ -85,6 +85,12 @@ class UserReading(models.Model):
         verbose_name="Текст исходного сообщения",
         help_text="Текст команды или сообщения, запустившего гадание"
     )
+    
+    has_rws_render = models.BooleanField(
+        default=False,
+        verbose_name="Есть RWS-рендер",
+        help_text="Был ли сгенерирован и отправлен классический вид расклада (Rider-Waite-Smith)"
+    )
 
     created_at = models.DateTimeField(
         auto_now_add=True, 

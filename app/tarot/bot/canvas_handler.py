@@ -69,7 +69,7 @@ REDIS_TTL_SECONDS = 10
 REDIS_KEY_TEMPLATE = "user:{user_id}:{category}"
 
 # Константы для RWS-рендерера
-RWS_DECK_ID = 63  # ID колоды Rider-Waite-Smith
+RWS_DECK_ID = 56
 
 
 class CanvasHandler:
@@ -207,6 +207,7 @@ class CanvasHandler:
         self,
         cards: List[Dict],
         username: str = "",
+        bot_username: str = ""
     ) -> Optional[io.BytesIO]:
         """
         Создаёт изображение расклада через унифицированную функцию.
@@ -228,43 +229,81 @@ class CanvasHandler:
         # Используем унифицированную функцию из utils
         return await create_full_spread_image(
             cards=cards,
-            username=username,
             canvas_width=CANVAS_WIDTH,
             canvas_height=CANVAS_HEIGHT,
             card_width=CARD_WIDTH,
             card_height=CARD_HEIGHT,
             card_margin=CARD_MARGIN,
             canvas_bg=CANVAS_BG,
+            username=username,
+            bot_username=bot_username
         )
 
     async def handle_rws_render(self, update: Update, context: CallbackContext):
         """
         Обработчик callback'а для отрисовки расклада в RWS.
-        Карты выгребаются из reading по reading_id из callback_data.
+        Мгновенно отвечает на callback и запускает рендер в фоне.
         """
         query = update.callback_query
         await query.answer("Собираю расклад...")
-
-        user = await self.bot.get_or_create_tg_user(update)
-        user_name = update.effective_user.username or update.effective_user.first_name
 
         # Извлекаем reading_id из callback_data: "rwsrender_123"
         try:
             _, reading_id = query.data.split("_")
             reading_id = int(reading_id)
         except (ValueError, IndexError):
-            await query.edit_message_text(
-                "❌ Некорректные данные callback.",
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="❌ Некорректные данные callback.",
                 parse_mode=ParseMode.HTML
             )
             return
+        
+        current_markup = query.message.reply_markup
+        if current_markup and current_markup.inline_keyboard:
+            new_keyboard = []
+            for row in current_markup.inline_keyboard:
+                new_row = []
+                for button in row:
+                    # Пропускаем кнопку с нашим колбэком
+                    if button.callback_data == query.data:
+                        continue
+                    new_row.append(button)
+                if new_row:  # Добавляем ряд только если он не пустой
+                    new_keyboard.append(new_row)
+            
+            # Редактируем сообщение с новой клавиатурой
+            try:
+                if new_keyboard:
+                    await query.edit_message_reply_markup(
+                        reply_markup=InlineKeyboardMarkup(new_keyboard)
+                    )
+                else:
+                    # Если кнопок не осталось — убираем клавиатуру полностью
+                    await query.edit_message_reply_markup(reply_markup=None)
+            except Exception as e:
+                logger.warning(f"Не удалось обновить клавиатуру: {e}")
+
+        # Запускаем рендер в фоне
+        asyncio.create_task(
+            self._handle_rws_render_background(update, context, reading_id)
+        )
+
+
+    async def _handle_rws_render_background(self, update: Update, context: CallbackContext, reading_id: int):
+        """
+        Фоновая задача рендера RWS-расклада.
+        При ошибке отправляет новое сообщение, не трогая оригинал.
+        """
+        chat_id = update.effective_chat.id
 
         # Загружаем reading из БД
         try:
             reading = await UserReading.objects.aget(id=reading_id)
         except UserReading.DoesNotExist:
-            await query.edit_message_text(
-                "❌ Расклад не найден.",
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="❌ Расклад не найден.",
                 parse_mode=ParseMode.HTML
             )
             return
@@ -272,8 +311,9 @@ class CanvasHandler:
         # Получаем список карт из reading
         card_records = reading.card_ids or []
         if not card_records:
-            await query.edit_message_text(
-                "❌ В раскладе нет карт для отрисовки.",
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="❌ В раскладе нет карт для отрисовки.",
                 parse_mode=ParseMode.HTML
             )
             return
@@ -284,7 +324,10 @@ class CanvasHandler:
             card_id = str(item.get("id"))
             flipped = item.get("flip", False)
 
-            card_item = await TarotCardItem.objects.prefetch_related('tarot_card', 'files').filter(id=card_id).afirst()
+            card_item = await TarotCardItem.objects.prefetch_related('tarot_card', 'files').filter(
+                tarot_card__card_id=card_id,
+                deck_id=RWS_DECK_ID 
+            ).afirst()
             if not card_item:
                 logger.warning(f"Карта {card_id} не найдена в БД")
                 continue
@@ -298,8 +341,9 @@ class CanvasHandler:
             })
 
         if not cards:
-            await query.edit_message_text(
-                "❌ Не удалось загрузить карты для отрисовки.",
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="❌ Не удалось загрузить карты для отрисовки.",
                 parse_mode=ParseMode.HTML
             )
             return
@@ -307,30 +351,34 @@ class CanvasHandler:
         # Создаём изображение
         spread_image = await self._create_spread_image(
             cards=cards,
-            username=user_name,
+            username=update.effective_user.username,
+            bot_username=context.bot.username
         )
 
         if not spread_image:
-            await query.edit_message_text(
-                "❌ Не удалось создать изображение расклада.",
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="❌ Не удалось создать изображение расклада.",
                 parse_mode=ParseMode.HTML
             )
             return
 
-        # Отправляем как новое сообщение
+        # Отправляем результат
         try:
             await context.bot.send_photo(
-                chat_id=update.effective_chat.id,
+                chat_id=chat_id,
                 photo=spread_image,
                 caption=f"🎨 <b>Классический вид</b>\n\nРасклад в стиле Rider-Waite-Smith",
-                parse_mode=ParseMode.HTML
+                parse_mode=ParseMode.HTML,
+                reply_to_message_id=reading.message_id,
+                read_timeout=60,
+                write_timeout=60,
+                connect_timeout=30
             )
+            reading.has_rws_render = True
+            await reading.asave(update_fields=['has_rws_render'])
         except Exception as e:
             logger.error(f"Ошибка отправки изображения: {e}", exc_info=True)
-            await query.edit_message_text(
-                "❌ Ошибка при отправке изображения.",
-                parse_mode=ParseMode.HTML
-            )
 
 
     async def handle_spread(self, update: Update, context: CallbackContext):

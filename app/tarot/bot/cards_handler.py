@@ -583,7 +583,7 @@ class CardsHandler:
                 and len(last_readings) >= 3
                 and all(r.deck_id == current.deck_id for r in last_readings)
             ):
-                favorite_cmd = f"/card{current.count}_deck_{current.deck_id}"
+                favorite_cmd = f"/card{min(current.count, 10)}_deck_{current.deck_id}"
                 favorite_text = self.bot.messages.get_favorite_command(command=favorite_cmd)
                 # Добавляем любимую команду в конец текста
                 text.append(f"\n{favorite_text}")
@@ -593,7 +593,10 @@ class CardsHandler:
             row = [InlineKeyboardButton("Еще карту", callback_data=f"more_{reading_id}")] if can_draw else []
             row.append(InlineKeyboardButton(f"Трактовка карт ({len(all_cards)})", callback_data=f"desc_{reading_id}"))
             reply_markup.append(row)
-            reply_markup.append([InlineKeyboardButton(text="RWS", callback_data=f"rwsrender_{reading_id}")])
+            
+            if current_count <= 16:
+                reply_markup.append([InlineKeyboardButton(text="🎨 Классический вид", callback_data=f"rwsrender_{reading_id}")])
+            
             if ai_btn := kwargs.get("add_ai_button"):
                 reply_markup.append([InlineKeyboardButton(text=ai_btn, callback_data=f"aireading_{reading_id}")])
 

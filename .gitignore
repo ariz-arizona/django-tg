@@ -96,3 +96,4 @@ app/celery-schedule
 app/img
 
 tunnel/
+app/tarot/tarot/rws_cache

@@ -114,6 +114,7 @@ class UserReadingAdmin(admin.ModelAdmin):
         "is_flipped_allowed",
         "is_major_only",
         "ai_interpretations__status",
+        "has_rws_render",
         ("created_at", admin.DateFieldListFilter),  
     )
 
@@ -142,7 +143,7 @@ class UserReadingAdmin(admin.ModelAdmin):
             "classes": ("collapse",)  
         }),
         ("Результат карт", {
-            "fields": ("text", "card_ids", "card_ids_preview", "message_id")
+            "fields": ("text", "card_ids", "card_ids_preview", "message_id", "has_rws_render")
         }),
         ("Временные метки", {
             "fields": ("created_at", "updated_at"),

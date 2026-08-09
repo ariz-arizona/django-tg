@@ -675,17 +675,16 @@ def test_exhaust_deck(send_webhook_update, redis_client, command, description):
     print(f"\n✅ Тест {command} ({description}) пройден!")
     print(f"   Собрано {total_cards} уникальных карт за {clicks} кликов")
     
-# tests/test_card.py (замена test_card_all_deck_promo)
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("start_command,expected_mode", [
-    ("/card9", ""),                    # /card9 → /all_deck_N
-    ("/card9_flip", "_flip"),          # /card9_flip → /all_deck_N_flip
-    ("/card9_major", "_major"),        # /card9_major → /all_deck_N_major
-    ("/card9_major_flip", "_flip_major"),  # /card9_major_flip → /all_deck_N_major_flip
+    ("/card9", ""),                        # /card9 → /all_deck_<name>
+    ("/card9_flip", "_flip"),              # /card9_flip → /all_deck_<name>_flip
+    ("/card9_major", "_major"),            # /card9_major → /all_deck_<name>_major
+    ("/card9_flip_major", "_flip_major"),  # порядок как пришёл!
 ])
 def test_card_all_deck_promo(send_webhook_update, redis_client, start_command, expected_mode):
-    """E2E: жмем 'Еще карту' 2 раза → появляется /all_deck_N{mode} с прогрессом"""
+    """E2E: /card9 + 2 клика 'Еще карту' = 11 карт → появляется /all_deck_<name>{mode}"""
     
     token = "test_token_12345"
     user_id = 8001 + hash(start_command) % 1000
@@ -716,16 +715,18 @@ def test_card_all_deck_promo(send_webhook_update, redis_client, start_command, e
     # Ждем первый расклад
     time.sleep(2)
     
-    # 2. Нажимаем "Еще карту" до 5 раз, пока не появится all_deck
-    clicks = 0
-    max_clicks = 5
+        # 2. Нажимаем "Еще карту" до появления all_deck
+    iterations = 0
+    max_iterations = 5
+    clicks_made = 0
     all_deck_found = False
     deck_progress = None
-    deck_number = None
+    deck_id = None
     all_deck_full_command = None
+    full_text = ""
     
-    while clicks < max_clicks and not all_deck_found:
-        clicks += 1
+    while iterations < max_iterations and not all_deck_found:
+        iterations += 1
         
         all_data = sync_lrange(redis_client, redis_key, 0, -1)
         messages = [json.loads(r) for r in all_data if json.loads(r).get('endpoint') == 'sendMessage']
@@ -736,27 +737,24 @@ def test_card_all_deck_promo(send_webhook_update, redis_client, start_command, e
             data = extract_message_data(msg)
             text = data.get('text', '')
             
-            # Ищем /all_deck_ в тексте — любое сочетание флагов
-            all_deck_match = re.search(r'(/all_deck_\d+(?:_\w+)*)\b', text)
+            all_deck_match = re.search(r'(/all_deck_[a-z]+(?:_[a-z]+)*)\b', text)
             if all_deck_match:
                 all_deck_found = True
                 all_deck_full_command = all_deck_match.group(1)
+                full_text = text
                 
-                # Парсим прогресс
                 progress_match = re.search(r'Всего в колоде:\s*(\d+)/(\d+)', text)
                 if progress_match:
                     deck_progress = (int(progress_match.group(1)), int(progress_match.group(2)))
                 
-                # Парсим номер колоды
-                deck_match = re.search(r'/all_deck_(\d+)', all_deck_full_command)
+                deck_match = re.search(r'/all_deck_([a-z]+(?:_[a-z]+)*)', all_deck_full_command)
                 if deck_match:
-                    deck_number = int(deck_match.group(1))
+                    deck_id = deck_match.group(1)
                 
-                print(f"\n🎉 Найдено {all_deck_full_command} после {clicks} кликов!")
+                print(f"\n🎉 Найдено {all_deck_full_command} после {clicks_made} кликов!")
                 print(f"📝 Текст: {text[:300]}")
                 break
             
-            # Ищем кнопку "Еще карту"
             inline_keyboard = data.get('reply_markup', {}).get('inline_keyboard', [])
             for row in inline_keyboard:
                 for btn in row:
@@ -768,17 +766,18 @@ def test_card_all_deck_promo(send_webhook_update, redis_client, start_command, e
             break
         
         if not more_button_callback:
-            print(f"❌ Кнопка 'Еще карту' исчезла после {clicks} кликов, all_deck не появилось")
+            print(f"❌ Кнопка 'Еще карту' исчезла после {clicks_made} кликов, all_deck не появилось")
             break
         
-        print(f"\n🔘 Клик #{clicks}: Еще карту")
+        clicks_made += 1
+        print(f"\n🔘 Клик #{clicks_made}: Еще карту")
         
         loop.run_until_complete(redis_client.delete(redis_key))
         
         callback_update = {
-            "update_id": 900 + clicks,
+            "update_id": 900 + clicks_made,
             "callback_query": {
-                "id": str(900 + clicks),
+                "id": str(900 + clicks_made),
                 "from": {"id": user_id, "is_bot": False, "first_name": "Alice"},
                 "message": {
                     "message_id": 900,
@@ -807,7 +806,7 @@ def test_card_all_deck_promo(send_webhook_update, redis_client, start_command, e
     
     # 3. Проверяем результаты
     assert all_deck_found, \
-        f"[{start_command}] Сообщение с /all_deck не появилось после {clicks} кликов!"
+        f"[{start_command}] Сообщение с /all_deck не появилось после {clicks_made} кликов!"
     
     # Проверяем прогресс
     assert deck_progress is not None, \
@@ -820,12 +819,12 @@ def test_card_all_deck_promo(send_webhook_update, redis_client, start_command, e
     assert total > 0, f"[{start_command}] Прогресс total={total}, должно быть > 0"
     assert seen <= total, f"[{start_command}] Прогресс seen={seen} > total={total}!"
     
-    # Проверяем номер колоды
-    assert deck_number is not None, \
-        f"[{start_command}] Нет номера колоды в /all_deck_!"
-    print(f"🃏 [{start_command}] Номер колоды: {deck_number}")
+    # Проверяем id колоды
+    assert deck_id is not None, \
+        f"[{start_command}] Нет id колоды в /all_deck_!"
+    print(f"🃏 [{start_command}] Id колоды: {deck_id}")
     
-    # Проверяем что команда содержит правильный суффикс
+    # Проверяем что команда содержит правильный суффикс (вольный порядок!)
     print(f"🔍 [{start_command}] Полная команда: {all_deck_full_command}")
     print(f"🔍 [{start_command}] Ожидаемый суффикс: '{expected_mode}'")
     
@@ -833,34 +832,26 @@ def test_card_all_deck_promo(send_webhook_update, redis_client, start_command, e
         assert all_deck_full_command.endswith(expected_mode), \
             f"[{start_command}] Команда {all_deck_full_command} должна заканчиваться на '{expected_mode}'!"
     else:
-        # Для /card9 — просто /all_deck_N без суффикса
-        assert re.match(r'/all_deck_\d+$', all_deck_full_command), \
-            f"[{start_command}] Команда {all_deck_full_command} должна быть /all_deck_N без суффикса!"
+        # Для /card9 — просто /all_deck_<name> без доп. суффиксов
+        assert re.match(r'/all_deck_[a-z]+$', all_deck_full_command), \
+            f"[{start_command}] Команда {all_deck_full_command} должна быть /all_deck_<name> без суффикса!"
     
-    # Проверяем что число карт соответствует: 9 начальных + N кликов
-    expected_min_seen = 9 + clicks
+        # Проверяем что число карт >= 11 (9 начальных + минимум 2 клика)
+    expected_min_seen = 9 + clicks_made
     print(f"🔢 [{start_command}] Ожидалось минимум {expected_min_seen} карт, получено {seen}")
     
-    # Подсказка про режим
-    all_data = sync_lrange(redis_client, redis_key, 0, -1)
-    messages = [json.loads(r) for r in all_data if json.loads(r).get('endpoint') == 'sendMessage']
+    assert seen >= expected_min_seen, \
+        f"[{start_command}] Ожидалось минимум {expected_min_seen} карт, получено {seen}"
     
-    full_text = ""
-    for msg in messages:
-        data = extract_message_data(msg)
-        text = data.get('text', '')
-        if '/all_deck_' in text:
-            full_text = text
-            break
-    
-    assert '💡' in full_text or 'режиме' in full_text.lower(), \
+    # Подсказка про режим — проверяем в том же тексте, где нашли all_deck!
+    assert '💡' in full_text or 'Режим' in full_text, \
         f"[{start_command}] Нет подсказки про режим 'Вся колода'! text={full_text[:200]}"
     
     print(f"\n✅ [{start_command}] Тест all_deck promo пройден!")
     print(f"   Прогресс: {seen}/{total}")
     print(f"   Команда: {all_deck_full_command}")
-
-
+    
+    
 @pytest.mark.django_db
 def test_card_by_positions(send_webhook_update, redis_client):
     """E2E: /cardN cX_Y_Z — запрос конкретных карт по позициям, проверяем повторяемость"""

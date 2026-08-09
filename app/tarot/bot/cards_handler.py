@@ -563,7 +563,7 @@ class CardsHandler:
                 if reading.is_major_only:
                     flag += "_major"
                 try_all_str = self.bot.messages.get_try_all_deck(
-                    deck_id=current_deck.id,
+                    deck_id=current_deck.slug,
                     flag=flag
                 )
                 
@@ -575,18 +575,25 @@ class CardsHandler:
                 try_all_str=try_all_str
             )]
                 
-            # Проверка на любимую команду - добавляем отдельной строкой
-            last_readings = [r async for r in UserReading.objects.filter(user_id=reading.user_id).order_by('-created_at')[:3]]
-            current = last_readings[0]
-            if (
-                current.count > 1
-                and len(last_readings) >= 3
-                and all(r.deck_id == current.deck_id for r in last_readings)
-            ):
-                favorite_cmd = f"/card{min(current.count, 10)}_deck_{current.deck_id}"
-                favorite_text = self.bot.messages.get_favorite_command(command=favorite_cmd)
-                # Добавляем любимую команду в конец текста
-                text.append(f"\n{favorite_text}")
+            base_cmd = f"/card{min(reading.count, 10) if reading.count > 1 else ''}"
+            repeat_cmd = self.bot.messages.build_deck_command(
+                base_command=base_cmd,
+                deck_slug=current_deck.slug,
+                major=reading.is_major_only,
+                flip=reading.is_flipped_allowed
+            )
+            text.append(self.bot.messages.get_repeat_command(repeat_cmd))
+            
+            spread_summary = self.bot.messages.get_spread_summary(
+                deck_name=current_deck.name if current_deck else "Стандартная колода",
+                count=reading.count,
+                is_flipped=reading.is_flipped_allowed,
+                is_major_only=reading.is_major_only,
+                seo_tags=current_deck.seo_tags if current_deck else None
+            )
+
+            # Добавляем в текст сообщения
+            text.append(f"\n📋 <code>{spread_summary}</code>")
                 
             params["parse_mode"] = ParseMode.HTML
             

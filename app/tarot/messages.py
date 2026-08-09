@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from html import escape
 from typing import Optional, List, Dict, Any
+import random
 
 TAROT_3_TRIGGER = "✨ Три карты"
 CANVAS_3_TRIGGER = "🖼 Холст"
@@ -80,10 +81,10 @@ class CardMessages(Messages):
     """Класс сообщений для Card раскладов"""
     
     TRY_ALL_DECK = (
-        "💡 <b>Большие расклады удобнее смотреть в режиме «Вся колода»: </b>\n"
+        "💡 <b>Режим «Вся колода» </b>"
         "/all_deck_{deck_id}{flag}"
     )
-    FAVORITE_COMMAND = "❤️ <b>Повторить расклад:</b> {command}"
+    REPEAT_COMMAND = "🔁 <b>Повторить расклад</b> {command}"
     DECK_STATS = "<i>Всего в колоде: {current_count}/{total_cards}</i>"
     ELLIPSIS = "   • <i>...</i>"
     
@@ -112,11 +113,13 @@ class CardMessages(Messages):
     
     DECK_LIST_ITEM = "<i>{command}</i> — {deck_name}"
     
+    SPREAD_SUMMARY = "таро {deck_name} {count} {flags}"
+    
     def get_try_all_deck(self, deck_id: str, flag: str = "") -> str:
         return self.TRY_ALL_DECK.format(deck_id=deck_id, flag=flag)
     
-    def get_favorite_command(self, command: str) -> str:
-        return self.FAVORITE_COMMAND.format(command=command)
+    def get_repeat_command(self, command: str) -> str:
+        return self.REPEAT_COMMAND.format(command=command)
     
     def get_deck_stats(self, current_count: int, total_cards: int) -> str:
         return self.DECK_STATS.format(current_count=current_count, total_cards=total_cards)
@@ -126,10 +129,59 @@ class CardMessages(Messages):
             keyword=escape(keyword or "не указан"),  # ← Защита от None
             base_command=base_command
         )
+        
+    def get_spread_summary(
+        self,
+        deck_name: str,
+        count: int,
+        is_flipped: bool = False,
+        is_major_only: bool = False,
+        seo_tags: Optional[List[str]] = None
+    ) -> str:
+        """
+        Формирует краткое описание расклада.
+        
+        Примеры:
+        - "Таро Тысяча и одна ночь 3 карты"
+        - "Таро Тысяча и одна ночь 3 карты перевернуто старшие"
+        - "Rider-Waite 5 карт перевернуто"
+        """
+        # Собираем флаги
+        flags = []
+        if is_flipped:
+            flags.append("перевернуто")
+        if is_major_only:
+            flags.append("старшие")
+        
+        flags_str = " " + " ".join(flags) if flags else ""
+        
+        # Используем SEO-тег или название колоды
+        display_name = deck_name
+        if seo_tags and len(seo_tags) > 0:
+            # Берём первый SEO-тег как короткое название
+            display_name = random.choice(seo_tags)
+        
+        return self.SPREAD_SUMMARY.format(
+            deck_name=display_name,
+            count=count,
+            flags=flags_str
+        )
     
-    def build_deck_command(self, base_command: str, deck_slug: str) -> str:
-        """Собирает команду с колодой: /card_3_deck_waite"""
-        return f"{base_command}_deck_{deck_slug}"
+    
+    def build_deck_command(
+        self,
+        base_command: str,
+        deck_slug: str,
+        major: bool = False,
+        flip: bool = False
+    ) -> str:
+        """Собирает команду: /cardN_deck_SLUG_major_flip (последние два опциональны)"""
+        parts = [f"{base_command}_deck_{deck_slug}"]
+        if major:
+            parts.append("major")
+        if flip:
+            parts.append("flip")
+        return "_".join(parts)
     
 
     def get_deck_list_item(self, command: str, deck_name: str) -> str:

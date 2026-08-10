@@ -510,6 +510,9 @@ class CanvasHandler:
             if spread_image:
                 await tech_msg.edit_media(
                     media=InputMediaPhoto(media=spread_image, caption=description_text, parse_mode=ParseMode.HTML),
+                    read_timeout=60,
+                    write_timeout=60,
+                    connect_timeout=30
                 )
             else:
                 raise Exception("create_spread_image вернул None")

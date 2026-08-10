@@ -236,19 +236,24 @@ async def create_spread_image(
     cards_data: List[Dict],
     spacing: int = 10,
     row_spacing: int = 20,
-    max_card_width: int = 600
+    max_card_width: int = 600,
+    max_file_size: int = 10 * 1024 * 1024,  # 10 MB — максимум для Telegram photo
+    jpeg_quality: int = 90
 ) -> Optional[BytesIO]:
     """
     Основная функция для spread: скачивает карты и создаёт изображение расклада.
+    Всегда сохраняет в JPEG с автоматическим уменьшением размера при необходимости.
 
     Args:
         cards_data: список словарей с картами
         spacing: отступы между картами
         row_spacing: отступы между рядами
         max_card_width: максимальная ширина карты
+        max_file_size: максимальный размер файла в байтах (по умолч. 10 MB)
+        jpeg_quality: начальное качество JPEG (90%)
 
     Returns:
-        BytesIO с изображением или None при ошибке
+        BytesIO с JPEG-изображением или None при ошибке
     """
     try:
         card_images = await load_card_images(cards_data, max_width=max_card_width)
@@ -264,11 +269,55 @@ async def create_spread_image(
 
         logger.info(f"Создано изображение расклада с {len(card_images)} картами")
 
-        result = BytesIO()
-        canvas.save(result, format='PNG')
-        result.seek(0)
+        # === Конвертация в RGB для JPEG ===
+        if canvas.mode in ('RGBA', 'P'):
+            rgb_canvas = Image.new('RGB', canvas.size, (255, 255, 255))
+            rgb_canvas.paste(canvas, mask=canvas.split()[-1] if canvas.mode == 'RGBA' else None)
+        else:
+            rgb_canvas = canvas.convert('RGB')
 
-        return result
+        # === Сохранение в JPEG с автоподбором размера ===
+
+        # Пробуем разные качества: 90 → 85 → 80 → 75 → 70
+        qualities = [jpeg_quality, 85, 80, 75, 70]
+
+        for quality in qualities:
+            result = BytesIO()
+            rgb_canvas.save(result, format='JPEG', quality=quality, optimize=True)
+            result.seek(0)
+            file_size = result.getbuffer().nbytes
+
+            logger.info(f"JPEG качество {quality}%: {file_size / 1024 / 1024:.2f} MB")
+
+            if file_size <= max_file_size:
+                logger.info(f"✅ Файл готов: JPEG {quality}%, {file_size} байт")
+                result.seek(0)
+                return result
+
+        # Если и JPEG слишком большой — уменьшаем размеры изображения
+        logger.warning("JPEG всё ещё слишком большой, уменьшаем размеры...")
+
+        scale = 0.9
+        while scale > 0.3:  # Минимум 30% от оригинала
+            new_size = (int(rgb_canvas.width * scale), int(rgb_canvas.height * scale))
+            resized = rgb_canvas.resize(new_size, Image.Resampling.LANCZOS)
+
+            result = BytesIO()
+            resized.save(result, format='JPEG', quality=85, optimize=True)
+            result.seek(0)
+            final_size = result.getbuffer().nbytes
+
+            logger.info(f"Масштаб {scale*100:.0f}% ({new_size[0]}x{new_size[1]}): {final_size / 1024 / 1024:.2f} MB")
+
+            if final_size <= max_file_size:
+                logger.info(f"✅ Файл готов: JPEG 85%, масштаб {scale*100:.0f}%, {final_size} байт")
+                result.seek(0)
+                return result
+
+            scale -= 0.1
+
+        logger.error("Не удалось уложиться в лимит даже при сильном уменьшении")
+        return None
 
     except Exception as e:
         logger.error(f"Ошибка создания изображения расклада: {e}", exc_info=True)

@@ -61,6 +61,7 @@ from tarot.bot.rune_handler import RuneHandler
 from tarot.bot.meaning_handler import MeaningHandler
 from tarot.bot.cards_handler import CardsHandler
 from tarot.bot.canvas_handler import CanvasHandler
+from tarot.bot.oh_handler import OhHandler
 
 from tarot.messages import CardMessages
 from tarot.messages import CanvasMessages, CANVAS_3_TRIGGER, TAROT_3_TRIGGER
@@ -91,6 +92,7 @@ class TarotBot(AbstractBot):
         self.meaning_handler = MeaningHandler(self)
         self.cards_handler = CardsHandler(self)
         self.canvas_handler = CanvasHandler(self)
+        self.oh_handler = OhHandler(self)
         self.messages = CardMessages()
         self.handlers = self.get_handlers()
 
@@ -106,6 +108,7 @@ class TarotBot(AbstractBot):
             *self.meaning_handler.get_handlers(),
             *self.cards_handler.get_handlers(),
             *self.canvas_handler.get_handlers(),
+            *self.oh_handler.get_handlers(),
             
             MessageHandler(
                 filters.COMMAND

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from html import escape
 from typing import Optional, List, Dict, Any
 import random
+from server.logger import logger
 
 TAROT_3_TRIGGER = "✨ Три карты"
 CANVAS_3_TRIGGER = "🖼 Холст"
@@ -276,3 +277,12 @@ class CardMessages(Messages):
             lines.append(try_all_str)
             
         return "\n".join(lines)
+    
+    def format_user_mention(self, user) -> Optional[str]:
+        """Формирует упоминание пользователя для группового чата."""
+        logger.info(user)
+        if not user or user.is_bot:
+            return None
+        if user.username:
+            return f"Карта для <b>@{escape(user.username)}</b>\n"
+        return f"Карта для <b>{escape(user.full_name)}</b>\n"

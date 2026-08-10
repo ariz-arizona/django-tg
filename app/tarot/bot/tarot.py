@@ -31,7 +31,7 @@ from telegram.ext import (
     CallbackContext,
     filters,
 )
-from telegram.constants import ParseMode
+from telegram.constants import ParseMode, ChatType
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.postgres.search import TrigramSimilarity
@@ -97,8 +97,8 @@ class TarotBot(AbstractBot):
     def get_handlers(self):
         return [
             MessageHandler(filters.PHOTO, self.handle_photo_msg),
-            CommandHandler("start", self.handle_start),
-            CommandHandler("help", self.handle_help),
+            CommandHandler("start", self.handle_start, filters.ChatType.PRIVATE),
+            CommandHandler("help", self.handle_help, filters.ChatType.PRIVATE),
             
             *self.allcard_handler.get_handlers(),
             *self.rune_handler.get_handlers(),
@@ -121,8 +121,6 @@ class TarotBot(AbstractBot):
             CommandHandler("last", self.handle_last_readings, filters.ChatType.PRIVATE),
             
             CommandHandler("one", self.handle_one_command, filters.ChatType.PRIVATE),
-            
-            
         ]
 
     async def get_or_create_tg_user(self, update: Update) -> TgUser:
@@ -380,6 +378,14 @@ class TarotBot(AbstractBot):
             # -1, если ключ существует, но у него нет TTL (бессрочный)
             # -2, если ключа нет в базе (кулдауна нет, можно гадать)
             if time_left > 0:
+                is_group = update.effective_chat.type in (ChatType.GROUP, ChatType.SUPERGROUP)
+                if is_group:
+                    try:
+                        await update.effective_message.delete()
+                    except Exception:
+                        pass  # нет прав на удаление
+                    return True
+                
                 # Красиво форматируем категорию (например, tarot -> ТАРОТ)
                 category_upper = category.upper() 
 

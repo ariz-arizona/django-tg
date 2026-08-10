@@ -17,7 +17,7 @@ from telegram.ext import (
     CallbackContext,
     filters,
 )
-from telegram.constants import ParseMode
+from telegram.constants import ParseMode, ChatType
 
 from tarot.messages import CardMessages, TAROT_3_TRIGGER
 from tarot.models import (
@@ -76,7 +76,7 @@ class CardsHandler:
             MessageHandler(
                 filters.COMMAND
                 & filters.TEXT
-                & filters.ChatType.PRIVATE
+                & (filters.ChatType.PRIVATE | filters.ChatType.GROUPS)
                 & filters.Regex(r"^\/card(\d+)?"),
                 self.handle_card,
             ),
@@ -92,7 +92,7 @@ class CardsHandler:
             MessageHandler(
                 filters.COMMAND
                 & filters.TEXT
-                & filters.ChatType.PRIVATE
+                & (filters.ChatType.PRIVATE | filters.ChatType.GROUPS)
                 & filters.Regex(r"^\/oraculum(\d+)?"),
                 self.handle_oraculum,
             ),
@@ -115,11 +115,13 @@ class CardsHandler:
         msg_text = update.message.text
         logger.info(f"Обработка команды /card с текстом: {msg_text[:100]}")
 
+        is_group = update.effective_chat.type in (ChatType.GROUP, ChatType.SUPERGROUP)
         category = UserReading.ReadingCategory.TAROT
         if await self.bot.check_reading_cooldown(update, category):
             return
 
         reading = None
+        
         try:
             user = await self.bot.get_or_create_tg_user(update)
             
@@ -190,10 +192,11 @@ class CardsHandler:
             # 3. Подготовка клавиатуры и отправка
             send_card_kwargs = {
                 "reading_id": reading.id,
+                "is_group": is_group,
                 "send_type": "tarot",
             }
             
-            if await self.bot.ai_interpret_handler.should_add_ai_button():
+            if not is_group and await self.bot.ai_interpret_handler.should_add_ai_button():
                 send_card_kwargs["add_ai_button"] = "🔮 Растолковать расклад (ИИ)"
                 logger.info("ИИ-кнопка добавлена в параметры отправки.")
 
@@ -304,6 +307,7 @@ class CardsHandler:
         msg_text = update.message.text
         logger.info(f"Обработка команды /oraculum: {msg_text[:100]}")
 
+        is_group = update.effective_chat.type in (ChatType.GROUP, ChatType.SUPERGROUP)
         category = UserReading.ReadingCategory.ORACLE
         if await self.bot.check_reading_cooldown(update, category):
             return
@@ -355,6 +359,7 @@ class CardsHandler:
             # 4. Отправка карт
             send_card_kwargs = {
                 "reading_id": reading.id,
+                "is_group": is_group,
                 "send_type": "oracle",
             }
 
@@ -503,6 +508,7 @@ class CardsHandler:
     async def send_card(self, update: Update, cards, **kwargs):
         reading_id = kwargs.get("reading_id")
         send_type = kwargs.get("send_type") # 'tarot' или 'oracle'
+        is_group = kwargs.get("is_group", False)
         params = {"disable_web_page_preview": True}
 
         # 1. Отправка фото
@@ -567,14 +573,18 @@ class CardsHandler:
                     flag=flag
                 )
                 
-            text = [self.bot.messages.format_description(
+            text = []
+            if is_group and update.effective_user.username and not update.effective_user.is_bot:
+                text.append(self.bot.messages.format_user_mention(update.effective_user))
+            
+            text.append(self.bot.messages.format_description(
                 deck_name=current_deck.name,
                 deck_link=current_deck.link,
                 cards_description=cards_description,
-                stats_str=stats_str,
+                stats_str=f'<i>Расклад от @{update._bot.username}</i>' if is_group else stats_str,
                 try_all_str=try_all_str
-            )]
-                
+            ))            
+            
             base_cmd = f"/card{min(reading.count, 10) if reading.count > 1 else ''}"
             repeat_cmd = self.bot.messages.build_deck_command(
                 base_command=base_cmd,
@@ -584,16 +594,15 @@ class CardsHandler:
             )
             text.append(self.bot.messages.get_repeat_command(repeat_cmd))
             
-            spread_summary = self.bot.messages.get_spread_summary(
-                deck_name=current_deck.name if current_deck else "Стандартная колода",
-                count=reading.count,
-                is_flipped=reading.is_flipped_allowed,
-                is_major_only=reading.is_major_only,
-                seo_tags=current_deck.seo_tags if current_deck else None
-            )
-
-            # Добавляем в текст сообщения
-            text.append(f"\n📋 <code>{spread_summary}</code>")
+            if not is_group:
+                spread_summary = self.bot.messages.get_spread_summary(
+                    deck_name=current_deck.name if current_deck else "Стандартная колода",
+                    count=reading.count,
+                    is_flipped=reading.is_flipped_allowed,
+                    is_major_only=reading.is_major_only,
+                    seo_tags=current_deck.seo_tags if current_deck else None
+                )
+                text.append(f"\n📋 <code>{spread_summary}</code>")
                 
             params["parse_mode"] = ParseMode.HTML
             
@@ -659,6 +668,9 @@ class CardsHandler:
         params["reply_to_message_id"] = (
             reply_target.message_id if reply_target else update.effective_message.message_id
         )
+        
+        if is_group:
+            reply_markup = []
         
         if reply_markup:
             params["reply_markup"] = InlineKeyboardMarkup(reply_markup)

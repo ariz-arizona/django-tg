@@ -45,7 +45,7 @@ class Command(BaseCommand):
             "--timeout",
             type=int,
             default=5,
-            help="Таймаут в секундах"
+            help="Таймаут в секундах между картами"
         )
 
     def handle(self, *args, **options):
@@ -112,7 +112,7 @@ class Command(BaseCommand):
                 cards_data = cards_data["cards"]
             else:
                 cards_data = [cards_data]
-        
+
         if not isinstance(cards_data, list):
             raise CommandError("JSON должен содержать список карт или объект с ключом 'cards'")
 
@@ -158,20 +158,24 @@ class Command(BaseCommand):
                 else:
                     self.stdout.write(f"  Карта уже существует в колоде")
 
-                # Обрабатываем изображение
-                image_url = card_data.get("image_url") or card_data.get("image")
-                if image_url:
+                # Обрабатываем изображение (поддержка image_url / image / image_path)
+                image_source = (
+                    card_data.get("image_url")
+                    or card_data.get("image")
+                    or card_data.get("image_path")
+                )
+                if image_source:
                     self.upload_card_image(
                         bot=bot,
                         chat_id=chat_id,
                         card_item=card_item,
-                        image_url=image_url,
+                        image_source=image_source,
                         card_name=str(card_item)
                     )
                     time.sleep(timeout)
                 else:
                     self.stdout.write(
-                        self.style.WARNING(f"  Нет image_url для карты")
+                        self.style.WARNING(f"  Нет image_url/image_path для карты")
                     )
 
             except Exception as e:
@@ -202,44 +206,63 @@ class Command(BaseCommand):
             )
         )
 
-    def upload_card_image(self, bot, chat_id, card_item, image_url, card_name):
+    def upload_card_image(self, bot, chat_id, card_item, image_source, card_name):
         """
-        Скачивает изображение по URL, загружает в бота и сохраняет в BotFile
+        Загружает изображение в бота.
+        Если image_source начинается с file:// — читает файл с диска.
+        Иначе — скачивает по URL.
         """
         try:
-            self.stdout.write(f"  📥 Скачиваю изображение: {image_url}")
-            response = requests.get(image_url, timeout=60)
-            
-            if not response.ok:
+            if image_source.startswith("file://"):
+                file_path = image_source[7:]  # убираем префикс file://
+                self.stdout.write(f"  📥 Читаю файл с диска: {file_path}")
+                if not Path(file_path).exists():
+                    self.stdout.write(
+                        self.style.ERROR(f"  ❌ Файл не найден: {file_path}")
+                    )
+                    return None
+                with open(file_path, "rb") as f:
+                    image_content = f.read()
                 self.stdout.write(
-                    self.style.ERROR(f"  ❌ Ошибка скачивания: HTTP {response.status_code}")
+                    f"  ✅ Файл прочитан, размер: {len(image_content)} байт"
                 )
-                return None
-            
-            self.stdout.write(f"  ✅ Изображение скачано, размер: {len(response.content)} байт")
+            else:
+                self.stdout.write(f"  📥 Скачиваю изображение: {image_source}")
+                response = requests.get(image_source, timeout=60)
+
+                if not response.ok:
+                    self.stdout.write(
+                        self.style.ERROR(f"  ❌ Ошибка скачивания: HTTP {response.status_code}")
+                    )
+                    return None
+
+                image_content = response.content
+                self.stdout.write(
+                    f"  ✅ Изображение скачано, размер: {len(image_content)} байт"
+                )
 
             # Загружаем в бота
             files = {
-                'photo': (f"{card_name}.jpg", response.content, 'image/jpeg')
+                'photo': (f"{card_name}.jpg", image_content, 'image/jpeg')
             }
-            
+
             send_photo_url = f"https://api.telegram.org/bot{bot.token}/sendPhoto"
             self.stdout.write(f"  📤 Загружаю в бота...")
-            
+
             upload_response = requests.post(
                 send_photo_url,
                 files=files,
                 data={'chat_id': chat_id},
                 timeout=60
             )
-            
+
             if upload_response.ok:
                 result = upload_response.json()
                 if result.get('ok'):
                     if 'photo' in result.get('result', {}):
                         photo_sizes = result['result']['photo']
                         file_id = photo_sizes[-1]['file_id']  # Берём самый большой размер
-                        
+
                         # Сохраняем в BotFile
                         content_type = ContentType.objects.get_for_model(card_item)
                         BotFile.objects.update_or_create(
@@ -248,7 +271,7 @@ class Command(BaseCommand):
                             bot=bot,
                             defaults={"file_id": file_id}
                         )
-                        
+
                         self.stdout.write(
                             self.style.SUCCESS(f"  ✅ Изображение загружено! file_id: {file_id[:30]}...")
                         )
@@ -282,6 +305,11 @@ class Command(BaseCommand):
         except requests.exceptions.ConnectionError as e:
             self.stdout.write(
                 self.style.ERROR(f"  ❌ Ошибка соединения: {str(e)}")
+            )
+            return None
+        except FileNotFoundError as e:
+            self.stdout.write(
+                self.style.ERROR(f"  ❌ Файл не найден: {str(e)}")
             )
             return None
         except Exception as e:

@@ -79,3 +79,20 @@ services:
       - celery_beat
       - redis
       - db
+
+  metabase:
+    image: metabase/metabase:latest
+    restart: unless-stopped
+    environment:
+      - MB_DB_TYPE=postgres
+      - MB_DB_DBNAME=${POSTGRES_DB:-django_db}
+      - MB_DB_PORT=${POSTGRES_PORT:-5432}
+      - MB_DB_USER=${POSTGRES_USER:-django_user}
+      - MB_DB_PASS=${POSTGRES_PASSWORD:-django_password}
+      - MB_DB_HOST=${POSTGRES_HOST:-db}
+    volumes:
+      - metabase_data:/metabase-data
+    depends_on:
+      db:
+        condition: service_healthy
+    <<: *app_labels

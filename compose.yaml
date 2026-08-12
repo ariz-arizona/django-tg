@@ -37,7 +37,7 @@ services:
 
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
-    restart: on-failure:5  # Перезапускать до 5 раз с паузой ~10 секунд
+    restart: on-failure:5
     ports:
       - "${FLARESOLVERR_PORT:-8191}:8191"
     environment:
@@ -80,6 +80,11 @@ services:
       - postgres_data:/var/lib/postgresql
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-django_user} -d ${POSTGRES_DB:-django_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     <<: *app_labels
 
   nginx:

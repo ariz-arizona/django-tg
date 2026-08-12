@@ -1,6 +1,7 @@
 # roster/bot.py
 import random
 import os
+import re
 import redis
 from datetime import timedelta
 from typing import List
@@ -9,6 +10,7 @@ from asgiref.sync import sync_to_async
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from telegram.ext import (
     CommandHandler,
+    MessageHandler,
     CallbackQueryHandler,
     CallbackContext,
     filters,
@@ -35,6 +37,20 @@ redis_client = redis.StrictRedis(
     decode_responses=True,
 )
 
+# ─── Константы командных префиксов ──────────────────────────────
+CMD_PREFIX_GET = "/get_"
+CMD_PREFIX_ROLL = "/roll_"
+CMD_PREFIX_ROLL_CRAFT = "/rollcraft_"  # roll_craft нормализуется в rollcraft
+
+# Регекс для MessageHandler — ловит /get_slug, /roll_slug, /rollcraft_slug
+ROLL_COMMAND_REGEX = re.compile(
+    r"^("
+    + re.escape(CMD_PREFIX_GET) + r"|"
+    + re.escape(CMD_PREFIX_ROLL_CRAFT) + r"|"
+    + re.escape(CMD_PREFIX_ROLL) + r")"
+    r"([a-z0-9_]+)$"
+)
+
 
 class GachaBot(AbstractBot):
     DEFAULT_LIMITS = {
@@ -51,10 +67,69 @@ class GachaBot(AbstractBot):
             CommandHandler("start", self.handle_start, filters.ChatType.PRIVATE),
             CommandHandler("me", self.handle_me, filters.ChatType.PRIVATE),
             CommandHandler(["roll", "get", "roll_craft"], self.handle_roll, filters.ChatType.PRIVATE),
+            MessageHandler(
+                filters.Regex(ROLL_COMMAND_REGEX) & filters.ChatType.PRIVATE,
+                self.handle_roll
+            ),
             CallbackQueryHandler(
                 self.handle_roll_album, pattern=r"^rollimg_\d+(_\d+){2,11}$"
             ),
         ]
+        
+    # ─── Нормализация команды ─────────────────────────────────────
+
+    def normalize_command(self, text: str) -> str:
+        """Нормализует команду: roll_craft → rollcraft, в нижний регистр."""
+        return text.strip().lower().replace("roll_craft", "rollcraft")
+
+    # ─── Вспомогательный метод: определение сезона ────────────────
+
+    async def resolve_season(self, text: str, bot) -> tuple[Season | None, bool, str]:
+        """
+        Определяет сезон по тексту команды.
+
+        Returns:
+            season: Season | None — найденный сезон
+            is_craft_mode: bool — это крафт-ролл?
+            error_msg: str — сообщение об ошибке
+        """
+        text = self.normalize_command(text)
+
+        # Точные команды без сезона → активный сезон
+        if text in ("/roll", "/rollcraft"):
+            season = await self.get_active_season()
+            if not season:
+                return None, text == "/rollcraft", (
+                    "⏳ Сейчас нет активного сезона. "
+                    "Выбери рулетку через /start"
+                )
+            return season, text == "/rollcraft", ""
+
+        # Парсим команды с префиксами
+        match = ROLL_COMMAND_REGEX.match(text)
+        if not match:
+            return None, False, ""
+
+        prefix, slug = match.groups()
+
+        try:
+            season = await Season.objects.filter(
+                bot=bot,
+                slug=slug,
+                is_archived=False
+            ).afirst()
+        except Exception:
+            season = None
+
+        if not season:
+            return None, False, (
+                f"❌ Рулетка '{text}' не найдена. "
+                f"Напиши /start чтобы увидеть список."
+            )
+
+        is_craft = prefix == CMD_PREFIX_ROLL_CRAFT
+        return season, is_craft, ""
+
 
     # ─── Вспомогательные методы ─────────────────────────────────────
 
@@ -85,14 +160,13 @@ class GachaBot(AbstractBot):
         return user
 
     async def get_active_season(self) -> Season | None:
-        """Возвращает активный сезон или None."""
+        """Возвращает активный сезон бота или None."""
         try:
             bot = await self.get_bot_instance()
-            return await Season.objects.filter(
-                is_active=True,
-                end_date__gte=now(),
-                bot=bot
-            ).afirst()
+            if not bot:
+                return None
+            # Используем кастомный менеджер .active() вместо .filter(is_active=True)
+            return await Season.objects.active().filter(bot=bot).afirst()
         except Exception:
             return None
 
@@ -209,32 +283,41 @@ class GachaBot(AbstractBot):
     # ─── /start ──────────────────────────────────────────────────────
 
     async def handle_start(self, update: Update, context: CallbackContext):
-        """Приветствие и краткая справка."""
+        """Приветствие и список доступных рулеток."""
         tg_user = update.effective_user
         user = await self.get_or_create_user(tg_user)
         bot = await self.get_bot_instance()
-        
-        limits = await self.get_roll_limits(
-            limit_types=["daily"], 
-            tg_user=tg_user,
-        )
 
-        try:
-            text_obj = await BotText.objects.aget(bot=bot, text_type="start")
-            text = text_obj.text
-        except BotText.DoesNotExist:
-            text = (
-                "🦸 Привет, {first_name}!\n\n"
-                "Добро пожаловать в Marvel Gacha.\n\n"
-                "🎲 <b>/roll</b> — вытянуть случайную карту ({daily_limit} в день)\n"
-                "📊 <b>/me</b> — посмотреть свой прогресс за неделю\n\n"
-                "Собери всех героев до конца сезона!"
+        # Собираем все НЕ архивные сезоны этого бота
+        seasons = []
+        async for season in Season.objects.filter(
+            bot=bot,
+            is_archived=False
+        ).order_by('-start_date'):
+            seasons.append(season)
+
+        if not seasons:
+            await update.message.reply_text(
+                "🃏 Пока нет доступных рулеток. Загляни позже!"
+            )
+            return
+
+        # Формируем список сезонов
+        seasons_lines = []
+        for s in seasons:
+            status_emoji = "🟢" if s.is_active else "🔴"
+            seasons_lines.append(
+                f"    {status_emoji} /get_{s.slug} — {s.name}"
             )
 
-        text = text.format(
-            first_name=user.first_name or 'герой',
-            daily_limit=limits['daily'],
+        text = (
+            f"🦸 Привет, {user.first_name or 'герой'}!\n\n"
+            f"Сейчас есть такие рулетки:\n"
+            f"{chr(10).join(seasons_lines)}\n\n"
+            f"📊 /me — посмотреть свой прогресс\n"
+            f"🎲 Выбери сезон и жми /get_<название>"
         )
+
         await update.message.reply_html(text)
 
     # ─── /roll (он же /get) ──────────────────────────────────────────
@@ -243,14 +326,16 @@ class GachaBot(AbstractBot):
         tg_user = update.effective_user
         user = await self.get_or_create_user(tg_user)
         bot = await self.get_bot_instance()
-        season = await self.get_active_season()
 
-        # 1. Начальные проверки
+        text = update.message.text
+
+        # ─── Определяем сезон ─────────────────────────────
+        season, is_craft_mode, error_msg = await self.resolve_season(text, bot)
+
         if not season:
-            await update.message.reply_text("⏳ Сейчас нет активного сезона. Загляни позже!")
+            await update.message.reply_text(error_msg)
             return
 
-        is_craft_mode = update.message.text.startswith("/roll_craft")
         limits = await self.get_roll_limits(tg_user, ["cooldown", "daily", "bihourly", "craft"])
         stats = await self.get_gacha_stats(tg_user)
 

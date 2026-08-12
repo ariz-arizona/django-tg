@@ -1,9 +1,11 @@
 # roster/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
+from django.utils import timezone
+from django.db import models as django_models
 
 from tg_bot.admin import BotFileInline
-from .models.team import Season, Team, Card
+from .models.team import Season, Team, Card, Tag
 from .models.roll import UserRoll, RosterUser
 from .models.tech import RollLimit, RarityWeight, BotText
 
@@ -20,17 +22,59 @@ class CardInline(admin.TabularInline):
     show_change_link = True
 
 
+class SeasonStatusFilter(admin.SimpleListFilter):
+    title = 'Статус'
+    parameter_name = 'status'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('active', 'Активен'),
+            ('upcoming', 'Скоро'),
+            ('finished', 'Завершён'),
+            ('archived', 'В архиве'),
+        )
+
+    def queryset(self, request, queryset):
+        now = timezone.now()
+        if self.value() == 'active':
+            return queryset.filter(
+                is_archived=False,
+                start_date__lte=now,
+            ).filter(
+                django_models.Q(end_date__isnull=True) | django_models.Q(end_date__gte=now)
+            )
+        if self.value() == 'upcoming':
+            return queryset.filter(is_archived=False, start_date__gt=now)
+        if self.value() == 'finished':
+            return queryset.filter(
+                is_archived=False,
+                end_date__isnull=False,
+                end_date__lt=now,
+            )
+        if self.value() == 'archived':
+            return queryset.filter(is_archived=True)
+        return queryset
+
+
 @admin.register(Season)
 class SeasonAdmin(admin.ModelAdmin):
-    list_display = ["name", "start_date", "end_date", "is_active", "team_count"]
-    list_filter = ["is_active"]
+    list_display = ["name", "slug", "display_status", "is_archived", "team_count", "card_count"]
+    list_filter = [SeasonStatusFilter, "is_archived"]
     search_fields = ["name"]
     inlines = [TeamInline]
+    date_hierarchy = "start_date"
+
+    @admin.display(description="Статус")
+    def display_status(self, obj):
+        return obj.status
 
     def team_count(self, obj):
         return obj.teams.count()
-
     team_count.short_description = "Команд"
+
+    def card_count(self, obj):
+        return obj.cards.count()
+    card_count.short_description = "Карт"
 
 
 @admin.register(Team)
@@ -38,29 +82,24 @@ class TeamAdmin(admin.ModelAdmin):
     list_display = ["name", "stars_display", "season", "card_count"]
     list_filter = ["season", "stars"]
     search_fields = ["name"]
-    inlines = [CardInline, BotFileInline,]
+    inlines = [CardInline, BotFileInline]
 
     def stars_display(self, obj):
         return "⭐" * obj.stars
-
     stars_display.short_description = "Звёздность"
 
     def card_count(self, obj):
         return obj.cards.count()
-
     card_count.short_description = "Карт"
-    
 
 
-# roster/admin.py
+# --- Card Admin с Generic Inlines ---
 
 from django.contrib.contenttypes.admin import GenericStackedInline
 from tg_bot.models import BotFile
 
 
 class CardImageInline(GenericStackedInline):
-    """Инлайн для открытой картинки (image)"""
-
     model = BotFile
     extra = 0
     ct_field = "content_type"
@@ -70,13 +109,10 @@ class CardImageInline(GenericStackedInline):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # Фильтруем только те, что привязаны через image
         return qs.filter(content_type__model="card")
 
 
 class CardImageHiddenInline(GenericStackedInline):
-    """Инлайн для скрытой картинки (image_hidden)"""
-
     model = BotFile
     extra = 0
     ct_field = "content_type"
@@ -91,20 +127,29 @@ class CardImageHiddenInline(GenericStackedInline):
 
 @admin.register(Card)
 class CardAdmin(admin.ModelAdmin):
-    list_display = ["name", "stars_display", "team", "team_season"]
-    list_filter = ["team__season", "team", "stars"]
+    list_display = ["name", "stars_display", "season", "team_or_none"]
+    list_filter = ["season", "team", "stars", "tags"]
     search_fields = ["name", "description"]
+    filter_horizontal = ["tags"]
     inlines = [CardImageInline, CardImageHiddenInline]
 
     def stars_display(self, obj):
         return "⭐" * obj.stars
-
     stars_display.short_description = "Звёздность"
 
-    def team_season(self, obj):
-        return obj.team.season.name
+    @admin.display(description="Команда", ordering="team__name")
+    def team_or_none(self, obj):
+        return obj.team.name if obj.team else "—"
 
-    team_season.short_description = "Сезон"
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ["name", "card_count"]
+    search_fields = ["name"]
+
+    def card_count(self, obj):
+        return obj.cards.count()
+    card_count.short_description = "Карт"
 
 
 @admin.register(UserRoll)
@@ -115,9 +160,9 @@ class UserRollAdmin(admin.ModelAdmin):
     readonly_fields = ["user", "bot", "card", "season", "get_team", "rolled_at"]
     date_hierarchy = "rolled_at"
 
-    @admin.display(description="Команда", ordering="card__team")
+    @admin.display(description="Команда", ordering="card__team__name")
     def get_team(self, obj):
-        return obj.card.team.name
+        return obj.card.team.name if obj.card.team else "—"
 
     @admin.display(description="Сезон", ordering="season")
     def get_season(self, obj):
@@ -126,20 +171,16 @@ class UserRollAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         return False
 
+
 @admin.register(RosterUser)
 class RosterUserAdmin(admin.ModelAdmin):
-    # Поля, которые отображаются в списке пользователей гачи
     list_display = (
         'get_tg_id', 
         'get_username', 
         'get_full_name', 
         'is_premium'
     )
-    
-    # Быстрые фильтры в правой панели
     list_filter = ('is_premium',)
-    
-    # Поиск. Так как связь OneToOne, ищем по полям связанной модели TgUser
     search_fields = (
         'user__tg_id', 
         'user__username', 
@@ -147,11 +188,8 @@ class RosterUserAdmin(admin.ModelAdmin):
         'user__last_name',
         'description'
     )
-    
-    # Чтобы случайно не повесить базу при дропдауне, если пользователей много
     raw_id_fields = ('user',)
 
-    # Вычисляемые поля для красивого отображения данных из базового TgUser в списке
     @admin.display(ordering='user__tg_id', description='Telegram ID')
     def get_tg_id(self, obj):
         return obj.user.tg_id
@@ -164,14 +202,15 @@ class RosterUserAdmin(admin.ModelAdmin):
     def get_full_name(self, obj):
         parts = [obj.user.first_name, obj.user.last_name]
         return " ".join([p for p in parts if p]) or "—"
-    
-    
+
+
 @admin.register(RollLimit)
 class RollLimitAdmin(admin.ModelAdmin):
     list_display = ["limit_type", "is_premium", "bot", "value"]
     list_filter = ["bot", "limit_type"]
     search_fields = ["bot__name", "bot__username", "limit_type"]
     list_editable = ["value"]
+
 
 @admin.register(RarityWeight)
 class RarityWeightAdmin(admin.ModelAdmin):
@@ -184,24 +223,14 @@ class RarityWeightAdmin(admin.ModelAdmin):
         'weights_summary',
         'created_at'
     ]
-    
-    list_filter = [
-        'bot',
-        'enabled',
-    ]
-    
-    search_fields = [
-        'bot__name',
-        'formula',
-    ]
-    
+    list_filter = ['bot', 'enabled']
+    search_fields = ['bot__name', 'formula']
     readonly_fields = [
         'created_at',
         'updated_at',
         'weights_preview',
         'probabilities_preview',
     ]
-    
     fieldsets = (
         ('Основные настройки', {
             'fields': (
@@ -225,12 +254,10 @@ class RarityWeightAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
     list_per_page = 20
     actions = ['enable_selected', 'disable_selected', 'reset_to_default_formula']
-    
+
     def enabled_status(self, obj):
-        """Статус активности с иконкой"""
         if obj.enabled:
             return format_html(
                 '<span style="color: green; font-weight: bold;">✓ Активен</span>'
@@ -240,39 +267,33 @@ class RarityWeightAdmin(admin.ModelAdmin):
         )
     enabled_status.short_description = 'Статус'
     enabled_status.admin_order_field = 'enabled'
-    
+
     def formula_preview(self, obj):
-        """Краткое отображение формулы"""
         if len(obj.formula) > 50:
             return f"{obj.formula[:50]}..."
         return obj.formula
     formula_preview.short_description = 'Формула'
-    
+
     def weights_summary(self, obj):
-        """Краткая сводка весов"""
         try:
             weights = obj.get_all_weights()
             parts = []
             for star in range(1, 6):
                 parts.append(f"★{star}: {weights[star]:.4f}")
             return " | ".join(parts)
-        except Exception as e:
-            return format_html(
-                '<span style="color: red;">Ошибка</span>'
-            )
+        except Exception:
+            return format_html('<span style="color: red;">Ошибка</span>')
     weights_summary.short_description = 'Веса (★1-★5)'
-    
+
     def weights_preview(self, obj):
-        """Предпросмотр весов в виде таблицы"""
         if not obj.pk:
             return "Сохраните объект для просмотра"
-        
         try:
             weights = obj.get_all_weights()
             probabilities = obj.get_probabilities()
-        except:
+        except Exception:
             return format_html('<span style="color: red;">Ошибка вычисления</span>')
-        
+
         html = '''
         <table style="border-collapse: collapse; width: 100%;">
             <tr style="background-color: #f0f0f0;">
@@ -281,45 +302,6 @@ class RarityWeightAdmin(admin.ModelAdmin):
                 <th style="padding: 8px; border: 1px solid #ddd;">Вероятность</th>
             </tr>
         '''
-        
-        colors = {
-            1: '#808080',  # серый
-            2: '#00ff00',  # зеленый
-            3: '#0080ff',  # синий
-            4: '#a020f0',  # фиолетовый
-            5: '#ffd700',  # золотой
-        }
-        
-        for star in range(1, 6):
-            color = colors[star]
-            html += '<tr>'
-            html += f'<td style="padding: 8px; border: 1px solid #ddd; color: {color}; font-size: 16px;">{"★" * star}</td>'
-            html += f'<td style="padding: 8px; border: 1px solid #ddd;">{weights[star]:.10f}</td>'
-            html += f'<td style="padding: 8px; border: 1px solid #ddd;"><strong>{probabilities[star]:.2f}%</strong></td>'
-            html += '</tr>'
-        
-        html += f'''
-            <tr style="background-color: #f9f9f9;">
-                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Итого</strong></td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><strong>{sum(weights.values()):.4f}</strong></td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><strong>100%</strong></td>
-            </tr>
-        '''
-        
-        html += '</table>'
-        return format_html(html)
-    weights_preview.short_description = 'Веса'
-    
-    def probabilities_preview(self, obj):
-        """Визуализация вероятностей"""
-        if not obj.pk:
-            return ""
-        
-        try:
-            probs = obj.get_probabilities()
-        except:
-            return ""
-        
         colors = {
             1: '#808080',
             2: '#00ff00',
@@ -327,7 +309,38 @@ class RarityWeightAdmin(admin.ModelAdmin):
             4: '#a020f0',
             5: '#ffd700',
         }
-        
+        for star in range(1, 6):
+            color = colors[star]
+            html += '<tr>'
+            html += f'<td style="padding: 8px; border: 1px solid #ddd; color: {color}; font-size: 16px;">{"★" * star}</td>'
+            html += f'<td style="padding: 8px; border: 1px solid #ddd;">{weights[star]:.10f}</td>'
+            html += f'<td style="padding: 8px; border: 1px solid #ddd;"><strong>{probabilities[star]:.2f}%</strong></td>'
+            html += '</tr>'
+        html += f'''
+            <tr style="background-color: #f9f9f9;">
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Итого</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>{sum(weights.values()):.4f}</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>100%</strong></td>
+            </tr>
+        '''
+        html += '</table>'
+        return format_html(html)
+    weights_preview.short_description = 'Веса'
+
+    def probabilities_preview(self, obj):
+        if not obj.pk:
+            return ""
+        try:
+            probs = obj.get_probabilities()
+        except Exception:
+            return ""
+        colors = {
+            1: '#808080',
+            2: '#00ff00',
+            3: '#0080ff',
+            4: '#a020f0',
+            5: '#ffd700',
+        }
         html = '<div style="margin-top: 10px;">'
         for star in range(1, 6):
             prob = probs[star]
@@ -347,9 +360,8 @@ class RarityWeightAdmin(admin.ModelAdmin):
         html += '</div>'
         return format_html(html)
     probabilities_preview.short_description = 'Распределение вероятностей'
-    
+
     def enable_selected(self, request, queryset):
-        """Активировать выбранную запись, деактивировав остальные для бота"""
         if queryset.count() > 1:
             self.message_user(
                 request,
@@ -357,32 +369,26 @@ class RarityWeightAdmin(admin.ModelAdmin):
                 level='ERROR'
             )
             return
-        
         obj = queryset.first()
         RarityWeight.objects.filter(bot=obj.bot, enabled=True).update(enabled=False)
         queryset.update(enabled=True)
         self.message_user(request, f"Запись активирована для бота {obj.bot}.")
     enable_selected.short_description = "✓ Активировать выбранные"
-    
+
     def disable_selected(self, request, queryset):
-        """Деактивировать выбранные записи"""
         count = queryset.update(enabled=False)
         self.message_user(request, f"Деактивировано записей: {count}")
     disable_selected.short_description = "✗ Деактивировать выбранные"
-    
+
     def reset_to_default_formula(self, request, queryset):
-        """Сбросить формулу и коэффициент на значения по умолчанию"""
         updated = queryset.update(
             formula="1 / (math.factorial({star}) * ({star} + 1))",
             coefficient=1.0
         )
         self.message_user(request, f"Сброшено записей: {updated}")
     reset_to_default_formula.short_description = "↺ Сбросить на стандартные"
-    
+
     def save_model(self, request, obj, form, change):
-        """
-        При сохранении: если запись активна, деактивируем другие для этого бота
-        """
         if obj.enabled:
             RarityWeight.objects.filter(
                 bot=obj.bot,
@@ -390,33 +396,28 @@ class RarityWeightAdmin(admin.ModelAdmin):
             ).exclude(
                 pk=obj.pk
             ).update(enabled=False)
-        
         super().save_model(request, obj, form, change)
-    
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('bot')
-    
+
 
 @admin.register(BotText)
 class BotTextAdmin(admin.ModelAdmin):
-    
     list_display = [
         'bot',
         'text_type',
         'text_preview',
         'id',
     ]
-    
     list_filter = [
         'bot',
         'text_type',
     ]
-    
     search_fields = [
         'text',
         'bot__username',
     ]
-    
     fieldsets = (
         ('Основное', {
             'fields': ('bot', 'text_type')
@@ -426,17 +427,14 @@ class BotTextAdmin(admin.ModelAdmin):
             'description': 'Введите текст сообщения. Можно использовать HTML-теги и переменные в фигурных скобках, например: {user_name}, {card_name}, {team_name}'
         }),
     )
-    
+
     def text_preview(self, obj):
-        """Превью текста в списке (первые 50 символов)."""
         if len(obj.text) > 50:
             return obj.text[:50] + '...'
         return obj.text
-    
     text_preview.short_description = 'Текст (превью)'
 
     def get_readonly_fields(self, request, obj=None):
-        """Делаем text_type только для чтения при редактировании."""
-        if obj:  # редактирование существующего объекта
+        if obj:
             return ['text_type']
         return []

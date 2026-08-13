@@ -23,7 +23,11 @@ redis_client = redis.StrictRedis(
 
 def put_django_task_command_to_bot_queue(bot_id, txt, is_text=False):
     # Токен бота из настроек
-    bot = Bot.objects.get(id=bot_id, bot_type=Bot.BOT_TYPE_CHOICES[0][0])
+    try:
+        bot = Bot.objects.get(id=bot_id, bot_type=Bot.BOT_TYPE_CHOICES[0][0])
+    except Bot.DoesNotExist:
+        return
+    
     bot_token = bot.token
     if not bot_token:
         return

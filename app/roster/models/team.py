@@ -116,7 +116,7 @@ class Team(models.Model, BotFileMixin):
         related_name='teams',
         verbose_name='Сезон'
     )
-    name = models.CharField(max_length=100, verbose_name='Название')
+    name = models.CharField(max_length=255, verbose_name='Название')
     stars = models.PositiveSmallIntegerField(
         default=1,
         verbose_name='Звёздность'
@@ -133,7 +133,7 @@ class Team(models.Model, BotFileMixin):
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=50, unique=True, verbose_name='Тег')
+    name = models.CharField(max_length=255, unique=True, verbose_name='Тег')
 
     class Meta:
         ordering = ['name']
@@ -159,7 +159,7 @@ class Card(models.Model, BotFileMixin):
         related_name='cards',
         verbose_name='Команда'
     )
-    name = models.CharField(max_length=100, verbose_name='Название')
+    name = models.CharField(max_length=255, verbose_name='Название')
     stars = models.PositiveSmallIntegerField(
         default=1,
         verbose_name='Звёздность'

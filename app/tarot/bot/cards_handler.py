@@ -157,9 +157,11 @@ class CardsHandler:
             reading.reading_status = UserReading.ReadingStatus.PENDING
             await reading.asave()
 
-            status_message = await update.message.reply_text(
-                self.bot.messages.get_loading(), parse_mode=ParseMode.HTML
-            )
+            status_message = None
+            if not is_group:
+                status_message = await update.message.reply_text(
+                    self.bot.messages.get_loading(), parse_mode=ParseMode.HTML
+                )
 
             # 1. Получение колоды
             deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None))
@@ -212,7 +214,8 @@ class CardsHandler:
             logger.info(f"Карты успешно отправлены: {card_names_info}")
 
             # Удаляем статусное сообщение
-            await status_message.delete()
+            if status_message:
+                await status_message.delete()
 
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /card: {e}", exc_info=True)
@@ -329,9 +332,11 @@ class CardsHandler:
             reading.reading_status = UserReading.ReadingStatus.PENDING
             await reading.asave()
 
-            status_message = await update.message.reply_text(
-                self.bot.messages.get_loading(), parse_mode=ParseMode.HTML,
-            )
+            status_message = None
+            if not is_group:
+                status_message = await update.message.reply_text(
+                    self.bot.messages.get_loading(), parse_mode=ParseMode.HTML,
+                )
             
             # 1. Получение колоды
             deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None), 'oraculum')
@@ -372,7 +377,8 @@ class CardsHandler:
             logger.info(f"Карты оракула успешно отправлены: {[c['name'] for c in cards]}")
 
             # Удаляем статусное сообщение
-            await status_message.delete()
+            if status_message:
+                await status_message.delete()
 
         except Exception as e:
             logger.error(f"Ошибка при обработке команды /oraculum: {e}", exc_info=True)
@@ -510,12 +516,22 @@ class CardsHandler:
         send_type = kwargs.get("send_type") # 'tarot' или 'oracle'
         is_group = kwargs.get("is_group", False)
         params = {"disable_web_page_preview": True}
+        
 
-        # 1. Отправка фото
-        await update.effective_message.reply_media_group(
-            [InputMediaPhoto(c["img_id"], await self.bot.format_card_name(c)) for c in cards],
-            reply_to_message_id=update.effective_message.message_id,
-        )
+        # 1. Отправка фото        
+        if is_group:
+            # Для групп - отправляем без reply
+            mg = await update.effective_chat.send_media_group(
+                [InputMediaPhoto(c["img_id"], await self.bot.format_card_name(c)) for c in cards],
+                message_thread_id=update.effective_message.message_thread_id  # для топиков
+            )
+        else:
+            # Для личных чатов - с reply
+            mg = await update.effective_message.reply_media_group(
+                [InputMediaPhoto(c["img_id"], await self.bot.format_card_name(c)) for c in cards],
+                reply_to_message_id=update.effective_message.message_id,
+            )
+            
 
         reply_markup = []
         text = []
@@ -664,18 +680,25 @@ class CardsHandler:
         # 4. Финальная отправка
         params["text"] = "\n".join(text)
         
-        reply_target = update.effective_message.reply_to_message
-        params["reply_to_message_id"] = (
-            reply_target.message_id if reply_target else update.effective_message.message_id
-        )
-        
+        if not is_group:
+            reply_target = update.effective_message.reply_to_message
+            params["reply_to_message_id"] = (
+                reply_target.message_id if reply_target else update.effective_message.message_id
+            )
+    
         if is_group:
             reply_markup = []
         
         if reply_markup:
             params["reply_markup"] = InlineKeyboardMarkup(reply_markup)
 
-        await update.effective_message.reply_text(**params)
+        if is_group:
+            await update.effective_chat.send_message(
+                text=params.pop("text"),
+                **params
+            )
+        else:
+            await update.effective_message.reply_text(**params)
         
     async def handle_tarot_sticker(self, update: Update, context: CallbackContext):
         """

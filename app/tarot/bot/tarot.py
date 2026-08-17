@@ -64,7 +64,7 @@ from tarot.bot.canvas_handler import CanvasHandler
 from tarot.bot.oh_handler import OhHandler
 
 from tarot.messages import CardMessages
-from tarot.messages import CanvasMessages, CANVAS_3_TRIGGER, TAROT_3_TRIGGER
+from tarot.messages import CanvasMessages, CANVAS_3_TRIGGER, TAROT_3_TRIGGER, ONEHAND_TRIGGER
 
 # Инициализируем асинхронный клиент
 redis_client = aioredis.StrictRedis(
@@ -1076,7 +1076,7 @@ class TarotBot(AbstractBot):
 
     def default_reply_keyboard(self):
         return ReplyKeyboardMarkup(
-            [[TAROT_3_TRIGGER, CANVAS_3_TRIGGER]],
+            [[TAROT_3_TRIGGER, CANVAS_3_TRIGGER], [ONEHAND_TRIGGER]],
             resize_keyboard=True,
             one_time_keyboard=False,
             input_field_placeholder="Выберите расклад..."

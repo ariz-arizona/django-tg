@@ -34,7 +34,7 @@ from tarot.models import (
 )
 from tg_bot.models import BotFileCache
 from server.logger import logger
-from django.conf import settings
+from tarot.messages import ONEHAND_TRIGGER
 
 # ═══════════════════════════════════════════════════════════════
 # КОНСТАНТЫ: тексты команд и пояснений
@@ -180,6 +180,10 @@ class OhHandler:
     def get_handlers(self):
         return [
             CommandHandler(["onehand", "oh"], self.handle_onehand, filters.ChatType.PRIVATE),
+            MessageHandler(
+                filters.Text([ONEHAND_TRIGGER]) & filters.ChatType.PRIVATE,
+                self.handle_onehand
+            ),
             CallbackQueryHandler(self.handle_onehand_callback, pattern=r"^oh_"),
         ]
 

@@ -6,6 +6,7 @@ from server.logger import logger
 
 TAROT_3_TRIGGER = "✨ Три карты"
 CANVAS_3_TRIGGER = "🖼 Холст"
+ONEHAND_TRIGGER = "🔮 Свой расклад"
 
 
 class Messages(ABC):

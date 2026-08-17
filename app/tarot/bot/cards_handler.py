@@ -114,6 +114,9 @@ class CardsHandler:
         """
         msg_text = update.message.text
         logger.info(f"Обработка команды /card с текстом: {msg_text[:100]}")
+        
+        if '@' in msg_text:
+            msg_text = msg_text.split('@')[0]
 
         is_group = update.effective_chat.type in (ChatType.GROUP, ChatType.SUPERGROUP)
         category = UserReading.ReadingCategory.TAROT
@@ -516,27 +519,11 @@ class CardsHandler:
         send_type = kwargs.get("send_type") # 'tarot' или 'oracle'
         is_group = kwargs.get("is_group", False)
         params = {"disable_web_page_preview": True}
-        
-
-        # 1. Отправка фото        
-        if is_group:
-            # Для групп - отправляем без reply
-            mg = await update.effective_chat.send_media_group(
-                [InputMediaPhoto(c["img_id"], await self.bot.format_card_name(c)) for c in cards],
-                message_thread_id=update.effective_message.message_thread_id  # для топиков
-            )
-        else:
-            # Для личных чатов - с reply
-            mg = await update.effective_message.reply_media_group(
-                [InputMediaPhoto(c["img_id"], await self.bot.format_card_name(c)) for c in cards],
-                reply_to_message_id=update.effective_message.message_id,
-            )
-            
 
         reply_markup = []
         text = []
 
-        # 2. Логика для ТАРО
+        # 1. Логика для ТАРО
         if send_type == 'tarot':
             reading = await UserReading.objects.aget(id=reading_id)
             current_deck = await TarotDeck.objects.aget(id=reading.deck_id)
@@ -589,7 +576,6 @@ class CardsHandler:
                     flag=flag
                 )
                 
-            text = []
             if is_group and update.effective_user.username and not update.effective_user.is_bot:
                 text.append(self.bot.messages.format_user_mention(update.effective_user))
             
@@ -608,6 +594,9 @@ class CardsHandler:
                 major=reading.is_major_only,
                 flip=reading.is_flipped_allowed
             )
+            if is_group and update._bot.username:
+                repeat_cmd = f"{repeat_cmd}@{update._bot.username}"
+
             text.append(self.bot.messages.get_repeat_command(repeat_cmd))
             
             if not is_group:
@@ -632,7 +621,7 @@ class CardsHandler:
             if ai_btn := kwargs.get("add_ai_button"):
                 reply_markup.append([InlineKeyboardButton(text=ai_btn, callback_data=f"aireading_{reading_id}")])
 
-        # 3. Логика для ОРАКУЛА
+        # 2. Логика для ОРАКУЛА
         elif send_type == 'oracle':
             reading = await UserReading.objects.aget(id=reading_id)
             current_deck = await OraculumDeck.objects.aget(id=reading.deck_id)
@@ -672,34 +661,61 @@ class CardsHandler:
                 stats_str=stats_str
             )]
             
+            base_cmd = f"/oraculum{min(reading.count, 10) if reading.count > 1 else ''}"
+            repeat_cmd = self.bot.messages.build_deck_command(
+                base_command=base_cmd,
+                deck_slug=current_deck.slug,
+                flip=reading.is_flipped_allowed
+            )
+            if is_group and update._bot.username:
+                repeat_cmd = f"{repeat_cmd}@{update._bot.username}"
+            
+            text.append(self.bot.messages.get_repeat_command(repeat_cmd))
+            
             params["parse_mode"] = ParseMode.HTML
             
             if current_count < total_cards:
                 reply_markup.append([InlineKeyboardButton("Еще карту", callback_data=f"moreoracle_{reading_id}")])
 
-        # 4. Финальная отправка
-        params["text"] = "\n".join(text)
+        # 3. Подготовка медиа-группы
+        media_group = [
+            InputMediaPhoto(c["img_id"], await self.bot.format_card_name(c)) for c in cards
+        ]
         
-        if not is_group:
+        # 4. Финальная отправка
+        if is_group:
+            # Для групп - отправляем без reply
+            if len(media_group) == 1:
+                # Если 1 карта - добавляем текст в caption
+                logger.info(media_group)
+                card = media_group[0]
+                media_group[0] = InputMediaPhoto(
+                    media=card.media,
+                    caption="\n".join(text),
+                    parse_mode=ParseMode.HTML
+                )
+                
+                await update.effective_chat.send_media_group(media_group)
+            else:
+                # Если несколько карт - отправляем медиа и текст отдельно
+                await update.effective_chat.send_media_group(media_group)
+                await update.effective_chat.send_message(text="\n".join(text), **params)
+        else:
+            # Для личных чатов - с reply
             reply_target = update.effective_message.reply_to_message
+            params["text"] = "\n".join(text)
             params["reply_to_message_id"] = (
                 reply_target.message_id if reply_target else update.effective_message.message_id
             )
+            if reply_markup:
+                params["reply_markup"] = InlineKeyboardMarkup(reply_markup)
     
-        if is_group:
-            reply_markup = []
-        
-        if reply_markup:
-            params["reply_markup"] = InlineKeyboardMarkup(reply_markup)
-
-        if is_group:
-            await update.effective_chat.send_message(
-                text=params.pop("text"),
-                **params
-            )
-        else:
+            await update.effective_message.reply_media_group(
+                media_group,
+                reply_to_message_id=params["reply_to_message_id"],
+            )        
             await update.effective_message.reply_text(**params)
-        
+            
     async def handle_tarot_sticker(self, update: Update, context: CallbackContext):
         """
         Обработчик команды /tarot.

@@ -11,10 +11,8 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
     
-# Устанавливаем Poetry
-ENV POETRY_VERSION=1.6.1
-RUN curl -sSL https://install.python-poetry.org | python3 -
-ENV PATH="/root/.local/bin:$PATH"
+# Устанавливаем Poetry через pip (надёжнее)
+RUN pip install poetry==1.6.1
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
@@ -22,7 +20,7 @@ WORKDIR /app
 # Копируем файлы Poetry
 COPY pyproject.toml poetry.lock* /app/
 
-# Сначала устанавливаем основные зависимости
+# Устанавливаем зависимости
 RUN poetry config virtualenvs.create false && \
     poetry install --no-root --no-interaction --no-ansi --only main
 

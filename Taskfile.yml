@@ -131,7 +131,7 @@ tasks:
       - |
         echo -e "\033[0;31m🧹 Полная очистка...\033[0m"
         rm -rf tunnel
-        docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} down --remove-orphans -v 2>/dev/null || true
+        docker compose {{.COMPOSE_DEV_FILES}} -p {{.PROJECT_NAME}} down --remove-orphans --rmi all -v 2>/dev/null || true
         echo -e "\033[0;32m✅ Полная очистка выполнена\033[0m"
 
   exec:

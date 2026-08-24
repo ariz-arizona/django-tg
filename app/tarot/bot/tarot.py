@@ -2,6 +2,7 @@ import django.db
 import re
 import os
 from typing import List, Optional, Dict
+from datetime import timedelta
 
 import asyncio
 import json
@@ -22,6 +23,7 @@ from telegram.ext import (
 )
 from telegram.constants import ParseMode, ChatType
 
+from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.postgres.search import TrigramSimilarity
 from django.db.models import Q
@@ -59,6 +61,29 @@ from tarot.utils.redis_client import (
     REDIS_TTL_SECONDS,
     REDIS_KEY_TEMPLATE,
 )
+
+CATEGORY_ICONS = {
+    UserReading.ReadingCategory.ONE: "🎴",
+    UserReading.ReadingCategory.TAROT: "🔮",
+    UserReading.ReadingCategory.ORACLE: "✨",
+    UserReading.ReadingCategory.RUNES: "🪨",
+    UserReading.ReadingCategory.CANVAS_SPREAD: "🖼️",
+    UserReading.ReadingCategory.TAROT_STICKER: "🏷️",
+    UserReading.ReadingCategory.ALL: "🃏",
+}
+CATEGORY_COMMANDS = {
+    UserReading.ReadingCategory.ONE: "/one",
+    UserReading.ReadingCategory.TAROT: "/card",
+    UserReading.ReadingCategory.ORACLE: "/oraculum",
+    UserReading.ReadingCategory.RUNES: "/futhark",
+    UserReading.ReadingCategory.CANVAS_SPREAD: "/canvas",
+    UserReading.ReadingCategory.TAROT_STICKER: "/tarot",
+    UserReading.ReadingCategory.ALL: "/all",
+}
+
+LAST_READINGS_MAX_DAYS = 7      # за неделю
+LAST_READINGS_MAX_TOTAL = 100   # не более 100 записей
+
 
 class TarotBot(AbstractBot):
     def __init__(self):
@@ -98,6 +123,10 @@ class TarotBot(AbstractBot):
                 pattern=r"^deckspage_\d+_(oraculum|tarot)$",
             ),
             CommandHandler("last", self.handle_last_readings, filters.ChatType.PRIVATE),
+            CallbackQueryHandler(
+                self.handle_last_page,
+                pattern=r"^lastpage_\d+$",
+            ),
             
             CommandHandler("one", self.handle_one_command, filters.ChatType.PRIVATE),
         ]
@@ -377,18 +406,7 @@ class TarotBot(AbstractBot):
 
                 # Проверяем все остальные категории на наличие активного кулдауна
                 available_commands = []
-
-                # Словарь соответствия категорий командам
-                category_to_command = {
-                    UserReading.ReadingCategory.ONE: "/one",
-                    UserReading.ReadingCategory.TAROT: "/card",
-                    UserReading.ReadingCategory.ORACLE: "/oraculum",
-                    UserReading.ReadingCategory.RUNES: "/futark",
-                    UserReading.ReadingCategory.CANVAS_SPREAD: "/spread",
-                    UserReading.ReadingCategory.TAROT_STICKER: "/tarot",
-                }
-
-                # Проверяем каждую категорию
+                
                 for cat_choice in UserReading.ReadingCategory.values:
                     if cat_choice == category:
                         continue  # Пропускаем текущую заблокированную категорию
@@ -399,7 +417,7 @@ class TarotBot(AbstractBot):
 
                     # Если ключа нет (time_left == -2) - категория доступна
                     if check_ttl == -2:
-                        command = category_to_command.get(cat_choice)
+                        command = CATEGORY_COMMANDS.get(cat_choice)   # ← глобальная константа
                         if command:
                             available_commands.append(command)
 
@@ -879,40 +897,216 @@ class TarotBot(AbstractBot):
             except:
                 pass
         
-    async def handle_last_readings(self, update: Update, context: CallbackContext):
-        """
-        Обработчик команды истории последних 5 гаданий.
-        """
-        logger.info(f"Запрос истории гаданий для пользователя: {update.effective_user.id}")
+    async def _build_last_readings_page(
+        self,
+        user: TgUser,
+        offset: int = 0,
+        limit: int = 5,
+    ):
+        week_ago = timezone.now() - timedelta(days=7)
+        base_qs = (
+            UserReading.objects.filter(user=user, created_at__gte=week_ago)
+            .order_by("-created_at")
+        )
+        total_count = min(await base_qs.acount(), 100)
+
+        if offset >= total_count:
+            offset = 0
+
+        readings_qs = base_qs[offset : offset + limit + 1]
+
+        readings = []
+        async for item in readings_qs:
+            formatted_date = item.created_at.strftime("%d.%m.%Y %H:%M")
+            icon = CATEGORY_ICONS.get(item.category, "🔮")
+            command = CATEGORY_COMMANDS.get(item.category, "")
+
+            if item.count > 1:
+                if item.category == UserReading.ReadingCategory.RUNES and item.count == 3:
+                    command += "_triplet"
+                else:
+                    command += str(item.count)
+            if item.is_flipped_allowed:
+                command += "_flip"
+            if item.is_major_only and item.category in (
+                UserReading.ReadingCategory.TAROT,
+                UserReading.ReadingCategory.CANVAS_SPREAD,
+                UserReading.ReadingCategory.ALL,
+            ):
+                command += "_major"
+
+            # --- Таро, Canvas, All ---
+            if item.category in (
+                UserReading.ReadingCategory.TAROT,
+                UserReading.ReadingCategory.CANVAS_SPREAD,
+                UserReading.ReadingCategory.ALL,
+            ):
+                cards_lines = []
+                elements = item.card_ids[:item.count] if item.card_ids else []
+                card_ids = [int(el['id']) for el in elements if isinstance(el, dict)]
+
+                cards_map = {
+                    c.id: c
+                    async for c in TarotCardItem.objects.select_related('tarot_card').filter(id__in=card_ids)
+                }
+
+                for element in elements:
+                    if not isinstance(element, dict):
+                        continue
+                    card_item = cards_map.get(int(element['id']))
+                    if card_item:
+                        cards_lines.append(self.messages.format_card_name(card_item.display_name, element.get('flip', False)))
+                    else:
+                        cards_lines.append(f"❓ #{element['id']}")
+
+                try:
+                    deck = await TarotDeck.objects.aget(id=item.deck_id) if item.deck_id else None
+                    deck_name = deck.name if deck else "неизвестная колода"
+                except ObjectDoesNotExist:
+                    deck_name = "неизвестная колода"
+
+                safe_text = ', '.join(cards_lines) + f" из колоды {deck_name}"
+
+            # --- Оракул ---
+            elif item.category == UserReading.ReadingCategory.ORACLE:
+                cards_lines = []
+                elements = item.card_ids if item.card_ids else []
+                card_ids = [int(el['id']) for el in elements if isinstance(el, dict)]
+
+                cards_map = {
+                    c.id: c
+                    async for c in OraculumItem.objects.select_related('deck').filter(id__in=card_ids)
+                }
+
+                for element in elements:
+                    if not isinstance(element, dict):
+                        continue
+                    card_item = cards_map.get(int(element['id']))
+                    if card_item:
+                        cards_lines.append(self.messages.format_card_name(card_item.display_name, element.get('flip', False)))
+                    else:
+                        cards_lines.append(f"❓ #{element['id']}")
+
+                try:
+                    deck = await OraculumDeck.objects.aget(id=item.deck_id) if item.deck_id else None
+                    deck_name = deck.name if deck else "неизвестная колода"
+                except ObjectDoesNotExist:
+                    deck_name = "неизвестная колода"
+
+                safe_text = ', '.join(cards_lines) + f" из колоды {deck_name}"
+
+            else:
+                safe_text = item.text[:200].replace("<", "&lt;").replace(">", "&gt;")
+
+            readings.append(f"📅 {formatted_date} {icon} {command}\n{safe_text}\n")
+
+        has_next = (offset + limit) < total_count
+        readings = readings[:limit]
+
+        if not readings:
+            return None, None, False
+
+        current_page = (offset // limit) + 1
+        total_pages = max(1, (total_count + limit - 1) // limit)
+
+        text = f"📜 <b>Ваши гадания за 7 дней (стр. {current_page}/{total_pages}):</b>\n\n"
+        text += "\n".join(readings)
+
+        if total_count >= 100:
+            text += f"\n<i>Показаны последние 100 записей.</i>"
+
+        keyboard = []
+        if offset > 0:
+            prev_offset = offset - limit
+            prev_page = current_page - 1
+            keyboard.append(
+                InlineKeyboardButton(
+                    text=f"⬅️ {prev_page}/{total_pages}",   # ← номер страницы
+                    callback_data=f"lastpage_{prev_offset}",  # ← offset в callback
+                )
+            )
+        if has_next:
+            next_offset = offset + limit
+            next_page = current_page + 1
+            keyboard.append(
+                InlineKeyboardButton(
+                    text=f"{next_page}/{total_pages} ➡️",    # ← номер страницы
+                    callback_data=f"lastpage_{next_offset}",   # ← offset в callback
+                )
+            )
+
+        markup = InlineKeyboardMarkup([keyboard]) if keyboard else None
+        return text, markup, has_next
+
+    async def handle_last_page(self, update: Update, context: CallbackContext):
+        query = update.callback_query
 
         try:
-            # 1. Безопасно получаем или создаем пользователя одной строкой
+            _, offset_str = query.data.split("_")
+            new_offset = int(offset_str)
+
+            # === ЗАЩИТА: не переключаемся на ту же страницу ===
+            current_text = query.message.text or ""
+            import re
+            match = re.search(r"\(стр\. (\d+)/(\d+)\)", current_text)
+            if match:
+                current_page = int(match.group(1))
+                current_offset = (current_page - 1) * 5  # limit = 5
+                if new_offset == current_offset:
+                    await query.answer("Вы уже на этой странице")
+                    return
+
+            await query.answer()
+
             user = await self.get_or_create_tg_user(update)
             if not user:
                 return
 
-            user_readings = []
-            count = 5
+            text, keyboard, _ = await self._build_last_readings_page(user, offset=new_offset)
 
-            # 2. Выбираем последние 5 записей из новой модели
-            # Используем префикс даты для вывода в чат
-            async for item in (
-                UserReading.objects.filter(user=user)
-                .order_by("-created_at")[:count]
-            ):
-                # Форматируем дату для читаемости (например: 12.06.2026 13:30)
-                formatted_date = item.created_at.strftime("%d.%m.%Y %H:%M")
-                user_readings.append(f"📅 {formatted_date}\n{item.text[0:200]}\n")
+            if text is None:
+                await query.edit_message_text("Гаданий не найдено.")
+                return
 
-            if not user_readings:
+            await query.edit_message_text(
+                text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=keyboard,
+                disable_web_page_preview=True,
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка при переключении страницы истории: {e}", exc_info=True)
+            try:
+                await query.edit_message_text(
+                    "Произошла ошибка при загрузке страницы. Попробуйте снова."
+                )
+            except Exception:
+                pass
+
+    async def handle_last_readings(self, update: Update, context: CallbackContext):
+        """
+        Обработчик команды /last — первая страница.
+        """
+        logger.info(f"Запрос истории гаданий для пользователя: {update.effective_user.id}")
+
+        try:
+            user = await self.get_or_create_tg_user(update)
+            if not user:
+                return
+
+            text, keyboard, _ = await self._build_last_readings_page(user, offset=0)
+
+            if text is None:
                 await update.effective_message.reply_text("Гаданий не найдено.")
                 return
 
-            # 3. Отправляем красивый структурированный список
             await update.effective_message.reply_text(
-                "📜 <b>Ваши последние {count} гаданий:</b>\n\n" + "\n".join(user_readings),
+                text,
                 parse_mode=ParseMode.HTML,
+                reply_markup=keyboard,
                 reply_to_message_id=update.effective_message.message_id,
+                disable_web_page_preview=True,
             )
 
         except Exception as e:

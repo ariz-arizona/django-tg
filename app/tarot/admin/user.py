@@ -1,8 +1,15 @@
 import csv
+import time
 from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import reverse
 from django.utils.html import format_html
+
+from django.db.models import OuterRef, Subquery, Window, F, Q, Case, When, Value, IntegerField
+from django.db.models.functions import Lag
+from collections import Counter
+
+from server.logger import logger
 
 from ..models.user import UserReading, AIReadingInterpretation, AIReadingPage
 from ..models.tech import AIApiKey
@@ -90,13 +97,27 @@ class AIReadingInterpretationInline(admin.TabularInline):
     
     response_preview.short_description = "Превью ответа"
 
+class ShowSkippedFilter(admin.SimpleListFilter):
+    title = 'Схлопывать дубли'
+    parameter_name = 'show_skipped'
+    
+    def lookups(self, request, model_admin):
+        return (
+            ('no', 'Схлопывать (показывать первые)'),
+            ('yes', 'Показать все'),
+        )
+    
+    def queryset(self, request, queryset):
+        # Фильтрация происходит в get_queryset
+        return queryset
+        
 
 @admin.register(UserReading)
 class UserReadingAdmin(admin.ModelAdmin):
     inlines = [AIReadingInterpretationInline]
 
     list_display = (
-        "id",
+        "id_with_skipped",
         "user_link",
         "bot_link",           
         "category_display",   
@@ -107,6 +128,7 @@ class UserReadingAdmin(admin.ModelAdmin):
     )
 
     list_filter = (
+        ShowSkippedFilter,
         "category",
         "bot",
         "reading_status",
@@ -150,8 +172,141 @@ class UserReadingAdmin(admin.ModelAdmin):
             "classes": ("collapse",)
         }),
     )
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        show_skipped = request.GET.get('show_skipped', 'no')
+        
+        if show_skipped == 'yes':
+            return qs.select_related('user', 'bot')
+        
+        # Получаем параметры пагинации
+        page_num = int(request.GET.get('p', 1))
+        page_size = self.list_per_page
+        
+        # Вычисляем диапазон записей для текущей страницы
+        start_idx = (page_num - 1) * page_size
+        
+        # Аннотируем предыдущую категорию
+        qs = qs.annotate(
+            prev_category=Window(
+                expression=Lag('category'),
+                partition_by=[F('user_id'), F('bot_id')],
+                order_by=F('created_at').asc()
+            )
+        ).order_by('-created_at')
+        
+        # Берем записи с запасом для компенсации схлопывания
+        # Начинаем с текущей страницы и берем больше записей
+        fetch_size = page_size * 3  # Запас для схлопывания
+        end_idx = start_idx + fetch_size
+        
+        # Получаем записи для обработки
+        records = list(qs.values_list(
+            'id', 'category', 'prev_category', 'user_id', 'bot_id'
+        )[start_idx:end_idx])
+        
+        # Если записей нет - возвращаем пустой queryset
+        if not records:
+            return UserReading.objects.none()
+        
+        # Получаем контекст с предыдущей страницы
+        prev_record = None
+        if start_idx > 0:
+            prev_record_qs = qs.values_list(
+                'id', 'category', 'prev_category', 'user_id', 'bot_id'
+            )[start_idx-1:start_idx]
+            if prev_record_qs:
+                prev_record = prev_record_qs[0]
+        
+        # Обрабатываем записи и схлопываем последовательности
+        keep_ids = []
+        sequence_counts = {}
+        current_keep_id = None
+        current_group_key = None
+        skip_first = False
+        
+        # Проверяем, продолжает ли первая запись последовательность
+        if records and prev_record:
+            first_record = records[0]
+            if (prev_record[1] == first_record[1] and  # Категории совпадают
+                prev_record[3] == first_record[3] and  # user_id совпадает
+                prev_record[4] == first_record[4]):    # bot_id совпадает
+                skip_first = True
+        
+        # Обрабатываем записи
+        for idx, (record_id, category, prev_category, user_id, bot_id) in enumerate(records):
+            group_key = (user_id, bot_id)
+            
+            # Пропускаем первую запись, если она продолжает последовательность
+            if idx == 0 and skip_first:
+                current_keep_id = None
+                current_group_key = group_key
+                continue
+            
+            # Проверяем, является ли запись началом новой последовательности
+            is_new_sequence = (
+                prev_category is None or 
+                prev_category != category or 
+                group_key != current_group_key
+            )
+            
+            if is_new_sequence:
+                # Новая последовательность
+                keep_ids.append(record_id)
+                sequence_counts[record_id] = 0
+                current_keep_id = record_id
+                current_group_key = group_key
+            else:
+                # Продолжение последовательности
+                if current_keep_id and current_group_key == group_key:
+                    sequence_counts[current_keep_id] += 1
+            
+            # Если набрали достаточно записей - прекращаем
+            if len(keep_ids) >= page_size:
+                break
+        
+        # Если не набрали page_size записей, добираем из следующих
+        if len(keep_ids) < page_size and len(records) > len(keep_ids):
+            # Логика добора уже реализована в цикле выше
+            pass
+        
+        # Создаем queryset с аннотацией skipped_count
+        if keep_ids:
+            whens = [
+                When(id=id, then=Value(count)) 
+                for id, count in sequence_counts.items()
+            ]
+            
+            return UserReading.objects.filter(id__in=keep_ids).annotate(
+                skipped_count=Case(
+                    *whens,
+                    default=Value(0),
+                    output_field=IntegerField()
+                )
+            ).select_related('user', 'bot').order_by('-created_at')
+        else:
+            return UserReading.objects.none()
+    
+    # ===== Методы отображения =====    
+    
+    def id_with_skipped(self, obj):
+        """Отображает ID с количеством пропущенных записей в скобках"""
+        skipped = getattr(obj, 'skipped_count', 0)
+        
+        if skipped > 0:
+            return format_html(
+                '<span style="color: #999; cursor: help;" '
+                'title="{} записей пропущено подряд">'
+                '{} <b style="color: #d9534f;">({})</b></span>',
+                skipped,
+                obj.id,
+                skipped
+            )
+        return obj.id
 
-    # ===== Методы отображения =====
+    id_with_skipped.short_description = "ID"
+    id_with_skipped.admin_order_field = 'id'
 
     def reading_status_badge(self, obj):
         return status_badge(obj.reading_status, obj.get_reading_status_display())

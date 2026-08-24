@@ -6,35 +6,11 @@ import time
 import asyncio
 from django.test import Client
 from django.urls import reverse
-from tests.conftest import extract_message_data, sync_lrange
-
+from tests.conftest import extract_message_data, sync_lrange, _collect_messages, _find_button, _print_message, _get_message_id_from_reply_markup
 
 # ═══════════════════════════════════════════════════════════════
 # ХЕЛПЕРЫ
 # ═══════════════════════════════════════════════════════════════
-
-def _find_button(inline_keyboard, text_substring):
-    """Находит кнопку по подстроке в тексте. Возвращает btn или None."""
-    for row in inline_keyboard:
-        for btn in row:
-            if text_substring in btn.get('text', ''):
-                return btn
-    return None
-
-
-def _find_button_by_callback(inline_keyboard, callback_substring):
-    """Находит кнопку по подстроке в callback_data."""
-    for row in inline_keyboard:
-        for btn in row:
-            if callback_substring in btn.get('callback_data', ''):
-                return btn
-    return None
-
-
-def _get_all_buttons(inline_keyboard):
-    """Все кнопки плоским списком."""
-    return [b for row in inline_keyboard for b in row]
-
 
 def _send_callback(client, webhook_url, user_id, message_id, callback_data, update_id, reply_markup=None, text=None):
     """Отправляет callback_query."""
@@ -64,60 +40,6 @@ def _send_callback(client, webhook_url, user_id, message_id, callback_data, upda
     )
 
 
-def _collect_messages(redis_client, redis_key, endpoints, timeout=15, stop_condition=None):
-    """
-    Универсальный сборщик сообщений из Redis.
-    endpoints: список endpoint'ов для фильтрации
-    stop_condition: функция(messages) -> bool, когда остановиться
-    """
-    all_messages = []
-    start = time.time()
-
-    while time.time() - start < timeout:
-        all_data = sync_lrange(redis_client, redis_key, 0, -1)
-        messages = [json.loads(r) for r in all_data if json.loads(r).get('endpoint') in endpoints]
-
-        for msg in messages:
-            if msg not in all_messages:
-                all_messages.append(msg)
-
-        if stop_condition and stop_condition(all_messages):
-            break
-
-        time.sleep(0.1)
-
-    return all_messages
-
-
-def _print_message(msg):
-    """Красивый вывод сообщения."""
-    endpoint = msg.get('endpoint', '?')
-    data = extract_message_data(msg)
-
-    if 'text' in data:
-        print(f"📨 {endpoint}: {data['text'][:120]}")
-    elif endpoint == 'deleteMessage':
-        print(f"📨 {endpoint}: msg_id={data.get('message_id', '?')}")
-    elif endpoint == 'editMessageText':
-        print(f"📨 {endpoint}: {data.get('text', '')[:120]}")
-
-
-def _get_message_id_from_reply_markup(messages):
-    """Находит message_id последнего сообщения с reply_markup."""
-    for msg in reversed(messages):
-        data = extract_message_data(msg)
-        if 'reply_markup' in data:
-            msg_id = (
-                data.get('message_id') or
-                data.get('msg_id') or
-                msg.get('message_id') or
-                msg.get('msg_id')
-            )
-            if msg_id:
-                return msg_id
-    return None
-
-
 def _get_message_text_from_reply_markup(messages):
     """Находит text последнего сообщения с reply_markup."""
     for msg in reversed(messages):
@@ -125,11 +47,6 @@ def _get_message_text_from_reply_markup(messages):
         if 'reply_markup' in data:
             return data.get('text', '')
     return None
-
-
-def _has_edit_message_text(messages):
-    """Проверяет, есть ли editMessageText в сообщениях."""
-    return any(m.get('endpoint') == 'editMessageText' for m in messages)
 
 
 def _extract_preview_command(text):

@@ -1,10 +1,4 @@
-import re
-import os
-from typing import List, Optional, Dict
-from collections import Counter
 import random
-
-import redis.asyncio as aioredis
 
 from telegram import (
     Update, InputMediaPhoto, InlineKeyboardButton,
@@ -19,7 +13,7 @@ from telegram.ext import (
 )
 from telegram.constants import ParseMode, ChatType
 
-from tarot.messages import CardMessages, TAROT_3_TRIGGER
+from tarot.messages import TAROT_3_TRIGGER
 from tarot.models import (
     TarotDeck,
     TarotCardItem,
@@ -30,24 +24,6 @@ from tarot.models import (
 )
 
 from server.logger import logger
-
-
-# Инициализируем асинхронный клиент
-redis_client = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"), 
-    port=int(os.getenv("REDIS_PORT", 6379)), 
-    db=3,
-    decode_responses=True # Рекомендуется: автоматически декодирует bytes в строки python
-)
-redis_client_bot = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"), 
-    port=int(os.getenv("REDIS_PORT", 6379)), 
-    db=2,
-    decode_responses=True # Рекомендуется: автоматически декодирует bytes в строки python
-)
-
-REDIS_TTL_SECONDS = 10
-REDIS_KEY_TEMPLATE = "user:{user_id}:{category}"
 
 class CardsHandler:
     """Обработчик команды /card и связанных callback'ов."""

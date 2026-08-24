@@ -42,7 +42,7 @@ def test_start_command(get_messages, send_webhook_update):
     buttons = [b.get('text', '') for row in keyboard for b in row]
     
     print(f"🔘 Кнопки: {buttons}")
-    assert len(buttons) == 2, f"Ожидалось 2 кнопки, получили: {buttons}"
+    assert len(buttons) == 3, f"Ожидалось 3 кнопки, получили: {buttons}"
     
     print("✅ Тест /start пройден!")
 

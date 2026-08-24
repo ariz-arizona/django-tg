@@ -1,5 +1,3 @@
-# allcard_handler.py
-import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import (
     MessageHandler,

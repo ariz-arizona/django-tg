@@ -27,26 +27,8 @@ from tarot.models import (
     AIApiKey
 )
 from server.logger import logger
-from django.conf import settings
 
 from tarot.utils.random import get_random_icon
-
-# Инициализируем асинхронный клиент
-redis_client = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"), 
-    port=int(os.getenv("REDIS_PORT", 6379)), 
-    db=3,
-    decode_responses=True # Рекомендуется: автоматически декодирует bytes в строки python
-)
-redis_client_bot = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"), 
-    port=int(os.getenv("REDIS_PORT", 6379)), 
-    db=2,
-    decode_responses=True # Рекомендуется: автоматически декодирует bytes в строки python
-)
-
-REDIS_TTL_SECONDS = 10
-REDIS_KEY_TEMPLATE = "user:{user_id}:{category}"
 
 def is_markup_identical(markup1, markup2):
     # Если оба None — они идентичны

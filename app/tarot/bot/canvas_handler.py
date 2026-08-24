@@ -1,21 +1,15 @@
-import re
 import os
 import io
 import asyncio
 from typing import List, Optional, Dict
-from collections import Counter
-import random
-from datetime import datetime
 
-import redis.asyncio as aioredis
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageFont
 
 from telegram import (
     Update, InputMediaPhoto, InlineKeyboardButton,
     InlineKeyboardMarkup, MessageEntity
 )
 from telegram.ext import (
-    CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
     CallbackContext,
@@ -29,7 +23,6 @@ from tarot.messages import CanvasMessages, CANVAS_3_TRIGGER
 from tarot.models import (
     TarotDeck,
     TarotCardItem,
-    TarotCardSticker,
     UserReading,
 )
 
@@ -50,27 +43,8 @@ from tarot.utils.image_utils import (
     CANVAS_BG,
 )
 
-
-# Инициализируем асинхронный клиент
-redis_client = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"), 
-    port=int(os.getenv("REDIS_PORT", 6379)), 
-    db=3,
-    decode_responses=True
-)
-redis_client_bot = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"), 
-    port=int(os.getenv("REDIS_PORT", 6379)), 
-    db=2,
-    decode_responses=True
-)
-
-REDIS_TTL_SECONDS = 10
-REDIS_KEY_TEMPLATE = "user:{user_id}:{category}"
-
 # Константы для RWS-рендерера
 RWS_DECK_ID = 56
-
 
 class CanvasHandler:
     """Обработчик callback'ов для отрисовки расклада в Rider-Waite-Smith."""

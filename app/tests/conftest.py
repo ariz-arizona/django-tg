@@ -7,6 +7,7 @@ import asyncio
 from telegram.request import HTTPXRequest
 import redis.asyncio as redis
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -516,3 +517,64 @@ def extract_card_name(text):
     if match:
         return match.group(1).strip()
     return text
+
+def _collect_messages(redis_client, redis_key, endpoints, timeout=15, stop_condition=None):
+    """
+    Универсальный сборщик сообщений из Redis.
+    endpoints: список endpoint'ов для фильтрации
+    stop_condition: функция(messages) -> bool, когда остановиться
+    """
+    all_messages = []
+    start = time.time()
+
+    while time.time() - start < timeout:
+        all_data = sync_lrange(redis_client, redis_key, 0, -1)
+        messages = [json.loads(r) for r in all_data if json.loads(r).get('endpoint') in endpoints]
+
+        for msg in messages:
+            if msg not in all_messages:
+                all_messages.append(msg)
+
+        if stop_condition and stop_condition(all_messages):
+            break
+
+        time.sleep(0.1)
+
+    return all_messages
+
+def _find_button(inline_keyboard, text_substring):
+    """Находит кнопку по подстроке в тексте. Возвращает btn или None."""
+    for row in inline_keyboard:
+        for btn in row:
+            if text_substring in btn.get('text', ''):
+                return btn
+    return None
+
+def _print_message(msg):
+    """Красивый вывод сообщения."""
+    endpoint = msg.get('endpoint', '?')
+    data = extract_message_data(msg)
+
+    if 'text' in data:
+        print(f"📨 {endpoint}: {data['text'][:120]}")
+    elif 'media' in data:
+        media_items = data.get('media', [])
+        cap = media_items[0].get('caption', '')[:60] if media_items else ''
+        print(f"📨 {endpoint} media[0].caption: {cap}")
+    elif endpoint == 'deleteMessage':
+        print(f"📨 {endpoint}: msg_id={data.get('message_id', '?')}")
+
+def _get_message_id_from_reply_markup(messages):
+    """Находит message_id последнего сообщения с reply_markup."""
+    for msg in reversed(messages):
+        data = extract_message_data(msg)
+        if 'reply_markup' in data:
+            msg_id = (
+                data.get('message_id') or
+                data.get('msg_id') or
+                msg.get('message_id') or
+                msg.get('msg_id')
+            )
+            if msg_id:
+                return msg_id
+    return None

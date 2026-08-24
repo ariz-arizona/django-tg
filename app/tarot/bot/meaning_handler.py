@@ -1,9 +1,3 @@
-import re
-import os
-from typing import List, Optional, Dict
-
-import redis.asyncio as aioredis
-
 from telegram import (
     Update,InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -14,9 +8,6 @@ from telegram.ext import (
 )
 from telegram.constants import ParseMode
 
-from django.core.exceptions import ObjectDoesNotExist
-
-
 from tarot.utils.random import get_random_icon
 from tarot.models import (
     TarotCard,
@@ -26,24 +17,6 @@ from tarot.models import (
 )
 
 from server.logger import logger
-
-
-# Инициализируем асинхронный клиент
-redis_client = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"), 
-    port=int(os.getenv("REDIS_PORT", 6379)), 
-    db=3,
-    decode_responses=True # Рекомендуется: автоматически декодирует bytes в строки python
-)
-redis_client_bot = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"), 
-    port=int(os.getenv("REDIS_PORT", 6379)), 
-    db=2,
-    decode_responses=True # Рекомендуется: автоматически декодирует bytes в строки python
-)
-
-REDIS_TTL_SECONDS = 10
-REDIS_KEY_TEMPLATE = "user:{user_id}:{category}"
 
 class MeaningHandler:
     """Обработчик трактовок карт и навигации по ним."""

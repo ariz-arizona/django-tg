@@ -6,23 +6,12 @@ from typing import List, Optional, Dict
 import asyncio
 import json
 import redis.asyncio as aioredis
-import aiohttp
 import random
 from bs4 import BeautifulSoup
-import logging
-from html import escape
 
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type,
-    before_sleep_log,
-    after_log
-)
 from telegram import (
-    Update, InputMediaPhoto, InlineKeyboardButton,
-    InlineKeyboardMarkup, ReplyKeyboardMarkup, MessageEntity
+    Update, InlineKeyboardButton,
+    InlineKeyboardMarkup, ReplyKeyboardMarkup,
     )
 from telegram.ext import (
     CommandHandler,
@@ -49,9 +38,7 @@ from tarot.models import (
     UserReading,
     DeckSearch,
 )
-from tg_bot.models import BotFileCache
 from server.logger import logger
-from django.conf import settings
 
 from tarot.utils.flaresolverr import tarot_fetch
 
@@ -64,25 +51,14 @@ from tarot.bot.canvas_handler import CanvasHandler
 from tarot.bot.oh_handler import OhHandler
 
 from tarot.messages import CardMessages
-from tarot.messages import CanvasMessages, CANVAS_3_TRIGGER, TAROT_3_TRIGGER, ONEHAND_TRIGGER
+from tarot.messages import CANVAS_3_TRIGGER, TAROT_3_TRIGGER, ONEHAND_TRIGGER
 
-# Инициализируем асинхронный клиент
-redis_client = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"), 
-    port=int(os.getenv("REDIS_PORT", 6379)), 
-    db=3,
-    decode_responses=True # Рекомендуется: автоматически декодирует bytes в строки python
+from tarot.utils.redis_client import (
+    redis_client,
+    redis_client_bot,
+    REDIS_TTL_SECONDS,
+    REDIS_KEY_TEMPLATE,
 )
-redis_client_bot = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"), 
-    port=int(os.getenv("REDIS_PORT", 6379)), 
-    db=2,
-    decode_responses=True # Рекомендуется: автоматически декодирует bytes в строки python
-)
-
-REDIS_TTL_SECONDS = 10
-REDIS_KEY_TEMPLATE = "user:{user_id}:{category}:{app_id}"
-
 
 class TarotBot(AbstractBot):
     def __init__(self):

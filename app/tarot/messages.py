@@ -160,7 +160,6 @@ class CardMessages(Messages):
         # Используем SEO-тег или название колоды
         display_name = deck_name
         if seo_tags and len(seo_tags) > 0:
-            # Берём первый SEO-тег как короткое название
             display_name = random.choice(seo_tags)
         
         return self.SPREAD_SUMMARY.format(

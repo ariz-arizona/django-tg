@@ -286,3 +286,51 @@ class CardMessages(Messages):
         if user.username:
             return f"Карта для <b>@{escape(user.username)}</b>\n"
         return f"Карта для <b>{escape(user.full_name)}</b>\n"
+    
+class SettingsMessages(Messages):
+    """Сообщения для команды /settings"""
+
+    SETTINGS_TITLE = "⚙️ <b>Настройки</b>"
+
+    NSFW_LABEL = "🔞 <b>18+ контент:</b>"
+    SPOILER_LABEL = "👁 <b>Спойлер 18+:</b>"
+    DAILY_LABEL = "🌅 <b>Карта дня:</b>"
+    TIME_LABEL = "⏰ <b>Время:</b>"
+
+    NSFW_ASK = "❓ Спросить"
+    NSFW_YES = "🔞 В выдаче"
+    NSFW_NO = "🚫🔞 Нет в выдаче"
+
+    SPOILER_HIDE = "🌫 Под спойлер"
+    SPOILER_SHOW = "🌫 Без спойлера"
+
+    DAILY_ON = "🔔 Карта дня"
+    DAILY_OFF = "🔕 Карта дня"
+
+    BTN_CLOSE = "❌ Закрыть"
+    MSG_CLOSED = "Настройки закрыты."
+
+    CHECK = "✅ "
+
+    def nsfw_display(self, val: Optional[bool]) -> str:
+        if val is None:
+            return self.NSFW_ASK
+        return f"{self.CHECK}{self.NSFW_YES}" if val else f"{self.CHECK}{self.NSFW_NO}"
+
+    def format_settings(
+        self,
+        nsfw: Optional[bool],
+        spoiler: bool,
+        daily: bool,
+        time: Optional[str] = None,
+    ) -> str:
+        lines = [self.SETTINGS_TITLE, ""]
+        lines.append(f"{self.NSFW_LABEL} {self.nsfw_display(nsfw)}")
+        lines.append(
+            f"{self.SPOILER_LABEL} "
+            f"{self.CHECK if spoiler else ''}{self.SPOILER_HIDE if spoiler else self.SPOILER_SHOW}"
+        )
+        lines.append(f"{self.DAILY_LABEL} {self.DAILY_ON if daily else self.DAILY_OFF}")
+        if daily and time:
+            lines.append(f"{self.TIME_LABEL} {time}")
+        return "\n".join(lines)

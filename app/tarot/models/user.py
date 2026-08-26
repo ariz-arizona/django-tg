@@ -274,12 +274,6 @@ class TarotUser(models.Model):
         verbose_name="Карта дня",
     )
 
-    # Спойлер daily (для прозрачности, хотя по документу daily всегда закрыт)
-    daily_spoiler = models.BooleanField(
-        default=True,
-        verbose_name="Спойлер daily",
-    )
-
     # Время daily: таймкод или None
     daily_time = models.TimeField(
         null=True,

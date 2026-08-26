@@ -117,6 +117,13 @@ class CardMessages(Messages):
     
     SPREAD_SUMMARY = "таро {deck_name} {count} {flags}"
     
+    NSFW_BLOCKED = (
+        "🔞 <b>Колода содержит контент 18+</b>\n\n"
+        "У вас отключён показ таких колод в настройках.\n"
+        "Изменить: /settings"
+    )
+    NSFW_CAPTION_SUFFIX = "\n\n🔞 <i>Колода 18+. Настройки: /settings</i>"
+    
     def get_try_all_deck(self, deck_id: str, flag: str = "") -> str:
         return self.TRY_ALL_DECK.format(deck_id=deck_id, flag=flag)
     

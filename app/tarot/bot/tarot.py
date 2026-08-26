@@ -40,6 +40,7 @@ from tarot.models import (
     UserReading,
     DeckSearch,
 )
+from tarot.models import TarotUser
 from server.logger import logger
 
 from tarot.utils.flaresolverr import tarot_fetch
@@ -626,18 +627,33 @@ class TarotBot(AbstractBot):
             found_decks=found
         )
         
-    async def get_deck(self, deck_id=None, deck_keyword=None, deck_type="tarot", return_all=False):
+    async def get_deck(self, user=None, deck_id=None, deck_keyword=None, deck_type="tarot", return_all=False):
         """
         Возвращает колоду или список колод.
         
         Args:
+            user: TgUser — для проверки NSFW-настроек
             deck_id: ID колоды
             deck_keyword: ключевое слово для поиска
             deck_type: "tarot" или "oraculum"
             return_all: если True и keyword — возвращает список всех найденных колод
         """
-        model = OraculumDeck if deck_type == "oraculum" else TarotDeck        
-        deck_ids: List[int] = [deck.id async for deck in model.objects.all()]
+        model = OraculumDeck if deck_type == "oraculum" else TarotDeck
+        
+        nsfw_blocked = False
+        if user is not None:
+            try:
+                tu = await TarotUser.objects.aget(user=user)
+                if tu.nsfw_allowed is False:
+                    nsfw_blocked = True
+            except TarotUser.DoesNotExist:
+                pass
+            
+        base_qs = model.objects.all()
+        if nsfw_blocked:
+            base_qs = base_qs.filter(is_nsfw=False)
+            
+        deck_ids: List[int] = [deck.id async for deck in base_qs]
         logger.info(f"Получаем колоду: id={deck_id}, keyword={deck_keyword}, type={deck_type}, return_all={return_all}")
 
         if not deck_ids:

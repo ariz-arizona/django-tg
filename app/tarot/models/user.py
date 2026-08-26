@@ -20,6 +20,7 @@ class UserReading(models.Model):
         RENDERING = "rendering", "Создание изображения"
         UPLOADING = "uploading", "Отправка"
         SUCCESS = "success", "Успешно"
+        CANCELLED = "cancelled", "Отменено"
         ERROR = "error", "Ошибка"
         
     user = models.ForeignKey(

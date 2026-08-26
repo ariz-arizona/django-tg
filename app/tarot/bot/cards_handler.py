@@ -143,8 +143,33 @@ class CardsHandler:
                 )
 
             # 1. Получение колоды
-            deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None))
+            deck = await self.bot.get_deck(user, options.get("deck"), options.get("deck_keyword", None))
             logger.info(f"Используемая колода ID: {deck.id if deck else 'None'}")
+            
+            # ===== 18+ проверка =====
+            nsfw_spoiler = False
+            nsfw_caption_suffix = ""
+
+            if deck and getattr(deck, "is_nsfw", False):
+                from tarot.models import TarotUser
+                tu = await TarotUser.objects.aget(user=user)
+
+                if not tu or tu.nsfw_allowed is False:
+                    # Блокируем
+                    if status_message:
+                        await status_message.delete()
+                    await update.message.reply_text(
+                        self.bot.messages.NSFW_BLOCKED,
+                        parse_mode=ParseMode.HTML,
+                    )
+                    reading.reading_status = UserReading.ReadingStatus.CANCELLED
+                    await reading.asave()
+                    return
+
+                # Разрешено (None или True) — спойлер + подпись
+                nsfw_spoiler = tu.nsfw_spoiler
+                nsfw_caption_suffix = self.bot.messages.NSFW_CAPTION_SUFFIX
+            # ===== конец 18+ =====
 
             # 2. Генерация карт
             cards = await self.bot.get_cards(
@@ -175,6 +200,8 @@ class CardsHandler:
                 "reading_id": reading.id,
                 "is_group": is_group,
                 "send_type": "tarot",
+                "has_spoiler": nsfw_spoiler,
+                "caption_suffix": nsfw_caption_suffix,
             }
             
             if not is_group and await self.bot.ai_interpret_handler.should_add_ai_button():
@@ -318,7 +345,7 @@ class CardsHandler:
                 )
             
             # 1. Получение колоды
-            deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None), 'oraculum')
+            deck = await self.bot.get_deck(user, options.get("deck"), options.get("deck_keyword", None), 'oraculum')
             
             # 2. Получение карт
             cards = await self.bot.get_oraculum_cards(
@@ -454,11 +481,13 @@ class CardsHandler:
         logger.info(f"Обработка текстовой строки ТАРО с текстом: {msg_text[:100]}")
 
         try:
+            user = await self.bot.get_or_create_tg_user(update)
             # 1. Парсим опции
             options = self.bot.parse_text_reading_options(msg_text)
             
             # 2. Запрашиваем колоды (может быть список)
             decks = await self.bot.get_deck(
+                user=user,
                 deck_id=options.get("deck"),
                 deck_keyword=options.get("deck_keyword"),
                 deck_type="tarot",
@@ -494,6 +523,9 @@ class CardsHandler:
         reading_id = kwargs.get("reading_id")
         send_type = kwargs.get("send_type")  # 'tarot' или 'oracle'
         is_group = kwargs.get("is_group", False)
+        has_spoiler = kwargs.get("has_spoiler", False)
+        caption_suffix = kwargs.get("caption_suffix", "")
+        
         params = {"disable_web_page_preview": True}
 
         reply_markup = []
@@ -644,12 +676,15 @@ class CardsHandler:
                 seo_tags=current_deck.seo_tags if current_deck else None
             )
             text.append(f"\n📋 <code>{spread_summary}</code>")
+            
+        if caption_suffix:
+            text.append(caption_suffix)
 
         params["parse_mode"] = ParseMode.HTML
 
         # === 4. Подготовка медиа-группы ===
         media_group = [
-            InputMediaPhoto(c["img_id"], await self.bot.format_card_name(c)) for c in cards
+            InputMediaPhoto(c["img_id"], await self.bot.format_card_name(c), has_spoiler=has_spoiler) for c in cards
         ]
         
         # === 5. Финальная отправка ===
@@ -659,7 +694,8 @@ class CardsHandler:
                 media_group[0] = InputMediaPhoto(
                     media=card.media,
                     caption="\n".join(text),
-                    parse_mode=ParseMode.HTML
+                    parse_mode=ParseMode.HTML,
+                    has_spoiler=has_spoiler,
                 )
                 await update.effective_chat.send_media_group(media_group)
             else:

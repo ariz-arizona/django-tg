@@ -417,6 +417,7 @@ class CanvasHandler:
 
         card_records = [{"id": str(c["card_id"]), "flip": c["flipped"]} for c in cards]
 
+        await self.bot.set_reading_cooldown(update, category)
         reading = await self.bot.save_reading(
             user=user,
             message_id=update.effective_message.message_id,

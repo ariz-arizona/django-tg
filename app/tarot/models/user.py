@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 from .base import bot_prefix
 
 
@@ -281,6 +282,20 @@ class TarotUser(models.Model):
         blank=True,
         verbose_name="Время daily",
         help_text="7:00 / 8:00 / 9:00 / 12:00 / 20:00",
+    )
+    
+    # Группы, где пользователь является администратором (храним chat_id)
+    admin_groups = ArrayField(
+        models.BigIntegerField(),
+        default=list,
+        blank=True,
+        verbose_name="Группы, где админ",
+        help_text="Список chat_id групп, в которых пользователь — администратор",
+    )
+    admin_timer = models.PositiveIntegerField(
+        default=6,
+        verbose_name="Таймер кулдауна для админа (в часах)",
+        help_text="Интервал ограничения раскладов в часах для подконтрольных групп (6, 8 или 12)",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

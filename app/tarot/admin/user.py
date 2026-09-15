@@ -467,6 +467,8 @@ class TarotUserAdmin(admin.ModelAdmin):
         "nsfw_spoiler",
         "daily_enabled",
         "daily_time",
+        "admin_groups_count",
+        "admin_timer",
         "updated_at",
     )
     list_filter = (
@@ -474,6 +476,7 @@ class TarotUserAdmin(admin.ModelAdmin):
         "nsfw_spoiler",
         "daily_enabled",
         "daily_time",
+        "admin_timer",
     )
     search_fields = (
         "user__tg_id",
@@ -485,11 +488,14 @@ class TarotUserAdmin(admin.ModelAdmin):
         ("Пользователь", {
             "fields": ("user",),
         }),
+        ("Группы и права", {
+            "fields": ("admin_groups", "admin_timer"),
+        }),
         ("18+ контент", {
             "fields": ("nsfw_allowed", "nsfw_spoiler"),
         }),
         ("Карта дня", {
-            "fields": ("daily_enabled", "daily_spoiler", "daily_time"),
+            "fields": ("daily_enabled", "daily_time"),
         }),
         ("Служебное", {
             "fields": ("created_at", "updated_at"),
@@ -500,3 +506,11 @@ class TarotUserAdmin(admin.ModelAdmin):
     @admin.display(description="18+ контент", ordering="nsfw_allowed")
     def nsfw_allowed_display(self, obj: TarotUser) -> str:
         return obj.nsfw_allowed_display
+
+    @admin.display(description="Админ в группах")
+    def admin_groups_count(self, obj: TarotUser) -> str:
+        """Отображение количества групп или списка их ID в таблице."""
+        if not obj.admin_groups:
+            return "—"
+        count = len(obj.admin_groups)
+        return f"{count} (IDs: {', '.join(map(str, obj.admin_groups))})"

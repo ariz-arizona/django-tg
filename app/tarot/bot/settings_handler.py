@@ -80,7 +80,7 @@ class SettingsHandler:
             ),
         ]
 
-        keyboard = [row_nsfw, row_spoiler, row_daily]
+        keyboard = [row_nsfw, row_spoiler]
 
         # Время
         if daily:

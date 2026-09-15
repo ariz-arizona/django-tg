@@ -22,6 +22,7 @@ from tarot.models import (
     OraculumItem,
     UserReading,
 )
+from tarot.models import TarotUser
 
 from server.logger import logger
 
@@ -151,23 +152,9 @@ class CardsHandler:
             nsfw_caption_suffix = ""
 
             if deck and getattr(deck, "is_nsfw", False):
-                from tarot.models import TarotUser
-                tu = await TarotUser.objects.aget(user=user)
-
-                if not tu or tu.nsfw_allowed is False:
-                    # Блокируем
-                    if status_message:
-                        await status_message.delete()
-                    await update.message.reply_text(
-                        self.bot.messages.NSFW_BLOCKED,
-                        parse_mode=ParseMode.HTML,
-                    )
-                    reading.reading_status = UserReading.ReadingStatus.CANCELLED
-                    await reading.asave()
-                    return
-
+                tarot_user = await TarotUser.objects.aget(user=user)
                 # Разрешено (None или True) — спойлер + подпись
-                nsfw_spoiler = tu.nsfw_spoiler
+                nsfw_spoiler = tarot_user.nsfw_spoiler
                 nsfw_caption_suffix = self.bot.messages.NSFW_CAPTION_SUFFIX
             # ===== конец 18+ =====
 

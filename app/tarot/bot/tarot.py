@@ -643,18 +643,18 @@ class TarotBot(AbstractBot):
         nsfw_blocked = False
         if user is not None:
             try:
-                tu = await TarotUser.objects.aget(user=user)
-                if tu.nsfw_allowed is False:
+                tarot_user = await TarotUser.objects.aget(user=user)
+                if tarot_user.nsfw_allowed is False:
                     nsfw_blocked = True
             except TarotUser.DoesNotExist:
                 pass
             
         base_qs = model.objects.all()
-        if nsfw_blocked:
+        if nsfw_blocked and not (deck_keyword or deck_id):
             base_qs = base_qs.filter(is_nsfw=False)
             
         deck_ids: List[int] = [deck.id async for deck in base_qs]
-        logger.info(f"Получаем колоду: id={deck_id}, keyword={deck_keyword}, type={deck_type}, return_all={return_all}")
+        logger.info(f"Получаем колоду: id={deck_id}, keyword={deck_keyword}, type={deck_type}, return_all={return_all}, nsfw_blocked={nsfw_blocked}")
 
         if not deck_ids:
             raise ValueError("Нет доступных колод.")

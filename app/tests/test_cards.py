@@ -1468,3 +1468,106 @@ def test_card_random_decks(send_webhook_update, redis_client):
     print(f"\n✅ Тест card_random_decks пройден!")
     print(f"   {len(unique_decks)} разных колод из 5 запросов")
     
+@pytest.mark.django_db
+def test_manara_deck_spoiler(send_webhook_update, redis_client):
+    """E2E: при запросе колоды Манара картинки должны быть под спойлером (has_spoiler=True)"""
+
+    token = "test_token_12345"
+    user_id = 20001
+    redis_key = f"intercepted_requests:{token}"
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(redis_client.delete(redis_key))
+
+    time.sleep(1)
+
+    command = "/card_deck_manara"
+
+    update = {
+        "update_id": 7000,
+        "message": {
+            "message_id": 7000,
+            "from": {"id": user_id, "is_bot": False, "first_name": "Alice"},
+            "chat": {"id": user_id, "type": "private"},
+            "date": 1717000000,
+            "text": command,
+            "entities": [{"offset": 0, "length": len(command), "type": "bot_command"}]
+        }
+    }
+
+    response = send_webhook_update(token, update)
+    assert response.status_code == 200
+    print(f"✅ Апдейт {command} отправлен\n")
+
+    all_messages = []
+    start = time.time()
+    timeout = 15
+    got_final = False
+    got_delete = False
+
+    while time.time() - start < timeout:
+        all_data = sync_lrange(redis_client, redis_key, 0, -1)
+        messages = [json.loads(r) for r in all_data if json.loads(r).get('endpoint') in
+                    ['sendMessage', 'sendMediaGroup', 'deleteMessage']]
+
+        for msg in messages:
+            if msg not in all_messages:
+                all_messages.append(msg)
+                endpoint = msg.get('endpoint', '?')
+                data = extract_message_data(msg)
+
+                if 'text' in data:
+                    print(f"📨 {endpoint}: {data['text'][:120]}")
+                elif 'media' in data:
+                    media_items = data.get('media', [])
+                    print(f"📨 {endpoint}: {len(media_items)} картинок")
+                    for i, item in enumerate(media_items):
+                        cap = item.get('caption', '').strip()
+                        spoiler = item.get('has_spoiler', False)
+                        print(f"   🃏 {i+1}. has_spoiler={spoiler} | {cap[:70]}")
+                else:
+                    print(f"📨 {endpoint}")
+
+                if 'reply_markup' in data:
+                    got_final = True
+                if endpoint == 'deleteMessage':
+                    got_delete = True
+
+        if got_final and got_delete:
+            print("✅ Все сообщения получены!")
+            break
+
+        time.sleep(0.1)
+
+    # Ищем сообщение с медиа (картами)
+    media_msg = None
+    for msg in all_messages:
+        if msg.get('endpoint') == 'sendMediaGroup':
+            media_msg = extract_message_data(msg)
+            break
+
+    assert media_msg is not None, \
+        f"Нет sendMediaGroup для {command}! Манара должна присылать картинки."
+
+    media_items = media_msg.get('media', [])
+    assert len(media_items) > 0, "Нет картинок в sendMediaGroup!"
+
+    print(f"\n🔍 Проверка has_spoiler у картинок:")
+
+    # Проверяем что КАЖДАЯ картинка под спойлером
+    not_spoilered = []
+    for i, item in enumerate(media_items):
+        has_spoiler = item.get('has_spoiler', False)
+        mark = "✅" if has_spoiler else "❌"
+        cap = item.get('caption', '').strip()
+        print(f"   {mark} #{i+1}: has_spoiler={has_spoiler} | {cap[:70]}")
+        if not has_spoiler:
+            not_spoilered.append(i + 1)
+
+    assert len(not_spoilered) == 0, \
+        f"БАГ: Картинки колоды Манара должны быть под спойлером (has_spoiler=True)!\n" \
+        f"Без спойлера: {not_spoilered} из {len(media_items)}\n" \
+        f"Данные: {[{k: v for k, v in item.items() if k in ('has_spoiler', 'caption')} for item in media_items]}"
+
+    print(f"\n✅ Все {len(media_items)} картинок под спойлером (has_spoiler=True)")
+    print(f"✅ Тест manara_deck_spoiler пройден!")

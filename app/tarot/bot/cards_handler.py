@@ -152,10 +152,15 @@ class CardsHandler:
             nsfw_caption_suffix = ""
 
             if deck and getattr(deck, "is_nsfw", False):
-                tarot_user = await TarotUser.objects.aget(user=user)
-                # Разрешено (None или True) — спойлер + подпись
-                nsfw_spoiler = tarot_user.nsfw_spoiler
-                nsfw_caption_suffix = self.bot.messages.NSFW_CAPTION_SUFFIX
+                try:
+                    tarot_user = await TarotUser.objects.aget(user=user)
+                    nsfw_spoiler = tarot_user.nsfw_spoiler
+                except TarotUser.DoesNotExist:
+                    # Если юзера еще нет в профиле, по дефолту прячем под спойлер
+                    nsfw_spoiler = True
+                    
+                if nsfw_spoiler:
+                    nsfw_caption_suffix = self.bot.messages.NSFW_CAPTION_SUFFIX
             # ===== конец 18+ =====
 
             # 2. Генерация карт

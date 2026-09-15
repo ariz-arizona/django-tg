@@ -424,14 +424,6 @@ class TarotBot(AbstractBot):
 
             # Если кулдаун активен (> 0 сек)
             if time_left > 0:
-                # Для групп чистим триггерное сообщение (если есть права) и выходим
-                if is_group:
-                    try:
-                        await update.effective_message.delete()
-                    except Exception:
-                        pass  # Бот не имеет прав на удаление сообщений
-                    return True
-
                 # Логика сбора текста об ограничениях и альтернативах (для л/с)
                 category_upper = category.upper()
                 user_name = user.username or user.first_name or str(user_id)
@@ -440,6 +432,39 @@ class TarotBot(AbstractBot):
                     f"пытается пойти раньше кулдауна на {time_left} сек "
                     f"для категории {category_upper}"
                 )
+                
+                # Для групп чистим триггерное сообщение и отправляем юзеру команду в ЛС
+                if is_group:
+                    # 1. Форматируем время с точностью до 2 знаков после запятой (или в минуты/часы)
+                    time_left_formatted = f"{time_left / 3600:.2f}"
+                    
+                    # Получаем исходную команду/текст пользователя
+                    msg_text = update.effective_message.text or ""
+                    
+                    # 2. Формируем текст для отправки в личку
+                    pm_text = (
+                        f"⏳ Ограничения в группе еще на {time_left_formatted} ч.\n\n"
+                        f"Ваш запрос: {msg_text}"
+                    )
+                    
+                    try:
+                        await update.get_bot().send_message(
+                            chat_id=user_id, 
+                            text=pm_text, 
+                            parse_mode=ParseMode.HTML,
+                            disable_notification=True
+                        )
+                    except Exception as send_err:
+                        logger.warning(f"Не удалось отправить сообщение в ЛС пользователю {user_id}: {send_err}")
+
+                    # 3. Удаляем сообщение из группы
+                    try:
+                        await update.effective_message.delete()
+                    except Exception:
+                        pass  # Бот не имеет прав на удаление сообщений
+                    
+                    logger.info('TTTRRRUUUE')
+                    return True
 
                 # Проверяем доступность других категорий
                 available_commands = []

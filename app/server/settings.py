@@ -68,7 +68,8 @@ INSTALLED_APPS = [
     "tg_bot",
     "tarot",
     "cardparser",
-    'roster'
+    'roster',
+    "whirl"
 ]
 
 MIDDLEWARE = [

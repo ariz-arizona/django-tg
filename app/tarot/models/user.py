@@ -241,8 +241,6 @@ class AIReadingPage(models.Model):
 
     def __str__(self):
         return f"Чанк {self.page_number} для интерпретации {self.interpretation_id}"
-    
-from django.db import models
 
 
 class TarotUser(models.Model):

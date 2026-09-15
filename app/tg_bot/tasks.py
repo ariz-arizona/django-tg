@@ -17,6 +17,7 @@ from tg_bot.models import Bot
 from cardparser.bot.parser import ParserBot
 from tarot.bot.tarot import TarotBot
 from roster.bot.roster import GachaBot
+from whirl.bot.whirl import WhirlBot
 
 from server.logger import logger
 

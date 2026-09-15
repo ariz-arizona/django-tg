@@ -362,9 +362,8 @@ class CanvasHandler:
         """
         msg_text = update.message.text
         user = await self.bot.get_or_create_tg_user(update)
-        logger.info(f"Обработка команды /spread с текстом: {msg_text[:100]}")
+        logger.info(f"Обработка команды /spread|canvas с текстом: {msg_text[:100]}")
         
-
         category = UserReading.ReadingCategory.CANVAS_SPREAD
         is_locked = await self.bot.check_reading_cooldown(update, category)
         if is_locked:
@@ -382,7 +381,7 @@ class CanvasHandler:
         else:
             options = self.bot.parse_reading_options(msg_text)
             
-        deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None))
+        deck = await self.bot.get_deck(user, options.get("deck"), options.get("deck_keyword", None))
         if not deck and options.get("deck"):
             error_msg = self.messages.get_error_message("no_deck")
             await update.message.reply_text(error_msg, parse_mode=ParseMode.HTML)

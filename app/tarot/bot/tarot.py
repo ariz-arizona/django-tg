@@ -40,6 +40,7 @@ from tarot.models import (
     UserReading,
     DeckSearch,
 )
+from tarot.models import TarotUser
 from server.logger import logger
 
 from tarot.utils.flaresolverr import tarot_fetch
@@ -51,6 +52,7 @@ from tarot.bot.meaning_handler import MeaningHandler
 from tarot.bot.cards_handler import CardsHandler
 from tarot.bot.canvas_handler import CanvasHandler
 from tarot.bot.oh_handler import OhHandler
+from tarot.bot.settings_handler import SettingsHandler
 
 from tarot.messages import CardMessages
 from tarot.messages import CANVAS_3_TRIGGER, TAROT_3_TRIGGER, ONEHAND_TRIGGER
@@ -94,6 +96,7 @@ class TarotBot(AbstractBot):
         self.cards_handler = CardsHandler(self)
         self.canvas_handler = CanvasHandler(self)
         self.oh_handler = OhHandler(self)
+        self.settings_handler = SettingsHandler(self)
         self.messages = CardMessages()
         self.handlers = self.get_handlers()
 
@@ -110,6 +113,7 @@ class TarotBot(AbstractBot):
             *self.cards_handler.get_handlers(),
             *self.canvas_handler.get_handlers(),
             *self.oh_handler.get_handlers(),
+            *self.settings_handler.get_handlers(),
             
             MessageHandler(
                 filters.COMMAND
@@ -623,19 +627,34 @@ class TarotBot(AbstractBot):
             found_decks=found
         )
         
-    async def get_deck(self, deck_id=None, deck_keyword=None, deck_type="tarot", return_all=False):
+    async def get_deck(self, user=None, deck_id=None, deck_keyword=None, deck_type="tarot", return_all=False):
         """
         Возвращает колоду или список колод.
         
         Args:
+            user: TgUser — для проверки NSFW-настроек
             deck_id: ID колоды
             deck_keyword: ключевое слово для поиска
             deck_type: "tarot" или "oraculum"
             return_all: если True и keyword — возвращает список всех найденных колод
         """
-        model = OraculumDeck if deck_type == "oraculum" else TarotDeck        
-        deck_ids: List[int] = [deck.id async for deck in model.objects.all()]
-        logger.info(f"Получаем колоду: id={deck_id}, keyword={deck_keyword}, type={deck_type}, return_all={return_all}")
+        model = OraculumDeck if deck_type == "oraculum" else TarotDeck
+        
+        nsfw_blocked = False
+        if user is not None:
+            try:
+                tarot_user = await TarotUser.objects.aget(user=user)
+                if tarot_user.nsfw_allowed is False:
+                    nsfw_blocked = True
+            except TarotUser.DoesNotExist:
+                pass
+            
+        base_qs = model.objects.all()
+        if nsfw_blocked and not (deck_keyword or deck_id):
+            base_qs = base_qs.filter(is_nsfw=False)
+            
+        deck_ids: List[int] = [deck.id async for deck in base_qs]
+        logger.info(f"Получаем колоду: id={deck_id}, keyword={deck_keyword}, type={deck_type}, return_all={return_all}, nsfw_blocked={nsfw_blocked}")
 
         if not deck_ids:
             raise ValueError("Нет доступных колод.")

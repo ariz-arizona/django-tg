@@ -35,6 +35,11 @@ class OraculumDeck(models.Model):
         verbose_name="SEO-теги",
         help_text="Список тегов для поиска (например, ['уэйт', 'waite', 'rider'])",
     )
+    is_nsfw = models.BooleanField(
+        default=False,
+        verbose_name="18+",
+        help_text="Колода содержит контент 18+",
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Дата создания",

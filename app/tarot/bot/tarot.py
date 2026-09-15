@@ -85,7 +85,7 @@ CATEGORY_COMMANDS = {
 
 LAST_READINGS_MAX_DAYS = 7      # за неделю
 LAST_READINGS_MAX_TOTAL = 100   # не более 100 записей
-
+GROUP_COOL_DOWN_TTL = 6 * 3600
 
 class TarotBot(AbstractBot):
     def __init__(self):
@@ -195,18 +195,6 @@ class TarotBot(AbstractBot):
             original_message_text=original_message_text,
         )
         logger.info(f"Результат гадания сохранен: {reading}")
-
-        # Сохраняем отметку в Redis
-        try:
-            redis_key = REDIS_KEY_TEMPLATE.format(
-                user_id=user.tg_id, 
-                category=category, 
-                app_id=self.app_bot_id
-            )
-            await redis_client.set(redis_key, reading.id, ex=REDIS_TTL_SECONDS) 
-            logger.info(f"Ключ {redis_key} успешно записан в Redis на {REDIS_TTL_SECONDS} сек.")
-        except Exception as e:
-            logger.error(f"Ошибка записи в Redis для пользователя {user.id}: {e}")
 
         return reading
 
@@ -371,78 +359,117 @@ class TarotBot(AbstractBot):
         
         return options
 
+    async def set_reading_cooldown(self, update: Update, category: str) -> None:
+        """
+        Устанавливает TTL кулдауна в Redis для группы (6 часов, если админская) 
+        или для личного чата пользователя (стандартный TTL).
+        """
+        chat_id = update.effective_chat.id
+        user_id = update.effective_user.id
+        # 1. Проверяем, зарегистрирована ли группа у кого-то из админов
+        use_group_cooldown = await TarotUser.objects.filter(
+            admin_groups__contains=[chat_id]
+        ).aexists()
+
+        # 2. Определяем ключ и время жизни в зависимости от типа чата и прав
+        if use_group_cooldown:
+            redis_key = f"group:ttl:{chat_id}:{category}:{self.app_bot_id}"
+            ttl = GROUP_COOL_DOWN_TTL
+        else:
+            redis_key = REDIS_KEY_TEMPLATE.format(
+                user_id=user_id, 
+                category=category, 
+                app_id=self.app_bot_id
+            )
+            ttl = REDIS_TTL_SECONDS
+
+        # 3. Записываем в Redis
+        try:
+            await redis_client.set(redis_key, "1", ex=ttl)
+            logger.info(f"Установлен кулдаун {redis_key} на {ttl} сек.")
+        except Exception as e:
+            logger.error(f"Ошибка при установке кулдауна в Redis: {e}", exc_info=True)
+        
     async def check_reading_cooldown(self, update: Update, category: str) -> bool:
         """
-        Проверяет, есть ли активный кулдаун на гадание для пользователя.
+        Проверяет, есть ли активный кулдаун на гадание для пользователя или группы.
         Возвращает True, если гадание ЗАБЛОКИРОВАНО (надо подождать).
         Возвращает False, если гадание ДОСТУПНО.
         """
         user_id = update.effective_user.id
         user = update.effective_user
+        chat = update.effective_chat
+        chat_id = chat.id
         app_id = self.app_bot_id
-        # Формируем ключ по тому же шаблону, что и при сохранении
-        redis_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=category, app_id=app_id)
-        # Ключ для хранения ID сообщения кулдауна
-        msg_ttl_key = f"user:ttl:message:{user_id}:{category}:{app_id}"
+
+        is_group = chat.type in (ChatType.GROUP, ChatType.SUPERGROUP)
+
+        # 1. Проверяем, применимы ли правила группового кулдауна (6 часов)
+        use_group_cooldown = False
+        if is_group:
+            use_group_cooldown = await TarotUser.objects.filter(
+                admin_groups__contains=[chat_id]
+            ).aexists()
+
+        # 2. Выбираем ключи кулдауна
+        if is_group and use_group_cooldown:
+            redis_key = f"group:ttl:{chat_id}:{category}:{app_id}"
+            msg_ttl_key = f"group:ttl:message:{chat_id}:{category}:{app_id}"
+        else:
+            redis_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=category, app_id=app_id)
+            msg_ttl_key = f"user:ttl:message:{user_id}:{category}:{app_id}"
 
         try:
-            # Запрашиваем оставшееся время жизни ключа (в секундах)
             time_left = await redis_client.ttl(redis_key)
 
-            # Redis возвращает:
-            # -1, если ключ существует, но у него нет TTL (бессрочный)
-            # -2, если ключа нет в базе (кулдауна нет, можно гадать)
+            # Если кулдаун активен (> 0 сек)
             if time_left > 0:
-                is_group = update.effective_chat.type in (ChatType.GROUP, ChatType.SUPERGROUP)
+                # Для групп чистим триггерное сообщение (если есть права) и выходим
                 if is_group:
                     try:
                         await update.effective_message.delete()
                     except Exception:
-                        pass  # нет прав на удаление
+                        pass  # Бот не имеет прав на удаление сообщений
                     return True
-                
-                # Красиво форматируем категорию (например, tarot -> ТАРОТ)
-                category_upper = category.upper() 
 
+                # Логика сбора текста об ограничениях и альтернативах (для л/с)
+                category_upper = category.upper()
                 user_name = user.username or user.first_name or str(user_id)
                 logger.info(
                     f"Пользователь {user_name} (id: {user_id}) "
-                    f"пытается пойти раньше кулдауна на {time_left} секунд "
+                    f"пытается пойти раньше кулдауна на {time_left} сек "
                     f"для категории {category_upper}"
                 )
 
-                # Проверяем все остальные категории на наличие активного кулдауна
+                # Проверяем доступность других категорий
                 available_commands = []
-                
                 for cat_choice in UserReading.ReadingCategory.values:
                     if cat_choice == category:
-                        continue  # Пропускаем текущую заблокированную категорию
+                        continue
 
-                    # Формируем ключ для проверки
                     check_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=cat_choice, app_id=app_id)
                     check_ttl = await redis_client.ttl(check_key)
 
-                    # Если ключа нет (time_left == -2) - категория доступна
                     if check_ttl == -2:
-                        command = CATEGORY_COMMANDS.get(cat_choice)   # ← глобальная константа
+                        command = CATEGORY_COMMANDS.get(cat_choice)
                         if command:
                             available_commands.append(command)
 
-                # === ИЩЕМ ДРУГИХ БОТОВ В REDIS ===
+                # Ищем запущенных альтернативных ботов в Redis
                 all_bots = await redis_client_bot.hgetall("running_bots")
-                other_bots = set() 
+                other_bots = set()
 
                 for bot_id, bot_info_json in all_bots.items():
                     bot_info = json.loads(bot_info_json)
-                    # Ищем ботов типа TarotBot
                     if (
-                        bot_info.get('type') == 'TarotBot' and
-                        bot_info.get('bot_id') != self.app_bot_id
-                        ): 
-                        bot_username = bot_info.get('username')
+                        bot_info.get("type") == "TarotBot"
+                        and bot_info.get("bot_id") != self.app_bot_id
+                    ):
+                        bot_username = bot_info.get("username")
                         if bot_username:
                             other_bots.add(f"@{bot_username}")
 
+                # Формирование итогового ответа
                 message_parts = [f"⚠️ Подождите {time_left} секунд до гадания {category_upper}"]
 
                 if available_commands:
@@ -458,56 +485,37 @@ class TarotBot(AbstractBot):
 
                 message = "\n\n".join(message_parts)
 
-                # command_text = update.message.text
-                # if command_text:
-                #     hide_msg = await update.effective_message.reply_text(
-                #         ".",
-                #         reply_markup=ReplyKeyboardMarkup(
-                #             [[KeyboardButton(command_text[:100])]],
-                #             resize_keyboard=True,
-                #             one_time_keyboard=True
-                #         )
-                #     )
-                #     await hide_msg.delete()
-
-                # === ОБНОВЛЕНИЕ ИЛИ ОТПРАВКА СООБЩЕНИЯ ===
-                # Проверяем, есть ли уже отправленное сообщение об этом кулдауне
+                # --- Отправка / редактирование сообщения и обновление Redis-состояния ---
                 existing_msg_id = await redis_client.get(msg_ttl_key)
+                target_msg_id = None
 
                 if existing_msg_id:
                     try:
-                        # Используем update.get_bot() для вызова edit_message_text
                         await update.get_bot().edit_message_text(
-                            chat_id=update.effective_chat.id,
+                            chat_id=chat_id,
                             message_id=int(existing_msg_id),
-                            text=message
+                            text=message,
                         )
-                        # ОБНОВЛЯЕМ TTL: перезаписываем тот же ID с актуальным остатком времени,
-                        # чтобы ключ в Redis не удалился раньше времени
-                        await redis_client.set(msg_ttl_key, existing_msg_id, ex=time_left)
                         await update.effective_message.delete()
-
+                        target_msg_id = existing_msg_id
                     except Exception as edit_err:
-                        # Если сообщение удалено или текст совпадает, отправляем заново
                         logger.warning(
                             f"Не удалось отредактировать сообщение {existing_msg_id}: {edit_err}"
                         )
-                        existing_msg_id = None
 
-                if not existing_msg_id:
-                    # Если сообщения не было или не удалось отредактировать — отправляем новое
+                if not target_msg_id:
                     sent_msg = await update.effective_message.reply_text(message)
-                    # Сохраняем ID сообщения в Redis с TTL, равным остатку кулдауна
-                    await redis_client.set(msg_ttl_key, sent_msg.message_id, ex=time_left)
+                    target_msg_id = sent_msg.message_id
 
-                return True # Блокировка активна
+                if target_msg_id:
+                    await redis_client.set(msg_ttl_key, target_msg_id, ex=time_left)
+
+                return True  # Кулдаун активен, запрос заблокирован
 
         except Exception as e:
-            # Если Redis упал, не блокируем пользователя, а логируем ошибку
-            import logging
-            logging.error(f"Ошибка проверки TTL в Redis: {e}", exc_info=True)
+            logger.error(f"Ошибка проверки TTL в Redis: {e}", exc_info=True)
 
-        return False
+        return False  # Кулдауна нет, можно выполнять расклад
 
     async def get_cards(
         self,
@@ -843,6 +851,7 @@ class TarotBot(AbstractBot):
         try:
             user = await self.get_or_create_tg_user(update)
             
+            await self.set_reading_cooldown(update, category)
             reading = await self.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,

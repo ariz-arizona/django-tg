@@ -234,6 +234,7 @@ class AllCardHandler:
         reading = None
 
         try:
+            await self.bot.set_reading_cooldown(update, category)
             # 1. Создание ридинга БЕЗ текста
             reading = await self.bot.save_reading(
                 user=user, 

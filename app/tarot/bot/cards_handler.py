@@ -124,6 +124,7 @@ class CardsHandler:
             logger.info(f"Опции расклада разобраны: {options}")
 
             # Создаём чтение сразу после парсинга опций
+            await self.bot.set_reading_cooldown(update, category)
             reading = await self.bot.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,
@@ -322,6 +323,7 @@ class CardsHandler:
             user = await self.bot.get_or_create_tg_user(update)
             options = self.bot.parse_reading_options(msg_text)
 
+            await self.bot.set_reading_cooldown(update, category)
             reading = await self.bot.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,
@@ -729,6 +731,7 @@ class CardsHandler:
             user = await self.bot.get_or_create_tg_user(update)
             options = self.bot.parse_reading_options(msg_text)
 
+            await self.bot.set_reading_cooldown(update, category)
             reading = await self.bot.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,

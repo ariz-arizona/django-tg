@@ -125,6 +125,7 @@ class RuneHandler:
 
         reading = None
         try:
+            await self.bot.set_reading_cooldown(update, category)
             reading = await self.bot.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,

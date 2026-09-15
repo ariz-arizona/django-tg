@@ -1,9 +1,4 @@
-import re
-import os
-from typing import List, Optional, Dict
-
 import textwrap
-import redis.asyncio as aioredis
 import random
 
 from telegram import (
@@ -19,27 +14,11 @@ from telegram.ext import (
 )
 from telegram.constants import ParseMode
 
-from tg_bot.models import TgUser, Bot
 from tarot.models import (
     Rune,
     UserReading,
 )
 from server.logger import logger
-from django.conf import settings
-
-# Инициализируем асинхронный клиент
-redis_client = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"),
-    port=int(os.getenv("REDIS_PORT", 6379)),
-    db=3,
-    decode_responses=True,  # Рекомендуется: автоматически декодирует bytes в строки python
-)
-redis_client_bot = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"),
-    port=int(os.getenv("REDIS_PORT", 6379)),
-    db=2,
-    decode_responses=True,  # Рекомендуется: автоматически декодирует bytes в строки python
-)
 
 
 class RuneHandler:
@@ -146,6 +125,7 @@ class RuneHandler:
 
         reading = None
         try:
+            await self.bot.set_reading_cooldown(update, category)
             reading = await self.bot.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,

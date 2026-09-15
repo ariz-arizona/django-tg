@@ -14,17 +14,14 @@ class OraculumItemInline(admin.TabularInline):
 
 @admin.register(OraculumDeck)
 class OraculumDeckAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'is_active', 'cards_count', 'description_preview', 'created_at')
+    list_display = ('name', 'slug', 'is_nsfw', 'is_active', 'description_preview')
     search_fields = ('name', 'slug', 'description')
-    list_filter = ('is_active', 'created_at')  # добавил is_active
+    list_editable = ('is_nsfw', )
+    list_filter = ('is_active', 'is_nsfw') 
     inlines = [OraculumItemInline]
 
     def get_queryset(self, request):
         return self.model.all_decks.prefetch_related('cards')  # objects = все колоды
-
-    @admin.display(description='Карт в колоде')
-    def cards_count(self, obj):
-        return obj.cards.count()
 
     @admin.display(description='Описание')
     def description_preview(self, obj):

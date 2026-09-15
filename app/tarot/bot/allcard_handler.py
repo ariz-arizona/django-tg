@@ -1,5 +1,3 @@
-# allcard_handler.py
-import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import (
     MessageHandler,
@@ -156,10 +154,11 @@ class AllCardHandler:
         """Обработчик команды /all."""
         try:
             msg_text = update.message.text
+            user = await self.bot.get_or_create_tg_user(update)
             # Используем метод парсинга из основного бота
             options = self.bot.parse_reading_options(msg_text)
 
-            deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None))
+            deck = await self.bot.get_deck(user, options.get("deck"), options.get("deck_keyword", None))
             
             deck_id = deck.id
             item_type = "all"
@@ -235,6 +234,7 @@ class AllCardHandler:
         reading = None
 
         try:
+            await self.bot.set_reading_cooldown(update, category)
             # 1. Создание ридинга БЕЗ текста
             reading = await self.bot.save_reading(
                 user=user, 
@@ -252,7 +252,7 @@ class AllCardHandler:
             await reading.asave(update_fields=['reading_status'])
 
             # Логика получения
-            deck = await self.bot.get_deck(options.get("deck"), options.get("deck_keyword", None))
+            deck = await self.bot.get_deck(user, options.get("deck"), options.get("deck_keyword", None))
             cards = await self.bot.get_cards(
                 deck_id=deck.id if deck else None,
                 counter=22 if options.get('major') else 78,

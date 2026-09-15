@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 from .base import bot_prefix
 
 
@@ -20,6 +21,7 @@ class UserReading(models.Model):
         RENDERING = "rendering", "Создание изображения"
         UPLOADING = "uploading", "Отправка"
         SUCCESS = "success", "Успешно"
+        CANCELLED = "cancelled", "Отменено"
         ERROR = "error", "Ошибка"
         
     user = models.ForeignKey(
@@ -239,3 +241,76 @@ class AIReadingPage(models.Model):
 
     def __str__(self):
         return f"Чанк {self.page_number} для интерпретации {self.interpretation_id}"
+    
+from django.db import models
+
+
+class TarotUser(models.Model):
+    """Настройки пользователя таро. OneToOne к tg_bot.TgUser."""
+
+    user = models.OneToOneField(
+        "tg_bot.TgUser",
+        on_delete=models.CASCADE,
+        related_name="tarot",
+        verbose_name="Пользователь Telegram",
+    )
+
+    # 18+ контент: None → спросить, True/False
+    nsfw_allowed = models.BooleanField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="18+ контент",
+        help_text="None — спросить, True/False",
+    )
+
+    # Спойлер 18+: по умолчанию True
+    nsfw_spoiler = models.BooleanField(
+        default=True,
+        verbose_name="Спойлер 18+",
+    )
+
+    # Карта дня: вкл/выкл
+    daily_enabled = models.BooleanField(
+        default=True,
+        verbose_name="Карта дня",
+    )
+
+    # Время daily: таймкод или None
+    daily_time = models.TimeField(
+        null=True,
+        blank=True,
+        verbose_name="Время daily",
+        help_text="7:00 / 8:00 / 9:00 / 12:00 / 20:00",
+    )
+    
+    # Группы, где пользователь является администратором (храним chat_id)
+    admin_groups = ArrayField(
+        models.BigIntegerField(),
+        default=list,
+        blank=True,
+        verbose_name="Группы, где админ",
+        help_text="Список chat_id групп, в которых пользователь — администратор",
+    )
+    admin_timer = models.PositiveIntegerField(
+        default=6,
+        verbose_name="Таймер кулдауна для админа (в часах)",
+        help_text="Интервал ограничения раскладов в часах для подконтрольных групп (6, 8 или 12)",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Пользователь таро"
+        verbose_name_plural = "Пользователи таро"
+
+    def __str__(self):
+        return f"TarotUser({self.user})"
+
+    @property
+    def nsfw_allowed_display(self) -> str:
+        """Человекочитаемое значение для inline-клавиатуры."""
+        if self.nsfw_allowed is None:
+            return "❓ Спросить"
+        return "✅ Да" if self.nsfw_allowed else "❌ Нет"

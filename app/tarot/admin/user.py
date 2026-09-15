@@ -11,7 +11,7 @@ from collections import Counter
 
 from server.logger import logger
 
-from ..models.user import UserReading, AIReadingInterpretation, AIReadingPage
+from ..models.user import UserReading, AIReadingInterpretation, AIReadingPage, TarotUser
 from ..models.tech import AIApiKey
 
 STATUS_BADGES = {
@@ -458,3 +458,59 @@ class AIReadingInterpretationAdmin(admin.ModelAdmin):
             "classes": ("collapse",)
         }),
     )
+    
+@admin.register(TarotUser)
+class TarotUserAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "nsfw_allowed_display",
+        "nsfw_spoiler",
+        "daily_enabled",
+        "daily_time",
+        "admin_groups_count",
+        "admin_timer",
+        "updated_at",
+    )
+    list_filter = (
+        "nsfw_allowed",
+        "nsfw_spoiler",
+        "daily_enabled",
+        "daily_time",
+        "admin_timer",
+    )
+    search_fields = (
+        "user__tg_id",
+        "user__username",
+        "user__first_name",
+    )
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        ("Пользователь", {
+            "fields": ("user",),
+        }),
+        ("Группы и права", {
+            "fields": ("admin_groups", "admin_timer"),
+        }),
+        ("18+ контент", {
+            "fields": ("nsfw_allowed", "nsfw_spoiler"),
+        }),
+        ("Карта дня", {
+            "fields": ("daily_enabled", "daily_time"),
+        }),
+        ("Служебное", {
+            "fields": ("created_at", "updated_at"),
+            "classes": ("collapse",),
+        }),
+    )
+
+    @admin.display(description="18+ контент", ordering="nsfw_allowed")
+    def nsfw_allowed_display(self, obj: TarotUser) -> str:
+        return obj.nsfw_allowed_display
+
+    @admin.display(description="Админ в группах")
+    def admin_groups_count(self, obj: TarotUser) -> str:
+        """Отображение количества групп или списка их ID в таблице."""
+        if not obj.admin_groups:
+            return "—"
+        count = len(obj.admin_groups)
+        return f"{count} (IDs: {', '.join(map(str, obj.admin_groups))})"

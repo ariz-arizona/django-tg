@@ -2,27 +2,17 @@ import django.db
 import re
 import os
 from typing import List, Optional, Dict
+from datetime import timedelta
 
 import asyncio
 import json
 import redis.asyncio as aioredis
-import aiohttp
 import random
 from bs4 import BeautifulSoup
-import logging
-from html import escape
 
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type,
-    before_sleep_log,
-    after_log
-)
 from telegram import (
-    Update, InputMediaPhoto, InlineKeyboardButton,
-    InlineKeyboardMarkup, ReplyKeyboardMarkup, MessageEntity
+    Update, InlineKeyboardButton,
+    InlineKeyboardMarkup, ReplyKeyboardMarkup,
     )
 from telegram.ext import (
     CommandHandler,
@@ -33,6 +23,7 @@ from telegram.ext import (
 )
 from telegram.constants import ParseMode, ChatType
 
+from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.postgres.search import TrigramSimilarity
 from django.db.models import Q
@@ -49,9 +40,8 @@ from tarot.models import (
     UserReading,
     DeckSearch,
 )
-from tg_bot.models import BotFileCache
+from tarot.models import TarotUser
 from server.logger import logger
-from django.conf import settings
 
 from tarot.utils.flaresolverr import tarot_fetch
 
@@ -62,27 +52,40 @@ from tarot.bot.meaning_handler import MeaningHandler
 from tarot.bot.cards_handler import CardsHandler
 from tarot.bot.canvas_handler import CanvasHandler
 from tarot.bot.oh_handler import OhHandler
+from tarot.bot.settings_handler import SettingsHandler
 
 from tarot.messages import CardMessages
-from tarot.messages import CanvasMessages, CANVAS_3_TRIGGER, TAROT_3_TRIGGER, ONEHAND_TRIGGER
+from tarot.messages import CANVAS_3_TRIGGER, TAROT_3_TRIGGER, ONEHAND_TRIGGER
 
-# Инициализируем асинхронный клиент
-redis_client = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"), 
-    port=int(os.getenv("REDIS_PORT", 6379)), 
-    db=3,
-    decode_responses=True # Рекомендуется: автоматически декодирует bytes в строки python
-)
-redis_client_bot = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"), 
-    port=int(os.getenv("REDIS_PORT", 6379)), 
-    db=2,
-    decode_responses=True # Рекомендуется: автоматически декодирует bytes в строки python
+from tarot.utils.redis_client import (
+    redis_client,
+    redis_client_bot,
+    REDIS_TTL_SECONDS,
+    REDIS_KEY_TEMPLATE,
 )
 
-REDIS_TTL_SECONDS = 10
-REDIS_KEY_TEMPLATE = "user:{user_id}:{category}:{app_id}"
+CATEGORY_ICONS = {
+    UserReading.ReadingCategory.ONE: "🎴",
+    UserReading.ReadingCategory.TAROT: "🔮",
+    UserReading.ReadingCategory.ORACLE: "✨",
+    UserReading.ReadingCategory.RUNES: "🪨",
+    UserReading.ReadingCategory.CANVAS_SPREAD: "🖼️",
+    UserReading.ReadingCategory.TAROT_STICKER: "🏷️",
+    UserReading.ReadingCategory.ALL: "🃏",
+}
+CATEGORY_COMMANDS = {
+    UserReading.ReadingCategory.ONE: "/one",
+    UserReading.ReadingCategory.TAROT: "/card",
+    UserReading.ReadingCategory.ORACLE: "/oraculum",
+    UserReading.ReadingCategory.RUNES: "/futhark",
+    UserReading.ReadingCategory.CANVAS_SPREAD: "/canvas",
+    UserReading.ReadingCategory.TAROT_STICKER: "/tarot",
+    UserReading.ReadingCategory.ALL: "/all",
+}
 
+LAST_READINGS_MAX_DAYS = 7      # за неделю
+LAST_READINGS_MAX_TOTAL = 100   # не более 100 записей
+GROUP_COOL_DOWN_TTL = 6 * 3600
 
 class TarotBot(AbstractBot):
     def __init__(self):
@@ -93,6 +96,7 @@ class TarotBot(AbstractBot):
         self.cards_handler = CardsHandler(self)
         self.canvas_handler = CanvasHandler(self)
         self.oh_handler = OhHandler(self)
+        self.settings_handler = SettingsHandler(self)
         self.messages = CardMessages()
         self.handlers = self.get_handlers()
 
@@ -109,6 +113,7 @@ class TarotBot(AbstractBot):
             *self.cards_handler.get_handlers(),
             *self.canvas_handler.get_handlers(),
             *self.oh_handler.get_handlers(),
+            *self.settings_handler.get_handlers(),
             
             MessageHandler(
                 filters.COMMAND
@@ -122,6 +127,10 @@ class TarotBot(AbstractBot):
                 pattern=r"^deckspage_\d+_(oraculum|tarot)$",
             ),
             CommandHandler("last", self.handle_last_readings, filters.ChatType.PRIVATE),
+            CallbackQueryHandler(
+                self.handle_last_page,
+                pattern=r"^lastpage_\d+$",
+            ),
             
             CommandHandler("one", self.handle_one_command, filters.ChatType.PRIVATE),
         ]
@@ -187,18 +196,6 @@ class TarotBot(AbstractBot):
         )
         logger.info(f"Результат гадания сохранен: {reading}")
 
-        # Сохраняем отметку в Redis
-        try:
-            redis_key = REDIS_KEY_TEMPLATE.format(
-                user_id=user.tg_id, 
-                category=category, 
-                app_id=self.app_bot_id
-            )
-            await redis_client.set(redis_key, reading.id, ex=REDIS_TTL_SECONDS) 
-            logger.info(f"Ключ {redis_key} успешно записан в Redis на {REDIS_TTL_SECONDS} сек.")
-        except Exception as e:
-            logger.error(f"Ошибка записи в Redis для пользователя {user.id}: {e}")
-
         return reading
 
     def parse_reading_options(self, msg_text: str) -> dict:
@@ -207,6 +204,9 @@ class TarotBot(AbstractBot):
         Поддерживает: /card3, deck 5, flip, major, c12_15_23.
         Все, что осталось после очистки служебных флагов — оригинальный запрос.
         """
+        # === 0. Высекаем @username бота, если есть ===
+        msg_text = re.sub(r"@\w+", "", msg_text)
+        
         # Сохраняем исходную строку для вырезания флагов
         def hide_ids(match):
             return match.group(0).replace("_", "|||") # Заменяем _ на уникальный разделитель
@@ -359,89 +359,144 @@ class TarotBot(AbstractBot):
         
         return options
 
+    async def set_reading_cooldown(self, update: Update, category: str) -> None:
+        """
+        Устанавливает TTL кулдауна в Redis для группы (на основе admin_timer админа) 
+        или для личного чата пользователя (стандартный TTL).
+        """
+        chat_id = update.effective_chat.id
+        user_id = update.effective_user.id
+
+        # 1. Ищем админа, управляющего текущей группой
+        admin_user = await TarotUser.objects.filter(
+            admin_groups__contains=[chat_id]
+        ).afirst()
+
+        # 2. Определяем ключ и время жизни в зависимости от типа чата и прав
+        if admin_user:
+            cooldown_hours = getattr(admin_user, "admin_timer", 6)
+            ttl = cooldown_hours * 3600
+            redis_key = f"group:ttl:{chat_id}:{category}:{self.app_bot_id}"
+        else:
+            redis_key = REDIS_KEY_TEMPLATE.format(
+                user_id=user_id, 
+                category=category, 
+                app_id=self.app_bot_id
+            )
+            ttl = REDIS_TTL_SECONDS
+
+        # 3. Записываем в Redis
+        try:
+            await redis_client.set(redis_key, "1", ex=ttl)
+            logger.info(f"Установлен кулдаун {redis_key} на {ttl} сек. ({ttl / 3600:.2f} ч.)")
+        except Exception as e:
+            logger.error(f"Ошибка при установке кулдауна в Redis: {e}", exc_info=True)
+        
     async def check_reading_cooldown(self, update: Update, category: str) -> bool:
         """
-        Проверяет, есть ли активный кулдаун на гадание для пользователя.
+        Проверяет, есть ли активный кулдаун на гадание для пользователя или группы.
         Возвращает True, если гадание ЗАБЛОКИРОВАНО (надо подождать).
         Возвращает False, если гадание ДОСТУПНО.
         """
         user_id = update.effective_user.id
         user = update.effective_user
+        chat = update.effective_chat
+        chat_id = chat.id
         app_id = self.app_bot_id
-        # Формируем ключ по тому же шаблону, что и при сохранении
-        redis_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=category, app_id=app_id)
-        # Ключ для хранения ID сообщения кулдауна
-        msg_ttl_key = f"user:ttl:message:{user_id}:{category}:{app_id}"
+
+        is_group = chat.type in (ChatType.GROUP, ChatType.SUPERGROUP)
+
+        # 1. Проверяем, применимы ли правила группового кулдауна (6 часов)
+        use_group_cooldown = False
+        if is_group:
+            use_group_cooldown = await TarotUser.objects.filter(
+                admin_groups__contains=[chat_id]
+            ).aexists()
+
+        # 2. Выбираем ключи кулдауна
+        if is_group and use_group_cooldown:
+            redis_key = f"group:ttl:{chat_id}:{category}:{app_id}"
+            msg_ttl_key = f"group:ttl:message:{chat_id}:{category}:{app_id}"
+        else:
+            redis_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=category, app_id=app_id)
+            msg_ttl_key = f"user:ttl:message:{user_id}:{category}:{app_id}"
 
         try:
-            # Запрашиваем оставшееся время жизни ключа (в секундах)
             time_left = await redis_client.ttl(redis_key)
 
-            # Redis возвращает:
-            # -1, если ключ существует, но у него нет TTL (бессрочный)
-            # -2, если ключа нет в базе (кулдауна нет, можно гадать)
+            # Если кулдаун активен (> 0 сек)
             if time_left > 0:
-                is_group = update.effective_chat.type in (ChatType.GROUP, ChatType.SUPERGROUP)
-                if is_group:
-                    try:
-                        await update.effective_message.delete()
-                    except Exception:
-                        pass  # нет прав на удаление
-                    return True
-                
-                # Красиво форматируем категорию (например, tarot -> ТАРОТ)
-                category_upper = category.upper() 
-
+                # Логика сбора текста об ограничениях и альтернативах (для л/с)
+                category_upper = category.upper()
                 user_name = user.username or user.first_name or str(user_id)
                 logger.info(
                     f"Пользователь {user_name} (id: {user_id}) "
-                    f"пытается пойти раньше кулдауна на {time_left} секунд "
+                    f"пытается пойти раньше кулдауна на {time_left} сек "
                     f"для категории {category_upper}"
                 )
+                
+                # Для групп чистим триггерное сообщение и отправляем юзеру команду в ЛС
+                if is_group:
+                    # 1. Форматируем время с точностью до 2 знаков после запятой (или в минуты/часы)
+                    time_left_formatted = f"{time_left / 3600:.2f}"
+                    
+                    # Получаем исходную команду/текст пользователя
+                    msg_text = update.effective_message.text or ""
+                    
+                    # 2. Формируем текст для отправки в личку
+                    pm_text = (
+                        f"⏳ Ограничения в группе еще на {time_left_formatted} ч.\n\n"
+                        f"Ваш запрос: {msg_text}"
+                    )
+                    
+                    try:
+                        await update.get_bot().send_message(
+                            chat_id=user_id, 
+                            text=pm_text, 
+                            parse_mode=ParseMode.HTML,
+                            disable_notification=True
+                        )
+                    except Exception as send_err:
+                        logger.warning(f"Не удалось отправить сообщение в ЛС пользователю {user_id}: {send_err}")
 
-                # Проверяем все остальные категории на наличие активного кулдауна
+                    # 3. Удаляем сообщение из группы
+                    try:
+                        await update.effective_message.delete()
+                    except Exception:
+                        pass  # Бот не имеет прав на удаление сообщений
+                    
+                    logger.info('TTTRRRUUUE')
+                    return True
+
+                # Проверяем доступность других категорий
                 available_commands = []
-
-                # Словарь соответствия категорий командам
-                category_to_command = {
-                    UserReading.ReadingCategory.ONE: "/one",
-                    UserReading.ReadingCategory.TAROT: "/card",
-                    UserReading.ReadingCategory.ORACLE: "/oraculum",
-                    UserReading.ReadingCategory.RUNES: "/futark",
-                    UserReading.ReadingCategory.CANVAS_SPREAD: "/spread",
-                    UserReading.ReadingCategory.TAROT_STICKER: "/tarot",
-                }
-
-                # Проверяем каждую категорию
                 for cat_choice in UserReading.ReadingCategory.values:
                     if cat_choice == category:
-                        continue  # Пропускаем текущую заблокированную категорию
+                        continue
 
-                    # Формируем ключ для проверки
                     check_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=cat_choice, app_id=app_id)
                     check_ttl = await redis_client.ttl(check_key)
 
-                    # Если ключа нет (time_left == -2) - категория доступна
                     if check_ttl == -2:
-                        command = category_to_command.get(cat_choice)
+                        command = CATEGORY_COMMANDS.get(cat_choice)
                         if command:
                             available_commands.append(command)
 
-                # === ИЩЕМ ДРУГИХ БОТОВ В REDIS ===
+                # Ищем запущенных альтернативных ботов в Redis
                 all_bots = await redis_client_bot.hgetall("running_bots")
-                other_bots = set() 
+                other_bots = set()
 
                 for bot_id, bot_info_json in all_bots.items():
                     bot_info = json.loads(bot_info_json)
-                    # Ищем ботов типа TarotBot
                     if (
-                        bot_info.get('type') == 'TarotBot' and
-                        bot_info.get('bot_id') != self.app_bot_id
-                        ): 
-                        bot_username = bot_info.get('username')
+                        bot_info.get("type") == "TarotBot"
+                        and bot_info.get("bot_id") != self.app_bot_id
+                    ):
+                        bot_username = bot_info.get("username")
                         if bot_username:
                             other_bots.add(f"@{bot_username}")
 
+                # Формирование итогового ответа
                 message_parts = [f"⚠️ Подождите {time_left} секунд до гадания {category_upper}"]
 
                 if available_commands:
@@ -457,56 +512,37 @@ class TarotBot(AbstractBot):
 
                 message = "\n\n".join(message_parts)
 
-                # command_text = update.message.text
-                # if command_text:
-                #     hide_msg = await update.effective_message.reply_text(
-                #         ".",
-                #         reply_markup=ReplyKeyboardMarkup(
-                #             [[KeyboardButton(command_text[:100])]],
-                #             resize_keyboard=True,
-                #             one_time_keyboard=True
-                #         )
-                #     )
-                #     await hide_msg.delete()
-
-                # === ОБНОВЛЕНИЕ ИЛИ ОТПРАВКА СООБЩЕНИЯ ===
-                # Проверяем, есть ли уже отправленное сообщение об этом кулдауне
+                # --- Отправка / редактирование сообщения и обновление Redis-состояния ---
                 existing_msg_id = await redis_client.get(msg_ttl_key)
+                target_msg_id = None
 
                 if existing_msg_id:
                     try:
-                        # Используем update.get_bot() для вызова edit_message_text
                         await update.get_bot().edit_message_text(
-                            chat_id=update.effective_chat.id,
+                            chat_id=chat_id,
                             message_id=int(existing_msg_id),
-                            text=message
+                            text=message,
                         )
-                        # ОБНОВЛЯЕМ TTL: перезаписываем тот же ID с актуальным остатком времени,
-                        # чтобы ключ в Redis не удалился раньше времени
-                        await redis_client.set(msg_ttl_key, existing_msg_id, ex=time_left)
                         await update.effective_message.delete()
-
+                        target_msg_id = existing_msg_id
                     except Exception as edit_err:
-                        # Если сообщение удалено или текст совпадает, отправляем заново
                         logger.warning(
                             f"Не удалось отредактировать сообщение {existing_msg_id}: {edit_err}"
                         )
-                        existing_msg_id = None
 
-                if not existing_msg_id:
-                    # Если сообщения не было или не удалось отредактировать — отправляем новое
+                if not target_msg_id:
                     sent_msg = await update.effective_message.reply_text(message)
-                    # Сохраняем ID сообщения в Redis с TTL, равным остатку кулдауна
-                    await redis_client.set(msg_ttl_key, sent_msg.message_id, ex=time_left)
+                    target_msg_id = sent_msg.message_id
 
-                return True # Блокировка активна
+                if target_msg_id:
+                    await redis_client.set(msg_ttl_key, target_msg_id, ex=time_left)
+
+                return True  # Кулдаун активен, запрос заблокирован
 
         except Exception as e:
-            # Если Redis упал, не блокируем пользователя, а логируем ошибку
-            import logging
-            logging.error(f"Ошибка проверки TTL в Redis: {e}", exc_info=True)
+            logger.error(f"Ошибка проверки TTL в Redis: {e}", exc_info=True)
 
-        return False
+        return False  # Кулдауна нет, можно выполнять расклад
 
     async def get_cards(
         self,
@@ -626,19 +662,34 @@ class TarotBot(AbstractBot):
             found_decks=found
         )
         
-    async def get_deck(self, deck_id=None, deck_keyword=None, deck_type="tarot", return_all=False):
+    async def get_deck(self, user=None, deck_id=None, deck_keyword=None, deck_type="tarot", return_all=False):
         """
         Возвращает колоду или список колод.
         
         Args:
+            user: TgUser — для проверки NSFW-настроек
             deck_id: ID колоды
             deck_keyword: ключевое слово для поиска
             deck_type: "tarot" или "oraculum"
             return_all: если True и keyword — возвращает список всех найденных колод
         """
-        model = OraculumDeck if deck_type == "oraculum" else TarotDeck        
-        deck_ids: List[int] = [deck.id async for deck in model.objects.all()]
-        logger.info(f"Получаем колоду: id={deck_id}, keyword={deck_keyword}, type={deck_type}, return_all={return_all}")
+        model = OraculumDeck if deck_type == "oraculum" else TarotDeck
+        
+        nsfw_blocked = False
+        if user is not None:
+            try:
+                tarot_user = await TarotUser.objects.aget(user=user)
+                if tarot_user.nsfw_allowed is False:
+                    nsfw_blocked = True
+            except TarotUser.DoesNotExist:
+                pass
+            
+        base_qs = model.objects.all()
+        if nsfw_blocked and not (deck_keyword or deck_id):
+            base_qs = base_qs.filter(is_nsfw=False)
+            
+        deck_ids: List[int] = [deck.id async for deck in base_qs]
+        logger.info(f"Получаем колоду: id={deck_id}, keyword={deck_keyword}, type={deck_type}, return_all={return_all}, nsfw_blocked={nsfw_blocked}")
 
         if not deck_ids:
             raise ValueError("Нет доступных колод.")
@@ -827,6 +878,7 @@ class TarotBot(AbstractBot):
         try:
             user = await self.get_or_create_tg_user(update)
             
+            await self.set_reading_cooldown(update, category)
             reading = await self.save_reading(
                 user=user,
                 message_id=update.effective_message.message_id,
@@ -903,40 +955,216 @@ class TarotBot(AbstractBot):
             except:
                 pass
         
-    async def handle_last_readings(self, update: Update, context: CallbackContext):
-        """
-        Обработчик команды истории последних 5 гаданий.
-        """
-        logger.info(f"Запрос истории гаданий для пользователя: {update.effective_user.id}")
+    async def _build_last_readings_page(
+        self,
+        user: TgUser,
+        offset: int = 0,
+        limit: int = 5,
+    ):
+        week_ago = timezone.now() - timedelta(days=7)
+        base_qs = (
+            UserReading.objects.filter(user=user, created_at__gte=week_ago)
+            .order_by("-created_at")
+        )
+        total_count = min(await base_qs.acount(), 100)
+
+        if offset >= total_count:
+            offset = 0
+
+        readings_qs = base_qs[offset : offset + limit + 1]
+
+        readings = []
+        async for item in readings_qs:
+            formatted_date = item.created_at.strftime("%d.%m.%Y %H:%M")
+            icon = CATEGORY_ICONS.get(item.category, "🔮")
+            command = CATEGORY_COMMANDS.get(item.category, "")
+
+            if item.count > 1:
+                if item.category == UserReading.ReadingCategory.RUNES and item.count == 3:
+                    command += "_triplet"
+                else:
+                    command += str(item.count)
+            if item.is_flipped_allowed:
+                command += "_flip"
+            if item.is_major_only and item.category in (
+                UserReading.ReadingCategory.TAROT,
+                UserReading.ReadingCategory.CANVAS_SPREAD,
+                UserReading.ReadingCategory.ALL,
+            ):
+                command += "_major"
+
+            # --- Таро, Canvas, All ---
+            if item.category in (
+                UserReading.ReadingCategory.TAROT,
+                UserReading.ReadingCategory.CANVAS_SPREAD,
+                UserReading.ReadingCategory.ALL,
+            ):
+                cards_lines = []
+                elements = item.card_ids[:item.count] if item.card_ids else []
+                card_ids = [int(el['id']) for el in elements if isinstance(el, dict)]
+
+                cards_map = {
+                    c.id: c
+                    async for c in TarotCardItem.objects.select_related('tarot_card').filter(id__in=card_ids)
+                }
+
+                for element in elements:
+                    if not isinstance(element, dict):
+                        continue
+                    card_item = cards_map.get(int(element['id']))
+                    if card_item:
+                        cards_lines.append(self.messages.format_card_name(card_item.display_name, element.get('flip', False)))
+                    else:
+                        cards_lines.append(f"❓ #{element['id']}")
+
+                try:
+                    deck = await TarotDeck.objects.aget(id=item.deck_id) if item.deck_id else None
+                    deck_name = deck.name if deck else "неизвестная колода"
+                except ObjectDoesNotExist:
+                    deck_name = "неизвестная колода"
+
+                safe_text = ', '.join(cards_lines) + f" из колоды {deck_name}"
+
+            # --- Оракул ---
+            elif item.category == UserReading.ReadingCategory.ORACLE:
+                cards_lines = []
+                elements = item.card_ids if item.card_ids else []
+                card_ids = [int(el['id']) for el in elements if isinstance(el, dict)]
+
+                cards_map = {
+                    c.id: c
+                    async for c in OraculumItem.objects.select_related('deck').filter(id__in=card_ids)
+                }
+
+                for element in elements:
+                    if not isinstance(element, dict):
+                        continue
+                    card_item = cards_map.get(int(element['id']))
+                    if card_item:
+                        cards_lines.append(self.messages.format_card_name(card_item.display_name, element.get('flip', False)))
+                    else:
+                        cards_lines.append(f"❓ #{element['id']}")
+
+                try:
+                    deck = await OraculumDeck.objects.aget(id=item.deck_id) if item.deck_id else None
+                    deck_name = deck.name if deck else "неизвестная колода"
+                except ObjectDoesNotExist:
+                    deck_name = "неизвестная колода"
+
+                safe_text = ', '.join(cards_lines) + f" из колоды {deck_name}"
+
+            else:
+                safe_text = item.text[:200].replace("<", "&lt;").replace(">", "&gt;")
+
+            readings.append(f"📅 {formatted_date} {icon} {command}\n{safe_text}\n")
+
+        has_next = (offset + limit) < total_count
+        readings = readings[:limit]
+
+        if not readings:
+            return None, None, False
+
+        current_page = (offset // limit) + 1
+        total_pages = max(1, (total_count + limit - 1) // limit)
+
+        text = f"📜 <b>Ваши гадания за 7 дней (стр. {current_page}/{total_pages}):</b>\n\n"
+        text += "\n".join(readings)
+
+        if total_count >= 100:
+            text += f"\n<i>Показаны последние 100 записей.</i>"
+
+        keyboard = []
+        if offset > 0:
+            prev_offset = offset - limit
+            prev_page = current_page - 1
+            keyboard.append(
+                InlineKeyboardButton(
+                    text=f"⬅️ {prev_page}/{total_pages}",   # ← номер страницы
+                    callback_data=f"lastpage_{prev_offset}",  # ← offset в callback
+                )
+            )
+        if has_next:
+            next_offset = offset + limit
+            next_page = current_page + 1
+            keyboard.append(
+                InlineKeyboardButton(
+                    text=f"{next_page}/{total_pages} ➡️",    # ← номер страницы
+                    callback_data=f"lastpage_{next_offset}",   # ← offset в callback
+                )
+            )
+
+        markup = InlineKeyboardMarkup([keyboard]) if keyboard else None
+        return text, markup, has_next
+
+    async def handle_last_page(self, update: Update, context: CallbackContext):
+        query = update.callback_query
 
         try:
-            # 1. Безопасно получаем или создаем пользователя одной строкой
+            _, offset_str = query.data.split("_")
+            new_offset = int(offset_str)
+
+            # === ЗАЩИТА: не переключаемся на ту же страницу ===
+            current_text = query.message.text or ""
+            import re
+            match = re.search(r"\(стр\. (\d+)/(\d+)\)", current_text)
+            if match:
+                current_page = int(match.group(1))
+                current_offset = (current_page - 1) * 5  # limit = 5
+                if new_offset == current_offset:
+                    await query.answer("Вы уже на этой странице")
+                    return
+
+            await query.answer()
+
             user = await self.get_or_create_tg_user(update)
             if not user:
                 return
 
-            user_readings = []
-            count = 5
+            text, keyboard, _ = await self._build_last_readings_page(user, offset=new_offset)
 
-            # 2. Выбираем последние 5 записей из новой модели
-            # Используем префикс даты для вывода в чат
-            async for item in (
-                UserReading.objects.filter(user=user)
-                .order_by("-created_at")[:count]
-            ):
-                # Форматируем дату для читаемости (например: 12.06.2026 13:30)
-                formatted_date = item.created_at.strftime("%d.%m.%Y %H:%M")
-                user_readings.append(f"📅 {formatted_date}\n{item.text[0:200]}\n")
+            if text is None:
+                await query.edit_message_text("Гаданий не найдено.")
+                return
 
-            if not user_readings:
+            await query.edit_message_text(
+                text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=keyboard,
+                disable_web_page_preview=True,
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка при переключении страницы истории: {e}", exc_info=True)
+            try:
+                await query.edit_message_text(
+                    "Произошла ошибка при загрузке страницы. Попробуйте снова."
+                )
+            except Exception:
+                pass
+
+    async def handle_last_readings(self, update: Update, context: CallbackContext):
+        """
+        Обработчик команды /last — первая страница.
+        """
+        logger.info(f"Запрос истории гаданий для пользователя: {update.effective_user.id}")
+
+        try:
+            user = await self.get_or_create_tg_user(update)
+            if not user:
+                return
+
+            text, keyboard, _ = await self._build_last_readings_page(user, offset=0)
+
+            if text is None:
                 await update.effective_message.reply_text("Гаданий не найдено.")
                 return
 
-            # 3. Отправляем красивый структурированный список
             await update.effective_message.reply_text(
-                "📜 <b>Ваши последние {count} гаданий:</b>\n\n" + "\n".join(user_readings),
+                text,
                 parse_mode=ParseMode.HTML,
+                reply_markup=keyboard,
                 reply_to_message_id=update.effective_message.message_id,
+                disable_web_page_preview=True,
             )
 
         except Exception as e:

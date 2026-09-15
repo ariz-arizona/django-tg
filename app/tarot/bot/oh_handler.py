@@ -1,14 +1,12 @@
-import re
-import os
 from typing import List, Optional, Dict
 
-import json
-import redis.asyncio as aioredis
-import aiohttp
-import random
-from bs4 import BeautifulSoup
-
-from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Message
+from telegram import (
+    Update,
+    InputMediaPhoto,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    ReplyKeyboardMarkup,
+)
 from telegram.ext import (
     CommandHandler,
     MessageHandler,
@@ -17,23 +15,7 @@ from telegram.ext import (
     filters,
 )
 from telegram.constants import ParseMode
-from django.core.exceptions import ObjectDoesNotExist
 
-from tg_bot.bot.abstract import AbstractBot
-from tg_bot.models import (
-    TgUser, Bot
-)
-from tarot.models import (
-    TarotDeck,
-    TarotCardItem,
-    TarotCard,
-    ExtendedMeaning,
-    OraculumDeck,
-    OraculumItem,
-    UserReading,
-)
-from tg_bot.models import BotFileCache
-from server.logger import logger
 from tarot.messages import ONEHAND_TRIGGER
 
 # ═══════════════════════════════════════════════════════════════
@@ -67,8 +49,8 @@ VAL_GO = "go"
 VAL_ONE = "one"
 VAL_STICKER = "sticker"
 
-VAL_RIDER = "waite"  
-VAL_LENORMAND = "lenormand" 
+VAL_RIDER = "waite"
+VAL_LENORMAND = "lenormand"
 
 # --- Колоды ---
 DECK_RIDER = "deck_rider"
@@ -153,23 +135,6 @@ CB_RUNES_GO = f"{OH_PREFIX}runes_{VAL_GO}"
 
 # ═══════════════════════════════════════════════════════════════
 
-# Инициализируем асинхронный клиент
-redis_client = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"), 
-    port=int(os.getenv("REDIS_PORT", 6379)), 
-    db=3,
-    decode_responses=True
-)
-redis_client_bot = aioredis.StrictRedis(
-    host=os.getenv("REDIS_HOST", "localhost"), 
-    port=int(os.getenv("REDIS_PORT", 6379)), 
-    db=2,
-    decode_responses=True
-)
-
-REDIS_TTL_SECONDS = 10
-REDIS_KEY_TEMPLATE = "user:{user_id}:{category}"
-
 
 class OhHandler:
     """Обработчик всех функций, связанных с командой oh."""
@@ -179,10 +144,12 @@ class OhHandler:
 
     def get_handlers(self):
         return [
-            CommandHandler(["onehand", "oh"], self.handle_onehand, filters.ChatType.PRIVATE),
+            CommandHandler(
+                ["onehand", "oh"], self.handle_onehand, filters.ChatType.PRIVATE
+            ),
             MessageHandler(
                 filters.Text([ONEHAND_TRIGGER]) & filters.ChatType.PRIVATE,
-                self.handle_onehand
+                self.handle_onehand,
             ),
             CallbackQueryHandler(self.handle_onehand_callback, pattern=r"^oh_"),
         ]
@@ -192,7 +159,7 @@ class OhHandler:
         keyboard = [
             [
                 InlineKeyboardButton(BTN_ONE_CARD, callback_data=CB_CMD_ONE),
-                InlineKeyboardButton(BTN_STICKER, callback_data=CB_CMD_STICKER)
+                InlineKeyboardButton(BTN_STICKER, callback_data=CB_CMD_STICKER),
             ],
             [
                 InlineKeyboardButton(BTN_TARO, callback_data=CB_TYPE_CARD),
@@ -306,8 +273,8 @@ class OhHandler:
         }
         prefix = CMD_PREFIX_MAP.get(gtype, gtype)
         count = params.get(PARAM_COUNT, "1")
-        
-        if count == '1':
+
+        if count == "1":
             base = f"/{prefix}"
         else:
             base = f"/{prefix}{count}"
@@ -343,15 +310,17 @@ class OhHandler:
 
         # Текущие значения
         count = params.get(PARAM_COUNT, "1")
-        deck = params.get(PARAM_DECK, None)  # None = случайно, DECK_RIDER, DECK_LENORMAND
+        deck = params.get(
+            PARAM_DECK, None
+        )  # None = случайно, DECK_RIDER, DECK_LENORMAND
         major = params.get(PARAM_MAJOR, None)
         flip = params.get(PARAM_FLIP, None)
 
         # --- Ряд 1: Количество ---
         row1 = [
             InlineKeyboardButton(
-                f"{MARK_CHECK if count == str(i) else ''}{i}", 
-                callback_data=f"{CB_CFG_COUNT}_{i}"
+                f"{MARK_CHECK if count == str(i) else ''}{i}",
+                callback_data=f"{CB_CFG_COUNT}_{i}",
             )
             for i in [1, 3, 6, 9]
         ]
@@ -360,24 +329,24 @@ class OhHandler:
         if gtype == TYPE_ORACULUM:
             row2 = [
                 InlineKeyboardButton(
-                    f"{MARK_CHECK if deck is None else ''}{BTN_RANDOM}", 
-                    callback_data=f"{CB_CFG_DECK}_{VAL_RANDOM}"
+                    f"{MARK_CHECK if deck is None else ''}{BTN_RANDOM}",
+                    callback_data=f"{CB_CFG_DECK}_{VAL_RANDOM}",
                 ),
                 InlineKeyboardButton(
-                    f"{MARK_CHECK if deck == DECK_LENORMAND else ''}{BTN_LENORMAND}", 
-                    callback_data=f"{CB_CFG_DECK}_{VAL_LENORMAND}"
+                    f"{MARK_CHECK if deck == DECK_LENORMAND else ''}{BTN_LENORMAND}",
+                    callback_data=f"{CB_CFG_DECK}_{VAL_LENORMAND}",
                 ),
             ]
         else:
             # card, canvas — таро
             row2 = [
                 InlineKeyboardButton(
-                    f"{MARK_CHECK if deck is None else ''}{BTN_RANDOM}", 
-                    callback_data=f"{CB_CFG_DECK}_{VAL_RANDOM}"
+                    f"{MARK_CHECK if deck is None else ''}{BTN_RANDOM}",
+                    callback_data=f"{CB_CFG_DECK}_{VAL_RANDOM}",
                 ),
                 InlineKeyboardButton(
-                    f"{MARK_CHECK if deck == DECK_RIDER else ''}{BTN_RIDER}", 
-                    callback_data=f"{CB_CFG_DECK}_{VAL_RIDER}"
+                    f"{MARK_CHECK if deck == DECK_RIDER else ''}{BTN_RIDER}",
+                    callback_data=f"{CB_CFG_DECK}_{VAL_RIDER}",
                 ),
             ]
 
@@ -385,12 +354,12 @@ class OhHandler:
         if gtype in [TYPE_CARD, TYPE_CANVAS]:
             row3 = [
                 InlineKeyboardButton(
-                    f"{MARK_CHECK if major == DECK_MAJOR else ''}{BTN_MAJOR_ONLY}", 
-                    callback_data=f"{CB_CFG_MAJOR}_{VAL_YES}"
+                    f"{MARK_CHECK if major == DECK_MAJOR else ''}{BTN_MAJOR_ONLY}",
+                    callback_data=f"{CB_CFG_MAJOR}_{VAL_YES}",
                 ),
                 InlineKeyboardButton(
-                    f"{MARK_CHECK if major is None else ''}{BTN_ALL_ARCANA}", 
-                    callback_data=f"{CB_CFG_MAJOR}_{VAL_NO}"
+                    f"{MARK_CHECK if major is None else ''}{BTN_ALL_ARCANA}",
+                    callback_data=f"{CB_CFG_MAJOR}_{VAL_NO}",
                 ),
             ]
         else:
@@ -400,12 +369,12 @@ class OhHandler:
         if gtype in [TYPE_CARD, TYPE_ORACULUM, TYPE_CANVAS]:
             row4 = [
                 InlineKeyboardButton(
-                    f"{MARK_CHECK if flip == DECK_FLIP else ''}{BTN_WITH_FLIP}", 
-                    callback_data=f"{CB_CFG_FLIP}_{VAL_YES}"
+                    f"{MARK_CHECK if flip == DECK_FLIP else ''}{BTN_WITH_FLIP}",
+                    callback_data=f"{CB_CFG_FLIP}_{VAL_YES}",
                 ),
                 InlineKeyboardButton(
-                    f"{MARK_CHECK if flip is None else ''}{BTN_NO_FLIP}", 
-                    callback_data=f"{CB_CFG_FLIP}_{VAL_NO}"
+                    f"{MARK_CHECK if flip is None else ''}{BTN_NO_FLIP}",
+                    callback_data=f"{CB_CFG_FLIP}_{VAL_NO}",
                 ),
             ]
         else:
@@ -425,11 +394,17 @@ class OhHandler:
         parts = []
         parts.append(f"{MSG_COUNT_LABEL} {count}")
         if gtype == TYPE_ORACULUM:
-            parts.append(f"{MSG_DECK_LABEL_ORACULUM} {'Ленорман' if deck else 'Случайно'}")
+            parts.append(
+                f"{MSG_DECK_LABEL_ORACULUM} {'Ленорман' if deck else 'Случайно'}"
+            )
         else:
-            parts.append(f"{MSG_DECK_LABEL_TARO} {'Райдер-Уэйт' if deck else 'Случайно'}")
+            parts.append(
+                f"{MSG_DECK_LABEL_TARO} {'Райдер-Уэйт' if deck else 'Случайно'}"
+            )
         if gtype in [TYPE_CARD, TYPE_CANVAS]:
-            parts.append(f"{MSG_ARCANA_LABEL} {MSG_MAJOR_ONLY_TXT if major else MSG_ALL_ARCANA_TXT}")
+            parts.append(
+                f"{MSG_ARCANA_LABEL} {MSG_MAJOR_ONLY_TXT if major else MSG_ALL_ARCANA_TXT}"
+            )
         parts.append(f"{MSG_FLIP_LABEL} {MSG_FLIP_YES if flip else MSG_FLIP_NO}")
 
         # Добавляем превью команды
@@ -460,12 +435,12 @@ class OhHandler:
         kb = [
             [
                 InlineKeyboardButton(
-                    f"{MARK_CHECK if count == '1' else ''}{BTN_1_RUNE}", 
-                    callback_data=CB_RUNES_1
+                    f"{MARK_CHECK if count == '1' else ''}{BTN_1_RUNE}",
+                    callback_data=CB_RUNES_1,
                 ),
                 InlineKeyboardButton(
-                    f"{MARK_CHECK if count == '3' else ''}{BTN_3_RUNES}", 
-                    callback_data=CB_RUNES_3
+                    f"{MARK_CHECK if count == '3' else ''}{BTN_3_RUNES}",
+                    callback_data=CB_RUNES_3,
                 ),
             ],
             [InlineKeyboardButton(BTN_GET_CMD, callback_data=CB_RUNES_GO)],
@@ -505,7 +480,7 @@ class OhHandler:
             }
             prefix = CMD_PREFIX_MAP.get(gtype, gtype)
             base = f"/{prefix}{count}"
-            if count == '1':
+            if count == "1":
                 base = f"/{prefix}"
 
             extra = []

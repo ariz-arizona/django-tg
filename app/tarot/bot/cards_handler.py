@@ -96,6 +96,10 @@ class CardsHandler:
             msg_text = msg_text.split('@')[0]
 
         is_group = update.effective_chat.type in (ChatType.GROUP, ChatType.SUPERGROUP)
+        
+        if is_group:
+            await self.bot.settings_handler._process_group_admins_and_get_owner(update.effective_chat.id, context.bot)
+        
         category = UserReading.ReadingCategory.TAROT
         if await self.bot.check_reading_cooldown(update, category):
             return

@@ -361,20 +361,22 @@ class TarotBot(AbstractBot):
 
     async def set_reading_cooldown(self, update: Update, category: str) -> None:
         """
-        Устанавливает TTL кулдауна в Redis для группы (6 часов, если админская) 
+        Устанавливает TTL кулдауна в Redis для группы (на основе admin_timer админа) 
         или для личного чата пользователя (стандартный TTL).
         """
         chat_id = update.effective_chat.id
         user_id = update.effective_user.id
-        # 1. Проверяем, зарегистрирована ли группа у кого-то из админов
-        use_group_cooldown = await TarotUser.objects.filter(
+
+        # 1. Ищем админа, управляющего текущей группой
+        admin_user = await TarotUser.objects.filter(
             admin_groups__contains=[chat_id]
-        ).aexists()
+        ).afirst()
 
         # 2. Определяем ключ и время жизни в зависимости от типа чата и прав
-        if use_group_cooldown:
+        if admin_user:
+            cooldown_hours = getattr(admin_user, "admin_timer", 6)
+            ttl = cooldown_hours * 3600
             redis_key = f"group:ttl:{chat_id}:{category}:{self.app_bot_id}"
-            ttl = GROUP_COOL_DOWN_TTL
         else:
             redis_key = REDIS_KEY_TEMPLATE.format(
                 user_id=user_id, 
@@ -386,7 +388,7 @@ class TarotBot(AbstractBot):
         # 3. Записываем в Redis
         try:
             await redis_client.set(redis_key, "1", ex=ttl)
-            logger.info(f"Установлен кулдаун {redis_key} на {ttl} сек.")
+            logger.info(f"Установлен кулдаун {redis_key} на {ttl} сек. ({ttl / 3600:.2f} ч.)")
         except Exception as e:
             logger.error(f"Ошибка при установке кулдауна в Redis: {e}", exc_info=True)
         

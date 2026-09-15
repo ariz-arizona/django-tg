@@ -292,6 +292,11 @@ class TarotUser(models.Model):
         verbose_name="Группы, где админ",
         help_text="Список chat_id групп, в которых пользователь — администратор",
     )
+    admin_timer = models.PositiveIntegerField(
+        default=6,
+        verbose_name="Таймер кулдауна для админа (в часах)",
+        help_text="Интервал ограничения раскладов в часах для подконтрольных групп (6, 8 или 12)",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

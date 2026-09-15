@@ -95,6 +95,8 @@ class SettingsHandler:
         spoiler: bool,
         daily: bool,
         time: Optional[str],
+        is_admin: bool = False,
+        admin_timer: int = 6,
     ):
         m = self.messages
 
@@ -136,6 +138,24 @@ class SettingsHandler:
 
         keyboard = [row_nsfw, row_spoiler]
 
+        # Если пользователь админ хотя бы в одной группе — выводим выбор таймера
+        if is_admin:
+            cooldown_options = [
+                (6, "Раз в 6 часов"),
+                (8, "Раз в 8 часов"),
+                (12, "Раз в 12 часов"),
+            ]
+            row_timer = []
+            for hours, label in cooldown_options:
+                is_sel = admin_timer == hours
+                row_timer.append(
+                    InlineKeyboardButton(
+                        f"{m.CHECK if is_sel else ''}{label}",
+                        callback_data=f"{ST_PREFIX}timer_{hours}",
+                    )
+                )
+            keyboard.append(row_timer)
+
         # Время
         if daily:
             time_buttons = []
@@ -152,7 +172,7 @@ class SettingsHandler:
                 keyboard.append(time_buttons[i : i + 3])
 
         return InlineKeyboardMarkup(keyboard)
-
+    
     async def handle_settings(self, update: Update, context: CallbackContext):
         tg_user = await self.bot.get_or_create_tg_user(update)
         tu = await self._get_tarot_user(tg_user)
@@ -162,7 +182,14 @@ class SettingsHandler:
 
         await update.message.reply_text(
             text,
-            reply_markup=self._build_keyboard(tu.nsfw_allowed, tu.nsfw_spoiler, tu.daily_enabled, time_str),
+            reply_markup=self._build_keyboard(
+                tu.nsfw_allowed,
+                tu.nsfw_spoiler,
+                tu.daily_enabled,
+                time_str,
+                is_admin=bool(tu.admin_groups),
+                admin_timer=getattr(tu, "admin_timer", 6),
+            ),
             parse_mode=ParseMode.HTML,
         )
 
@@ -179,17 +206,15 @@ class SettingsHandler:
         tg_user = await self.bot.get_or_create_tg_user(update)
         tu = await self._get_tarot_user(tg_user)
 
+        update_fields = ["updated_at"]
+
         if action == "nsfw":
-            if value == "yes":
-                tu.nsfw_allowed = True
-            else:
-                tu.nsfw_allowed = False
+            tu.nsfw_allowed = (value == "yes")
+            update_fields.append("nsfw_allowed")
 
         elif action == "spoiler":
-            if value == "yes":
-                tu.nsfw_spoiler = True
-            else:
-                tu.nsfw_spoiler = False
+            tu.nsfw_spoiler = (value == "yes")
+            update_fields.append("nsfw_spoiler")
 
         elif action == "daily":
             if value == "on":
@@ -200,17 +225,27 @@ class SettingsHandler:
                     tu.daily_time = dt_time(hour, minute)
             else:
                 tu.daily_enabled = False
+            update_fields.extend(["daily_enabled", "daily_time"])
 
-        await tu.asave(update_fields=[
-            "nsfw_allowed", "nsfw_spoiler",
-            "daily_enabled", "daily_time", "updated_at"
-        ])
+        elif action == "timer":
+            if value.isdigit():
+                tu.admin_timer = int(value)
+                update_fields.append("admin_timer")
+
+        await tu.asave(update_fields=list(set(update_fields)))
 
         time_str = tu.daily_time.strftime("%H:%M") if tu.daily_time else None
         text = self.messages.format_settings(tu.nsfw_allowed, tu.nsfw_spoiler, tu.daily_enabled, time_str)
 
         await query.edit_message_text(
             text,
-            reply_markup=self._build_keyboard(tu.nsfw_allowed, tu.nsfw_spoiler, tu.daily_enabled, time_str),
+            reply_markup=self._build_keyboard(
+                tu.nsfw_allowed,
+                tu.nsfw_spoiler,
+                tu.daily_enabled,
+                time_str,
+                is_admin=bool(tu.admin_groups),
+                admin_timer=getattr(tu, "admin_timer", 6),
+            ),
             parse_mode=ParseMode.HTML,
         )

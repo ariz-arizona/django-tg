@@ -468,6 +468,7 @@ class TarotUserAdmin(admin.ModelAdmin):
         "daily_enabled",
         "daily_time",
         "admin_groups_count",
+        "admin_timer",
         "updated_at",
     )
     list_filter = (
@@ -475,6 +476,7 @@ class TarotUserAdmin(admin.ModelAdmin):
         "nsfw_spoiler",
         "daily_enabled",
         "daily_time",
+        "admin_timer",
     )
     search_fields = (
         "user__tg_id",
@@ -487,7 +489,7 @@ class TarotUserAdmin(admin.ModelAdmin):
             "fields": ("user",),
         }),
         ("Группы и права", {
-            "fields": ("admin_groups",),
+            "fields": ("admin_groups", "admin_timer"),
         }),
         ("18+ контент", {
             "fields": ("nsfw_allowed", "nsfw_spoiler"),

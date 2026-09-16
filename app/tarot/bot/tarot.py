@@ -62,6 +62,8 @@ from tarot.utils.redis_client import (
     redis_client_bot,
     REDIS_TTL_SECONDS,
     REDIS_KEY_TEMPLATE,
+    REDIS_GROUP_KEY_TEMPLATE,
+    REDIS_GROUP_MSG_KEY_TEMPLATE
 )
 
 CATEGORY_ICONS = {
@@ -366,17 +368,24 @@ class TarotBot(AbstractBot):
         """
         chat_id = update.effective_chat.id
         user_id = update.effective_user.id
-
+        chat = update.effective_chat
+        is_group = chat.type in (ChatType.GROUP, ChatType.SUPERGROUP)
+        
         # 1. Ищем админа, управляющего текущей группой
         admin_user = await TarotUser.objects.filter(
             admin_groups__contains=[chat_id]
         ).afirst()
 
         # 2. Определяем ключ и время жизни в зависимости от типа чата и прав
-        if admin_user:
-            cooldown_hours = getattr(admin_user, "admin_timer", 6)
+        if is_group and admin_user:
+            cooldown_hours = getattr(admin_user, "admin_timer", 6) if admin_user else 6
             ttl = cooldown_hours * 3600
-            redis_key = f"group:ttl:{chat_id}:{category}:{self.app_bot_id}"
+            redis_key = REDIS_GROUP_KEY_TEMPLATE.format(
+                chat_id=chat_id,
+                user_id=user_id,
+                category=category,
+                app_id=self.app_bot_id
+            )
         else:
             redis_key = REDIS_KEY_TEMPLATE.format(
                 user_id=user_id, 
@@ -415,10 +424,24 @@ class TarotBot(AbstractBot):
 
         # 2. Выбираем ключи кулдауна
         if is_group and use_group_cooldown:
-            redis_key = f"group:ttl:{chat_id}:{category}:{app_id}"
-            msg_ttl_key = f"group:ttl:message:{chat_id}:{category}:{app_id}"
+            redis_key = REDIS_GROUP_KEY_TEMPLATE.format(
+                chat_id=chat_id,
+                user_id=user_id,
+                category=category,
+                app_id=app_id
+            )
+            msg_ttl_key = REDIS_GROUP_MSG_KEY_TEMPLATE.format(
+                chat_id=chat_id,
+                user_id=user_id,
+                category=category,
+                app_id=app_id
+            )
         else:
-            redis_key = REDIS_KEY_TEMPLATE.format(user_id=user_id, category=category, app_id=app_id)
+            redis_key = REDIS_KEY_TEMPLATE.format(
+                user_id=user_id, 
+                category=category, 
+                app_id=app_id
+            )
             msg_ttl_key = f"user:ttl:message:{user_id}:{category}:{app_id}"
 
         try:

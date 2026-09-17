@@ -8,9 +8,10 @@ ARG TESTING=false
 RUN apt-get update && apt-get install -y \
     libpq-dev gcc curl \
     libjpeg-dev zlib1g-dev libpng-dev libfreetype6-dev libwebp-dev \
+    ffmpeg \
     --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
-    
+
 # Устанавливаем Poetry через pip (надёжнее)
 RUN pip install poetry==1.6.1
 

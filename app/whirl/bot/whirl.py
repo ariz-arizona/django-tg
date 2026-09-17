@@ -3,9 +3,10 @@ import wave
 
 import numpy as np
 from PIL import Image, ImageDraw
+from pydub import AudioSegment
 
 from telegram import Update
-from telegram.ext import CommandHandler, CallbackContext, filters
+from telegram.ext import CommandHandler, MessageHandler, CallbackContext, filters
 
 from tg_bot.bot.abstract import AbstractBot
 from server.logger import logger
@@ -23,6 +24,7 @@ class WhirlBot(AbstractBot):
             CommandHandler("start", self.handle_start, filters.ChatType.PRIVATE),
             CommandHandler("create", self.handle_create, filters.ChatType.PRIVATE),
             CommandHandler("get", self.handle_get, filters.ChatType.PRIVATE),
+            MessageHandler(filters.VOICE, self.handle_voice_reply)
         ]
 
     async def get_or_create_virtual_user(self, update: Update) -> WhirlUser:
@@ -162,7 +164,9 @@ class WhirlBot(AbstractBot):
     async def handle_get(self, update: Update, context: CallbackContext) -> None:
         """
         /get <slug>
-        Присылает картинку и звук эталона по slug.
+        Присылает картинку и звук эталона по slug, и запоминает,
+        что пользователь ждёт разбора своего голосового именно
+        по этой сирене.
         """
         args = context.args
         if not args:
@@ -201,6 +205,113 @@ class WhirlBot(AbstractBot):
             title=record.title,
         )
 
+        # запоминаем, какую сирену пользователь сейчас пытается повторить —
+        # следующее голосовое от него будет разобрано именно по ней
+        context.user_data["awaiting_siren_id"] = record.id
+
+        await update.effective_message.reply_text(
+            "🎤 Теперь запиши голосовое — попробуй повторить этот паттерн."
+        )
+        
+    async def handle_voice_reply(self, update: Update, context: CallbackContext) -> None:
+        """
+        Ловит голосовое сообщение пользователя. Если перед этим он
+        запрашивал сирену через /get — считает это попыткой её повторить,
+        строит normalized_curve из записи и рисует её тем же render_pattern_image,
+        что и эталон.
+        """
+        siren_id = context.user_data.get("awaiting_siren_id")
+        if siren_id is None:
+            # голосовое пришло не в ответ на /get — игнорируем молча,
+            # чтобы бот не реагировал на случайные войсы
+            return
+
+        voice = update.effective_message.voice
+        if voice is None:
+            return
+
+        try:
+            record = await SirenRecord.objects.aget(id=siren_id)
+        except SirenRecord.DoesNotExist:
+            context.user_data.pop("awaiting_siren_id", None)
+            await update.effective_message.reply_text(
+                "❌ Сирена, на которую ты отвечала, больше не существует."
+            )
+            return
+
+        tg_file = await context.bot.get_file(voice.file_id)
+        buf = io.BytesIO()
+        await tg_file.download_to_memory(buf)
+        buf.seek(0)
+
+        try:
+            normalized_curve = self.extract_normalized_curve(buf.read())
+        except Exception as e:
+            logger.error(f"Ошибка разбора голосового: {e}", exc_info=True)
+            await update.effective_message.reply_text(
+                "❌ Не удалось разобрать голосовое сообщение."
+            )
+            return
+
+        image_bytes = self.render_pattern_image(normalized_curve)
+        image_buf = io.BytesIO(image_bytes)
+        image_buf.name = f"{record.slug}_attempt.png"
+
+        await update.effective_message.reply_photo(
+            photo=image_buf,
+            caption=f"Твоя попытка повторить «{record.title}»",
+        )
+
+        # сбрасываем ожидание — следующее голосовое уже не будет разобрано,
+        # пока пользователь не вызовет /get заново
+        context.user_data.pop("awaiting_siren_id", None)
+
+    def extract_normalized_curve(self, ogg_bytes: bytes, n_points: int = 200) -> list:
+        """
+        Декодирует голосовое (OGG/Opus) и строит нормализованную огибающую
+        громкости в том же формате, что normalized_curve из generate_pattern:
+        [{"t": ..., "rms": ..., "pitch": ...}, ...], чтобы её можно было
+        отрисовать тем же render_pattern_image.
+        Требует ffmpeg в системе (используется через pydub).
+        """
+        audio = AudioSegment.from_file(io.BytesIO(ogg_bytes), format="ogg")
+        audio = audio.set_channels(1)
+
+        samples = np.array(audio.get_array_of_samples()).astype(np.float32)
+        sample_rate = audio.frame_rate
+        duration = len(samples) / sample_rate
+
+        if duration <= 0:
+            raise ValueError("Пустая аудиозапись")
+
+        # RMS-окна по ~30мс, без сторонних библиотек типа librosa
+        window_size = max(int(sample_rate * 0.03), 1)
+        n_windows = max(len(samples) // window_size, 1)
+
+        rms = np.array([
+            np.sqrt(np.mean(
+                samples[i * window_size:(i + 1) * window_size].astype(np.float64) ** 2
+            ) + 1e-9)
+            for i in range(n_windows)
+        ])
+
+        rms_norm = (rms - rms.min()) / (rms.max() - rms.min() + 1e-9)
+
+        # растягиваем на n_points, как в generate_pattern, чтобы формат
+        # совпадал с эталонной кривой
+        x_src = np.linspace(0, duration, n_windows)
+        t = np.linspace(0, duration, n_points)
+        rms_interp = np.interp(t, x_src, rms_norm)
+
+        # без честного pitch-трекинга (librosa.pyin) держим синюю линию
+        # на нуле — она у нас и так по умолчанию не обязательна
+        pitch_flat = np.zeros_like(t)
+
+        return [
+            {"t": float(ti), "rms": float(ri), "pitch": float(pi)}
+            for ti, ri, pi in zip(t, rms_interp, pitch_flat)
+        ]
+        
     # --- Генерация паттерна ---
 
     def generate_pattern(self, pattern: list[float] | None = None):

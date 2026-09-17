@@ -368,6 +368,8 @@ class TarotBot(AbstractBot):
         """
         chat_id = update.effective_chat.id
         user_id = update.effective_user.id
+        chat = update.effective_chat
+        is_group = chat.type in (ChatType.GROUP, ChatType.SUPERGROUP)
         
         # 1. Ищем админа, управляющего текущей группой
         admin_user = await TarotUser.objects.filter(
@@ -375,8 +377,8 @@ class TarotBot(AbstractBot):
         ).afirst()
 
         # 2. Определяем ключ и время жизни в зависимости от типа чата и прав
-        if admin_user:
-            cooldown_hours = getattr(admin_user, "admin_timer", 6)
+        if is_group and admin_user:
+            cooldown_hours = getattr(admin_user, "admin_timer", 6) if admin_user else 6
             ttl = cooldown_hours * 3600
             redis_key = REDIS_GROUP_KEY_TEMPLATE.format(
                 chat_id=chat_id,

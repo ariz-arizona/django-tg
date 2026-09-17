@@ -81,9 +81,21 @@ class WhirlBot(AbstractBot):
         args = context.args
         if not args:
             await update.effective_message.reply_text(
-                "Использование: /create <slug> <название сирены>"
+                "Использование: /create <slug> <название сирены> [--pattern 0,1,2,1,2,0,0]"
             )
             return
+        
+        pattern = None
+        if "--pattern" in args:
+            idx = args.index("--pattern")
+            try:
+                pattern = [float(x) for x in args[idx + 1].split(",")]
+            except (IndexError, ValueError):
+                await update.effective_message.reply_text(
+                    "❌ Некорректный формат --pattern, ожидается список чисел через запятую."
+                )
+                return
+            args = args[:idx]  # убираем флаг и значение из аргументов title
 
         slug = args[0]
         title = " ".join(args[1:]) or slug
@@ -95,7 +107,7 @@ class WhirlBot(AbstractBot):
             return
 
         try:
-            sequence, normalized_curve = self.generate_pattern()
+            sequence, normalized_curve = self.generate_pattern(pattern=pattern)
         except Exception as e:
             logger.error(f"Ошибка генерации паттерна сирены: {e}", exc_info=True)
             await update.effective_message.reply_text(
@@ -191,10 +203,16 @@ class WhirlBot(AbstractBot):
 
     # --- Генерация паттерна ---
 
-    def generate_pattern(self):
+    def generate_pattern(self, pattern: list[float] | None = None):
         """
-        Генерирует процедурный паттерн сирены (пример: воющая сирена —
-        синус с плавающей частотой + амплитудная огибающая).
+        Генерирует процедурный паттерн сирены.
+
+        :param pattern: необязательная "заготовка" волны, например [0,1,2,1,2,0,0].
+            Если передана — паттерн повторяется 3 раза подряд и растягивается
+            (линейной интерполяцией) на всю длительность сирены, а максимальное
+            значение списка принимается за максимум огибающей амплитуды.
+            Если None — амплитуда генерируется автоматически (синус со
+            случайной частотой), как раньше.
         Возвращает (generated_sequence, normalized_curve), оба —
         JSON-сериализуемые списки точек, готовые для полей модели.
         """
@@ -203,8 +221,31 @@ class WhirlBot(AbstractBot):
         t = np.linspace(0, duration, n_points)
 
         base_freq = np.random.uniform(0.5, 1.5)
-        amplitude = 0.5 + 0.5 * np.abs(np.sin(2 * np.pi * base_freq * t))
         pitch = 400 + 200 * np.sin(2 * np.pi * base_freq * t)
+
+        if pattern:
+            pattern_arr = np.asarray(pattern, dtype=float)
+            pattern_max = pattern_arr.max()
+            if pattern_max <= 0:
+                pattern_max = 1.0
+
+            repeated = np.tile(pattern_arr, 3)
+            x_repeated = np.linspace(0, duration, repeated.size)
+
+            shape = np.interp(t, x_repeated, repeated) / pattern_max
+            shape = np.clip(shape, 0.0, 1.0)
+
+            amplitude = shape
+
+            # питч следует той же самой форме, что и амплитуда —
+            # никакой отдельной "заморозки" и скачков, просто другой
+            # диапазон значений (Гц вместо 0..1)
+            pitch_base = 400
+            pitch_range = 200
+            pitch = pitch_base + pitch_range * shape
+        else:
+            amplitude = 0.5 + 0.5 * np.abs(np.sin(2 * np.pi * base_freq * t))
+            pitch = 400 + 200 * np.sin(2 * np.pi * base_freq * t)
 
         generated_sequence = [
             {"t": float(ti), "amplitude": float(ai), "pitch": float(pi)}

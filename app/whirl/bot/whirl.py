@@ -256,11 +256,11 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
 
     async def send_siren_record(self, message, user: WhirlUser, slug: str) -> None:
         """
-        Общая логика: находит запись по slug, шлёт картинку+звук, отменяет
-        прежние WAITING попытки пользователя и создаёт новую. Используется
-        и из /get <slug>, и из клика по номеру в инлайн-списке — message
-        может быть как Update.effective_message, так и CallbackQuery.message,
-        у обоих есть reply_photo/reply_audio/reply_text.
+        Общая логика: находит запись по slug, шлёт картинку с подписью-
+        инструкцией + аудио, отменяет прежние WAITING попытки пользователя
+        и создаёт новую. Используется и из /get <slug>, и из клика по
+        номеру в инлайн-списке — message может быть как
+        Update.effective_message, так и CallbackQuery.message.
         """
         try:
             record = await SirenRecord.objects.aget(slug=slug, is_active=True)
@@ -282,8 +282,16 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
             await message.reply_text(f"❌ Для сирены «{slug}» не найдены файлы этого бота.")
             return
 
-        await message.reply_photo(photo=image_file_id)
-        await message.reply_audio(audio=sound_file_id, title=record.title)
+        # Фото с подписью — сразу и название, и инструкция. Это экономит
+        # отдельное сообщение с текстом.
+        await message.reply_photo(
+            photo=image_file_id,
+            caption=(
+                f"🔊 «{record.title}»\n\n"
+                "🎤 Запиши голосовое — попробуй повторить этот паттерн."
+            ),
+        )
+        await message.reply_voice(voice=sound_file_id)
 
         await SirenAttempt.objects.filter(
             user=user, status=SirenAttempt.Status.WAITING
@@ -294,7 +302,7 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
             record=record,
             status=SirenAttempt.Status.WAITING,
         )
-        
+
         if getattr(message, "reply_markup", None) is not None:
             try:
                 await message.edit_text(
@@ -305,10 +313,6 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
                 logger.warning(
                     f"Не удалось отредактировать сообщение списка сирен: {e}"
                 )
-
-        await message.reply_text(
-            "🎤 Теперь запиши голосовое — попробуй повторить этот паттерн."
-        )
 
     async def handle_get(self, update: Update, context: CallbackContext) -> None:
         """

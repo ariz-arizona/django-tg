@@ -26,7 +26,7 @@ from .cooldown import CooldownService
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 
-SIREN_PAGE_SIZE = 8
+SIREN_PAGE_SIZE = 4
 
 def get_redis_client(
     db: int = 0, decode_responses: bool = True
@@ -85,7 +85,7 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         user = await self.get_or_create_virtual_user(update)
 
         text = (
-            "👋 Привет! Это бот «Угадай сирену».\n\n"
+            "👋 Привет! Это бот «Повтори сирену».\n\n"
             "Я присылаю паттерн сирены — картинку и звук, ты пытаешься "
             "повторить его голосовым сообщением, а я говорю, насколько "
             "точно получилось.\n\n"
@@ -160,7 +160,12 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
 
         image_buf = io.BytesIO(image_bytes)
         image_buf.name = f"{slug}.png"
-        sent_image = await update.effective_message.reply_photo(photo=image_buf)
+        sent_image = await update.effective_message.reply_photo(
+            photo=image_buf,    
+            read_timeout=30,
+            write_timeout=30,
+            connect_timeout=10,
+        )
         image_asset = await SirenRecordImage.objects.acreate(record=record)
         await BotFile.objects.acreate(
             content_object=image_asset,
@@ -177,7 +182,11 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         sound_buf = io.BytesIO(sound_bytes)
         sound_buf.name = f"{slug}.wav"
         sent_sound = await update.effective_message.reply_audio(
-            audio=sound_buf, title=title
+            audio=sound_buf, 
+            title=title,
+            read_timeout=30,
+            write_timeout=30,
+            connect_timeout=10,
         )
         sound_asset = await SirenRecordSound.objects.acreate(record=record)
         await BotFile.objects.acreate(
@@ -194,15 +203,11 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
     async def build_siren_list(self, page: int) -> tuple[str, InlineKeyboardMarkup]:
         """
         Текст + клавиатура для страницы списка сирен: кнопки с сквозными
-        номерами записей на этой странице (по 4 в ряд) + навигация внизу.
-        Кнопки без действия (недоступный "назад" на первой странице,
-        недоступный "вперёд" на последней) получают callback_data
-        "siren_noop" — Telegram не умеет по-настоящему отключать инлайн-
-        кнопки, поэтому неактивность имитируется отсутствием эффекта клика.
+        номерами записей на этой странице (по 2 в ряд) + навигация внизу.
         """
         total = await SirenRecord.objects.filter(is_active=True).acount()
         offset = page * SIREN_PAGE_SIZE
-        
+
         def truncate(text: str, limit: int = 64) -> str:
             """Обрезает текст под лимит кнопки Telegram (≈64 символа)."""
             return text if len(text) <= limit else text[: limit - 1] + "…"
@@ -222,7 +227,7 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
                     callback_data=f"siren_pick:{record.slug}",
                 )
             )
-            if len(row) == 4:
+            if len(row) == 2:  # было 4
                 buttons.append(row)
                 row = []
         if row:
@@ -243,7 +248,15 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
                 ),
             ])
 
-        text = f"У меня есть {total} записей. Выбери номер:"
+        # Склонение слова "сирена"
+        if total % 10 == 1 and total % 100 != 11:
+            word = "сирена"
+        elif total % 10 in (2, 3, 4) and total % 100 not in (12, 13, 14):
+            word = "сирены"
+        else:
+            word = "сирен"
+
+        text = f"У меня есть {total} {word}. Выбери одну:"
         return text, InlineKeyboardMarkup(buttons)
 
     async def send_siren_record(self, message, user: WhirlUser, slug: str) -> None:

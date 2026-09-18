@@ -173,17 +173,12 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
             file_id=sent_image.photo[-1].file_id,
         )
 
-        # render_pattern_sound отдаёт WAV, а не ogg/opus, поэтому шлём
-        # его как аудио-файл, а не как voice-заметку — Telegram сам
-        # решит, как это проигрывать, но полноценным voice-message
-        # (с волной-иконкой) это не станет. Если нужен именно voice —
-        # WAV придётся перекодировать в ogg/opus (например, через
-        # pydub + ffmpeg) перед отправкой.
-        sound_buf = io.BytesIO(sound_bytes)
-        sound_buf.name = f"{slug}.wav"
-        sent_sound = await update.effective_message.reply_audio(
-            audio=sound_buf, 
-            title=title,
+        ogg_bytes = self._wav_to_ogg_opus(sound_bytes)
+        sound_buf = io.BytesIO(ogg_bytes)
+        sound_buf.name = f"{slug}.ogg"
+
+        sent_sound = await update.effective_message.reply_voice(
+            voice=sound_buf,
             read_timeout=30,
             write_timeout=30,
             connect_timeout=10,
@@ -192,7 +187,7 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         await BotFile.objects.acreate(
             content_object=sound_asset,
             bot_id=self.app_bot_id,
-            file_id=sent_sound.audio.file_id,
+            file_id=sent_sound.voice.file_id,
         )
 
         logger.info(f"Создана новая запись сирены: {record}")

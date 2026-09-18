@@ -151,3 +151,14 @@ class AudioMixin:
             return 0.0
 
         return round(intersection / union * 100, 1)
+    
+    def _wav_to_ogg_opus(self, wav_bytes: bytes) -> bytes:
+        """Конвертирует WAV в OGG/Opus — формат, который Telegram
+        принимает как voice-message (с волной и ускоренным воспроизведением)."""
+        wav_buf = io.BytesIO(wav_bytes)
+        wav_buf.seek(0)
+        segment = AudioSegment.from_file(wav_buf, format="wav")
+        ogg_buf = io.BytesIO()
+        segment.export(ogg_buf, format="ogg", codec="libopus", bitrate="48k")
+        ogg_buf.seek(0)
+        return ogg_buf.read()

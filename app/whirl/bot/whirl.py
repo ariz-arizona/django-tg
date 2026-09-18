@@ -245,7 +245,7 @@ class WhirlBot(AbstractBot):
         buf.seek(0)
 
         try:
-            normalized_curve = self.extract_normalized_curve(buf.read())
+            raw_curve = self.extract_normalized_curve(buf.read())
         except Exception as e:
             logger.error(f"Ошибка разбора голосового: {e}", exc_info=True)
             await update.effective_message.reply_text(
@@ -253,13 +253,18 @@ class WhirlBot(AbstractBot):
             )
             return
 
-        image_bytes = self.render_pattern_image(normalized_curve)
+        smoothed = self.smooth_curve(raw_curve)
+        thresholded = self.apply_threshold(smoothed)
+        aligned = self.align_user_curve(record.normalized_curve, thresholded)
+        score = self.compute_match_score(record.normalized_curve, aligned)
+
+        image_bytes = self.render_comparison_image(record.normalized_curve, aligned)
         image_buf = io.BytesIO(image_bytes)
         image_buf.name = f"{record.slug}_attempt.png"
 
         await update.effective_message.reply_photo(
             photo=image_buf,
-            caption=f"Твоя попытка повторить «{record.title}»",
+            caption=f"Твоя попытка повторить «{record.title}»: совпадение {score}%",
         )
 
         # сбрасываем ожидание — следующее голосовое уже не будет разобрано,
@@ -311,7 +316,169 @@ class WhirlBot(AbstractBot):
             {"t": float(ti), "rms": float(ri), "pitch": float(pi)}
             for ti, ri, pi in zip(t, rms_interp, pitch_flat)
         ]
-        
+    
+    PEAK_THRESHOLD = 0.15  # можно вынести в константу класса
+
+    def apply_threshold(self, curve: list, threshold: float = PEAK_THRESHOLD, key: str = "rms") -> list:
+        """
+        Шумовой гейт: значения key ниже threshold обнуляются, чтобы тишина
+        и случайные шорохи в начале/конце голосового не участвовали
+        в поиске пика и в расчёте несовпадения.
+        """
+        result = []
+        for p in curve:
+            p = dict(p)
+            if p[key] < threshold:
+                p[key] = 0.0
+            result.append(p)
+        return result
+
+    def smooth_curve(self, curve: list, window: int = 9, key: str = "rms") -> list:
+        """
+        Сглаживает key скользящим средним (окно нечётное, симметричное).
+        Нужно в первую очередь для пользовательской кривой — сырой RMS
+        из voice-сообщения рваный даже при идеальном повторе паттерна,
+        и эти зубцы срезают площадь пересечения при подсчёте IoU.
+        Края паддим ближайшим значением, чтобы не проседали к нулю.
+        """
+        if window < 3 or window % 2 == 0:
+            window = 9
+
+        values = np.array([p[key] for p in curve])
+        pad = window // 2
+        padded = np.pad(values, pad, mode="edge")
+        kernel = np.ones(window) / window
+        smoothed = np.convolve(padded, kernel, mode="valid")
+
+        result = []
+        for p, s in zip(curve, smoothed):
+            p = dict(p)
+            p[key] = float(s)
+            result.append(p)
+        return result
+
+    def find_first_peak(self, curve: list, threshold: float = PEAK_THRESHOLD, key: str = "rms") -> dict | None:
+        """
+        Первый локальный максимум key, превышающий threshold.
+        Если чёткого локального максимума нет (пик на самом краю кривой) —
+        берём первую точку, вообще превысившую порог.
+        """
+        values = [p[key] for p in curve]
+        n = len(values)
+        for i in range(1, n - 1):
+            if values[i] < threshold:
+                continue
+            if values[i] >= values[i - 1] and values[i] >= values[i + 1] and values[i] > values[i - 1]:
+                return curve[i]
+        for p in curve:
+            if p[key] >= threshold:
+                return p
+        return None
+
+    def align_user_curve(self, target_curve: list, user_curve: list, threshold: float = PEAK_THRESHOLD) -> list:
+        """
+        Сдвигает user_curve по времени так, чтобы её первый пик rms совпал
+        с первым пиком target_curve, и ресемплит на временную сетку target —
+        дальше кривые сравнимы поточечно и рисуются в одних координатах.
+        """
+        target_peak = self.find_first_peak(target_curve, threshold)
+        user_peak = self.find_first_peak(user_curve, threshold)
+
+        shift = target_peak["t"] - user_peak["t"] if (target_peak and user_peak) else 0.0
+
+        user_t = np.array([p["t"] for p in user_curve]) + shift
+        user_rms = np.array([p["rms"] for p in user_curve])
+        user_pitch = np.array([p.get("pitch", 0.0) for p in user_curve])
+        target_t = np.array([p["t"] for p in target_curve])
+
+        # вне диапазона user-кривой после сдвига (ещё не начала / уже
+        # закончила) — честно считаем громкость нулевой
+        rms_aligned = np.interp(target_t, user_t, user_rms, left=0.0, right=0.0)
+        pitch_aligned = np.interp(target_t, user_t, user_pitch, left=0.0, right=0.0)
+
+        return [
+            {"t": float(ti), "rms": float(ri), "pitch": float(pi)}
+            for ti, ri, pi in zip(target_t, rms_aligned, pitch_aligned)
+        ]
+
+    def compute_match_score(self, target_curve: list, user_curve_aligned: list, key: str = "rms") -> float:
+        """
+        Score = площадь пересечения / площадь объединения (IoU) по огибающей.
+        В отличие от MSE, не завышается за счёт совместной тишины: пустые
+        участки, где обе кривые ~0, не дают вклада ни в числитель, ни
+        в знаменатель — учитывается только реально «звучащая» масса.
+        """
+        target = np.array([p[key] for p in target_curve])
+        user = np.array([p[key] for p in user_curve_aligned])
+
+        intersection = np.sum(np.minimum(target, user))
+        union = np.sum(np.maximum(target, user))
+
+        if union <= 1e-9:
+            return 0.0
+
+        return round(intersection / union * 100, 1)
+
+    def render_comparison_image(self, target_curve: list, user_curve_aligned: list) -> bytes:
+        """
+        Эталон и попытка пользователя рисуются как полупрозрачные заливки
+        от кривой до нуля — каждая своим бледным цветом. Там, где области
+        перекрываются, альфа-блендинг даёт смешанный цвет, и рассинхрон
+        виден сразу по форме и по чистым (неперекрытым) кускам заливки,
+        без нужды сверяться с цифрой score.
+        """
+        width, height = 800, 300
+        margin = 20
+        bg_color = (18, 18, 24, 255)
+        target_fill = (255, 140, 60, 110)    # бледно-оранжевый, полупрозрачный
+        target_line = (255, 140, 60, 255)
+        user_fill = (110, 220, 120, 110)     # бледно-зелёный, полупрозрачный
+        user_line = (110, 220, 120, 255)
+        axis_color = (70, 70, 80, 255)
+
+        base = Image.new("RGBA", (width, height), bg_color)
+        axis_draw = ImageDraw.Draw(base)
+        axis_draw.line(
+            [(margin, height // 2), (width - margin, height // 2)],
+            fill=axis_color,
+            width=1,
+        )
+
+        n = len(target_curve)
+        if n < 2:
+            buf = io.BytesIO()
+            base.convert("RGB").save(buf, format="PNG")
+            return buf.getvalue()
+
+        plot_w = width - 2 * margin
+        plot_h = height - 2 * margin
+        baseline_y = margin + plot_h  # y соответствующий value=0
+
+        def to_xy(i: int, value: float):
+            x = margin + plot_w * (i / (n - 1))
+            y = margin + plot_h * (1 - value)
+            return x, y
+
+        def draw_area(curve: list, key: str, fill_color, line_color):
+            points = [to_xy(i, p[key]) for i, p in enumerate(curve)]
+            polygon = [(margin, baseline_y)] + points + [(width - margin, baseline_y)]
+
+            layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+            layer_draw = ImageDraw.Draw(layer)
+            layer_draw.polygon(polygon, fill=fill_color)
+            layer_draw.line(points, fill=line_color, width=2, joint="curve")
+            return layer
+
+        target_layer = draw_area(target_curve, "rms", target_fill, target_line)
+        user_layer = draw_area(user_curve_aligned, "rms", user_fill, user_line)
+
+        base = Image.alpha_composite(base, target_layer)
+        base = Image.alpha_composite(base, user_layer)
+
+        buf = io.BytesIO()
+        base.convert("RGB").save(buf, format="PNG")
+        return buf.getvalue()
+
     # --- Генерация паттерна ---
 
     def generate_pattern(self, pattern: list[float] | None = None):

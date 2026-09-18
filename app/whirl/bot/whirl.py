@@ -56,12 +56,18 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         return [
             CommandHandler("start", self.handle_start, filters.ChatType.PRIVATE),
             CommandHandler("create", self.handle_create, filters.ChatType.PRIVATE),
+            
             CommandHandler("my", self.handle_my, filters.ChatType.PRIVATE),
+            CallbackQueryHandler(self.handle_my, pattern=r"^siren_my$"),
+            
             CommandHandler("get", self.handle_get, filters.ChatType.PRIVATE),
+            CallbackQueryHandler(self.handle_get, pattern=r"^siren_get$"),
+            
             MessageHandler(
                 filters.VOICE & filters.ChatType.PRIVATE,
                 self.handle_voice_reply,
             ),
+            
             CallbackQueryHandler(self.handle_siren_page, pattern=r"^siren_page:\d+$"),
             CallbackQueryHandler(self.handle_siren_pick, pattern=r"^siren_pick:.+$"),
             CallbackQueryHandler(self.handle_siren_noop, pattern=r"^siren_noop$"),
@@ -85,8 +91,12 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
             [
                 InlineKeyboardButton("🔁 Повторить", callback_data=f"siren_pick:{record_id}"),
             ],
+            [
+                InlineKeyboardButton("🔊 Все сирены", callback_data="siren_get"),
+                InlineKeyboardButton("📊 Мой профиль", callback_data="siren_my"),
+            ],
         ])
-
+        
     async def get_or_create_virtual_user(self, update: Update) -> WhirlUser:
         """Находит или создаёт TgUser по данным Telegram."""
         tg_user = update.effective_user
@@ -227,6 +237,10 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
 
     async def handle_my(self, update: Update, context: CallbackContext) -> None:
         """Личный кабинет: данные юзера, его рекорд, ссылка на /get."""
+        query = update.callback_query
+        if query is not None:
+            await query.answer()
+        
         user = await self.get_or_create_virtual_user(update)
 
         best = (
@@ -379,9 +393,19 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         /get <slug> — отправляет конкретную запись.
         /get без slug — присылает клавиатуру сирен с пагинацией.
         """
+        query = update.callback_query
+        if query is not None:
+            await query.answer()
+            
         user = await self.get_or_create_virtual_user(update)
-
-        args = context.args
+        message = update.effective_message
+        
+        if query is not None:
+            text, keyboard = await self.build_siren_list(page=0)
+            await message.reply_text(text, reply_markup=keyboard)
+            return
+        
+        args = context.args or []
         if args:
             if not await self.cooldown.use(update):
                 return 

@@ -7,8 +7,8 @@ from PIL import Image, ImageDraw
 from pydub import AudioSegment
 import redis.asyncio as aioredis
 
-from telegram import Update, InputMediaPhoto
-from telegram.ext import CommandHandler, MessageHandler, CallbackContext, filters
+from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CommandHandler, MessageHandler, CallbackQueryHandler, CallbackContext, filters
 
 from django.utils import timezone
 
@@ -24,14 +24,14 @@ from whirl.models import (
     SirenAttempt,
 )
 
+from .cooldown import CooldownService
+
 PEAK_THRESHOLD = 0.15  # можно вынести в константу класса
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 
-SIREN_COOLDOWN_SECONDS = 10
-SIREN_COOLDOWN_KEY_TEMPLATE = "siren:{chat_id}:{user_id}"
-
+SIREN_PAGE_SIZE = 8
 
 def get_redis_client(
     db: int = 0, decode_responses: bool = True
@@ -49,6 +49,7 @@ redis_client = get_redis_client(db=3)
 class WhirlBot(AbstractBot):
     def __init__(self):
         self.handlers = self.get_handlers()
+        self.cooldown = CooldownService(redis_client)
 
     def get_handlers(self):
         return [
@@ -56,6 +57,9 @@ class WhirlBot(AbstractBot):
             CommandHandler("create", self.handle_create, filters.ChatType.PRIVATE),
             CommandHandler("get", self.handle_get, filters.ChatType.PRIVATE),
             MessageHandler(filters.VOICE, self.handle_voice_reply),
+            CallbackQueryHandler(self.handle_siren_page, pattern=r"^siren_page:\d+$"),
+            CallbackQueryHandler(self.handle_siren_pick, pattern=r"^siren_pick:.+$"),
+            CallbackQueryHandler(self.handle_siren_noop, pattern=r"^siren_noop$"),
         ]
 
     async def get_or_create_virtual_user(self, update: Update) -> WhirlUser:
@@ -81,39 +85,6 @@ class WhirlBot(AbstractBot):
 
         user.whirl_user = whirl_user
         return whirl_user
-
-    async def set_cooldown(self, chat_id: int, user_id: int, seconds: int = SIREN_COOLDOWN_SECONDS) -> None:
-        """
-        Кладёт в Redis ключ siren:{chat_id}:{user_id} со значением = seconds
-        (сколько секунд осталось на момент установки) и TTL = seconds.
-        Значение хранит "сколько осталось" на старте кулдауна для наглядности
-        при ручном просмотре ключа; фактическое протухание отслеживает TTL.
-        """
-        key = SIREN_COOLDOWN_KEY_TEMPLATE.format(chat_id=chat_id, user_id=user_id)
-        await redis_client.set(key, seconds, ex=seconds)
-
-    async def check_cooldown(self, chat_id: int, user_id: int) -> int | None:
-        """
-        None — кулдауна нет, можно действовать.
-        int — сколько секунд ещё осталось ждать.
-        """
-        key = SIREN_COOLDOWN_KEY_TEMPLATE.format(chat_id=chat_id, user_id=user_id)
-        ttl = await redis_client.ttl(key)
-        if ttl is None or ttl < 0:
-            return None
-        return ttl
-    
-    async def use_cooldown(self, update: Update) -> bool:
-        chat_id = update.effective_chat.id
-        tg_user_id = update.effective_user.id
-
-        remaining = await self.check_cooldown(chat_id, tg_user_id)
-        if remaining is not None:
-            await update.effective_message.reply_text(f"⏳ Подожди ещё {remaining} сек.")
-            return False  # кулдаун активен — действие НЕ разрешено
-
-        await self.set_cooldown(chat_id, tg_user_id)
-        return True  # кулдаун сброшен — действие разрешено
 
     async def handle_start(self, update: Update, context: CallbackContext) -> None:
         user = await self.get_or_create_virtual_user(update)
@@ -225,66 +196,158 @@ class WhirlBot(AbstractBot):
             f"✅ Сирена «{record.title}» сохранена под slug «{record.slug}»."
         )
 
-    async def handle_get(self, update: Update, context: CallbackContext) -> None:
+    async def build_siren_list(self, page: int) -> tuple[str, InlineKeyboardMarkup]:
         """
-        /get <slug>
-        Присылает картинку и звук эталона по slug, и запоминает,
-        что пользователь ждёт разбора своего голосового именно
-        по этой сирене.
+        Текст + клавиатура для страницы списка сирен: кнопки с сквозными
+        номерами записей на этой странице (по 4 в ряд) + навигация внизу.
+        Кнопки без действия (недоступный "назад" на первой странице,
+        недоступный "вперёд" на последней) получают callback_data
+        "siren_noop" — Telegram не умеет по-настоящему отключать инлайн-
+        кнопки, поэтому неактивность имитируется отсутствием эффекта клика.
         """
-        if not await self.use_cooldown(update): return
+        total = await SirenRecord.objects.filter(is_active=True).acount()
+        offset = page * SIREN_PAGE_SIZE
         
-        user = await self.get_or_create_virtual_user(update)
+        def truncate(text: str, limit: int = 64) -> str:
+            """Обрезает текст под лимит кнопки Telegram (≈64 символа)."""
+            return text if len(text) <= limit else text[: limit - 1] + "…"
 
-        args = context.args
-        if not args:
-            await update.effective_message.reply_text("Использование: /get <slug>")
-            return
+        records = [
+            r async for r in
+            SirenRecord.objects.filter(is_active=True)
+            .order_by("id")[offset:offset + SIREN_PAGE_SIZE]
+        ]
 
-        slug = args[0]
+        buttons = []
+        row = []
+        for record in records:
+            row.append(
+                InlineKeyboardButton(
+                    truncate(record.title),
+                    callback_data=f"siren_pick:{record.slug}",
+                )
+            )
+            if len(row) == 4:
+                buttons.append(row)
+                row = []
+        if row:
+            buttons.append(row)
 
+        has_prev = page > 0
+        has_next = offset + SIREN_PAGE_SIZE < total
+
+        buttons.append([
+            InlineKeyboardButton(
+                "⬅️ Назад" if has_prev else "📢",
+                callback_data=f"siren_page:{page - 1}" if has_prev else "siren_noop",
+            ),
+            InlineKeyboardButton(
+                "Вперёд ➡️" if has_next else "📢",
+                callback_data=f"siren_page:{page + 1}" if has_next else "siren_noop",
+            ),
+        ])
+
+        text = f"У меня есть {total} записей. Выбери номер:"
+        return text, InlineKeyboardMarkup(buttons)
+
+    async def send_siren_record(self, message, user: WhirlUser, slug: str) -> None:
+        """
+        Общая логика: находит запись по slug, шлёт картинку+звук, отменяет
+        прежние WAITING попытки пользователя и создаёт новую. Используется
+        и из /get <slug>, и из клика по номеру в инлайн-списке — message
+        может быть как Update.effective_message, так и CallbackQuery.message,
+        у обоих есть reply_photo/reply_audio/reply_text.
+        """
         try:
             record = await SirenRecord.objects.aget(slug=slug, is_active=True)
         except SirenRecord.DoesNotExist:
-            await update.effective_message.reply_text(f"❌ Сирена «{slug}» не найдена.")
+            await message.reply_text(f"❌ Сирена «{slug}» не найдена.")
             return
 
         try:
             image_asset = await SirenRecordImage.objects.aget(record=record)
             sound_asset = await SirenRecordSound.objects.aget(record=record)
         except (SirenRecordImage.DoesNotExist, SirenRecordSound.DoesNotExist):
-            await update.effective_message.reply_text(
-                f"❌ Для сирены «{slug}» не найдены файлы."
-            )
+            await message.reply_text(f"❌ Для сирены «{slug}» не найдены файлы.")
             return
 
         image_file_id = await image_asset.aget_file_id(self.app_bot_id, default=None)
         sound_file_id = await sound_asset.aget_file_id(self.app_bot_id, default=None)
 
         if not image_file_id or not sound_file_id:
-            await update.effective_message.reply_text(
-                f"❌ Для сирены «{slug}» не найдены файлы этого бота."
-            )
+            await message.reply_text(f"❌ Для сирены «{slug}» не найдены файлы этого бота.")
             return
 
-        await update.effective_message.reply_photo(photo=image_file_id)
-        await update.effective_message.reply_audio(
-            audio=sound_file_id,
-            title=record.title,
-        )
+        await message.reply_photo(photo=image_file_id)
+        await message.reply_audio(audio=sound_file_id, title=record.title)
+
         await SirenAttempt.objects.filter(
             user=user, status=SirenAttempt.Status.WAITING
         ).aupdate(status=SirenAttempt.Status.CANCELLED)
-        
+
         await SirenAttempt.objects.acreate(
             user=user,
             record=record,
             status=SirenAttempt.Status.WAITING,
         )
+        
+        if getattr(message, "reply_markup", None) is not None:
+            try:
+                await message.edit_text(
+                    f"Вы вызвали сирену {record.title}",
+                    reply_markup=None,
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Не удалось отредактировать сообщение списка сирен: {e}"
+                )
 
-        await update.effective_message.reply_text(
+        await message.reply_text(
             "🎤 Теперь запиши голосовое — попробуй повторить этот паттерн."
         )
+
+    async def handle_get(self, update: Update, context: CallbackContext) -> None:
+        """
+        /get <slug> — отправляет конкретную запись.
+        /get без slug — присылает пронумерованный список с пагинацией.
+        """
+        user = await self.get_or_create_virtual_user(update)
+
+        args = context.args
+        if args:
+            if not await self.cooldown.use(update):
+                return 
+            
+        if not args:
+            text, keyboard = await self.build_siren_list(page=0)
+            await update.effective_message.reply_text(text, reply_markup=keyboard)
+            return
+        
+        await self.send_siren_record(update.effective_message, user, args[0])
+
+    async def handle_siren_page(self, update: Update, context: CallbackContext) -> None:
+        """Переключение страницы списка — просто перерисовывает клавиатуру на месте."""
+        query = update.callback_query
+        page = int(query.data.split(":")[1])
+        text, keyboard = await self.build_siren_list(page=page)
+        await query.edit_message_text(text, reply_markup=keyboard)
+        await query.answer()
+
+    async def handle_siren_pick(self, update: Update, context: CallbackContext) -> None:
+        """Клик по номеру записи в списке — эквивалент /get <slug>."""
+        query = update.callback_query
+        await query.answer()
+        
+        if not await self.cooldown.use(update):
+            return
+        
+        slug = query.data.split(":", 1)[1]
+        user = await self.get_or_create_virtual_user(update)
+        await self.send_siren_record(query.message, user, slug)
+
+    async def handle_siren_noop(self, update: Update, context: CallbackContext) -> None:
+        """Клик по неактивной кнопке навигации — просто гасим "часики" на кнопке."""
+        await update.callback_query.answer()
         
     async def handle_voice_reply(self, update: Update, context: CallbackContext) -> None:
         """
@@ -292,7 +355,7 @@ class WhirlBot(AbstractBot):
         запрашивал сирену через /get — считает это попыткой её повторить,
         строит normalized_curve из записи и рисует её тем же render_pattern_image,
         что и эталон.
-        """        
+        """
         user = await self.get_or_create_virtual_user(update)
         voice = update.effective_message.voice
         if voice is None:
@@ -430,8 +493,6 @@ class WhirlBot(AbstractBot):
             {"t": float(ti), "rms": float(ri), "pitch": float(pi)}
             for ti, ri, pi in zip(t, rms_interp, pitch_flat)
         ]
-    
-    PEAK_THRESHOLD = 0.15  # можно вынести в константу класса
 
     def apply_threshold(self, curve: list, threshold: float = PEAK_THRESHOLD, key: str = "rms") -> list:
         """

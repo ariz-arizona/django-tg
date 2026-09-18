@@ -29,6 +29,9 @@ REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 
 SIREN_PAGE_SIZE = 4
 
+MAX_VOICE_DURATION_SEC = 15
+MAX_VOICE_FILE_SIZE_BYTES = 1 * 1024 * 1024
+
 def get_redis_client(
     db: int = 0, decode_responses: bool = True
 ) -> aioredis.StrictRedis:
@@ -52,7 +55,10 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
             CommandHandler("start", self.handle_start, filters.ChatType.PRIVATE),
             CommandHandler("create", self.handle_create, filters.ChatType.PRIVATE),
             CommandHandler("get", self.handle_get, filters.ChatType.PRIVATE),
-            MessageHandler(filters.VOICE, self.handle_voice_reply),
+            MessageHandler(
+                filters.VOICE & filters.ChatType.PRIVATE,
+                self.handle_voice_reply,
+            ),
             CallbackQueryHandler(self.handle_siren_page, pattern=r"^siren_page:\d+$"),
             CallbackQueryHandler(self.handle_siren_pick, pattern=r"^siren_pick:.+$"),
             CallbackQueryHandler(self.handle_siren_noop, pattern=r"^siren_noop$"),
@@ -371,6 +377,23 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         user = await self.get_or_create_virtual_user(update)
         voice = update.effective_message.voice
         if voice is None:
+            return
+        
+        # Отсекаем слишком длинные/тяжёлые голосовые до любой обработки:
+        # дорогая цепочка extract_* / render_* на длинной записи съест
+        # CPU и время впустую.
+        if voice.duration and voice.duration > MAX_VOICE_DURATION_SEC:
+            await update.effective_message.reply_text(
+                f"⏱ Слишком длинное голосовое — максимум "
+                f"{MAX_VOICE_DURATION_SEC} секунд. Запиши покороче."
+            )
+            return
+
+        if voice.file_size and voice.file_size > MAX_VOICE_FILE_SIZE_BYTES:
+            await update.effective_message.reply_text(
+                f"📦 Файл слишком большой — максимум "
+                f"{MAX_VOICE_FILE_SIZE_BYTES // (1024 * 1024)} МБ."
+            )
             return
 
         attempt = (

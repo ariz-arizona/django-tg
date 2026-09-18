@@ -7,6 +7,7 @@ from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboa
 from telegram.ext import CommandHandler, MessageHandler, CallbackQueryHandler, CallbackContext, filters
 
 from django.utils import timezone
+from django.db.models import Count, Max
 
 from tg_bot.bot.abstract import AbstractBot
 from server.logger import logger
@@ -33,6 +34,7 @@ MAX_VOICE_DURATION_SEC = 15
 MAX_VOICE_FILE_SIZE_BYTES = 1 * 1024 * 1024
 
 ANALYZE_TIMEOUT_SEC = 20
+MAX_SIRENS_IN_MY = 20
 
 def get_redis_client(
     db: int = 0, decode_responses: bool = True
@@ -56,18 +58,15 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         return [
             CommandHandler("start", self.handle_start, filters.ChatType.PRIVATE),
             CommandHandler("create", self.handle_create, filters.ChatType.PRIVATE),
-            
             CommandHandler("my", self.handle_my, filters.ChatType.PRIVATE),
-            CallbackQueryHandler(self.handle_my, pattern=r"^siren_my$"),
-            
             CommandHandler("get", self.handle_get, filters.ChatType.PRIVATE),
-            CallbackQueryHandler(self.handle_get, pattern=r"^siren_get$"),
             
             MessageHandler(
                 filters.VOICE & filters.ChatType.PRIVATE,
                 self.handle_voice_reply,
             ),
             
+            CallbackQueryHandler(self.handle_siren_uact, pattern=r"^siren_uact_"),
             CallbackQueryHandler(self.handle_siren_page, pattern=r"^siren_page:\d+$"),
             CallbackQueryHandler(self.handle_siren_pick, pattern=r"^siren_pick:.+$"),
             CallbackQueryHandler(self.handle_siren_noop, pattern=r"^siren_noop$"),
@@ -89,11 +88,14 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         """Клавиатура после разбора: действия привязаны к конкретной сирене."""
         return InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("🔁 Повторить", callback_data=f"siren_pick:{record_id}"),
+                InlineKeyboardButton(
+                    "🔁 Повторить",
+                    callback_data=f"siren_uact_pick:{record_id}",
+                ),
             ],
             [
-                InlineKeyboardButton("🔊 Все сирены", callback_data="siren_get"),
-                InlineKeyboardButton("📊 Мой профиль", callback_data="siren_my"),
+                InlineKeyboardButton("🔊 Все сирены", callback_data="siren_uact_get"),
+                InlineKeyboardButton("📊 Мой профиль", callback_data="siren_uact_my"),
             ],
         ])
         
@@ -121,6 +123,40 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         user.whirl_user = whirl_user
         return whirl_user
 
+    async def handle_siren_uact(self, update: Update, context: CallbackContext) -> None:
+        """
+        Роутер для кнопок подвала «Мой профиль» / «Все сирены» / «Повторить».
+        Гасит часики, снимает клавиатуру с исходного сообщения (защита от
+        повторного клика) и делегирует в соответствующий handler.
+        """
+        query = update.callback_query
+        await query.answer()
+
+        # Снимаем клавиатуру с сообщения, на котором была нажата кнопка.
+        # Иначе юзер может нажать ещё раз, пока идёт обработка, и получить
+        # два одинаковых ответа.
+        try:
+            await query.edit_message_reply_markup(reply_markup=None)
+        except Exception as e:
+            logger.warning(f"Не удалось снять клавиатуру у {query.message.message_id}: {e}")
+
+        action = query.data[len("siren_uact_"):]
+
+        if action == "my":
+            await self.handle_my(update, context)
+        elif action == "get":
+            await self.handle_get(update, context)
+        elif action.startswith("pick:"):
+            record_id = int(action.split(":", 1)[1])
+            await self.cooldown.reset(
+                update.get_bot(),
+                update.effective_chat.id,
+                update.effective_user.id,
+            )
+            await self._dispatch_siren_pick(update, context, record_id)
+        else:
+            logger.warning(f"Неизвестный siren_uact: {query.data!r}")
+            
     async def handle_start(self, update: Update, context: CallbackContext) -> None:
         user = await self.get_or_create_virtual_user(update)
 
@@ -140,7 +176,9 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         """
         /create <slug> <title...>
         Доступно только VirtualUser с is_admin=True.
-        Генерирует паттерн + картинку + звук эталона и сохраняет SirenRecord.
+        Создаёт SirenRecord в is_active=False, загружает картинку и звук,
+        и только при успехе переключает в is_active=True. Если на любом
+        шаге после acreate упало — запись остаётся неактивной.
         """
         user = await self.get_or_create_virtual_user(update)
 
@@ -156,7 +194,7 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
                 "Использование: /create <slug> <название сирены> [--pattern 0,1,2,1,2,0,0]"
             )
             return
-        
+
         pattern = None
         if "--pattern" in args:
             idx = args.index("--pattern")
@@ -167,7 +205,7 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
                     "❌ Некорректный формат --pattern, ожидается список чисел через запятую."
                 )
                 return
-            args = args[:idx]  # убираем флаг и значение из аргументов title
+            args = args[:idx]
 
         slug = args[0]
         title = " ".join(args[1:]) or slug
@@ -190,45 +228,66 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         image_bytes = self.render_pattern_image(normalized_curve)
         sound_bytes = self.render_pattern_sound(sequence)
 
+        # Создаём сразу неактивной — включим только после успешной загрузки
+        # картинки и звука. Если что-то упадёт ниже, запись останется
+        # is_active=False и в игру не попадёт.
         record = await SirenRecord.objects.acreate(
             slug=slug,
             title=title,
             created_by=user,
             generated_sequence=sequence,
             normalized_curve=normalized_curve,
+            is_active=False,
         )
 
-        image_buf = io.BytesIO(image_bytes)
-        image_buf.name = f"{slug}.png"
-        sent_image = await update.effective_message.reply_photo(
-            photo=image_buf,    
-            read_timeout=30,
-            write_timeout=30,
-            connect_timeout=10,
-        )
-        image_asset = await SirenRecordImage.objects.acreate(record=record)
-        await BotFile.objects.acreate(
-            content_object=image_asset,
-            bot_id=self.app_bot_id,
-            file_id=sent_image.photo[-1].file_id,
-        )
+        try:
+            # Картинка
+            image_buf = io.BytesIO(image_bytes)
+            image_buf.name = f"{slug}.png"
+            sent_image = await update.effective_message.reply_photo(
+                photo=image_buf,
+                read_timeout=30,
+                write_timeout=30,
+                connect_timeout=10,
+            )
+            image_asset = await SirenRecordImage.objects.acreate(record=record)
+            await BotFile.objects.acreate(
+                content_object=image_asset,
+                bot_id=self.app_bot_id,
+                file_id=sent_image.photo[-1].file_id,
+            )
 
-        ogg_bytes = self._wav_to_ogg_opus(sound_bytes)
-        sound_buf = io.BytesIO(ogg_bytes)
-        sound_buf.name = f"{slug}.ogg"
+            # Звук: WAV → OGG/Opus, чтобы Telegram принял как voice
+            ogg_bytes = self._wav_to_ogg_opus(sound_bytes)
+            sound_buf = io.BytesIO(ogg_bytes)
+            sound_buf.name = f"{slug}.ogg"
+            sent_sound = await update.effective_message.reply_voice(
+                voice=sound_buf,
+                read_timeout=30,
+                write_timeout=30,
+                connect_timeout=10,
+            )
+            sound_asset = await SirenRecordSound.objects.acreate(record=record)
+            await BotFile.objects.acreate(
+                content_object=sound_asset,
+                bot_id=self.app_bot_id,
+                file_id=sent_sound.voice.file_id,
+            )
+        except Exception as e:
+            logger.error(
+                f"Не удалось загрузить файлы для сирены {record.pk} "
+                f"({record.slug}): {e}",
+                exc_info=True,
+            )
+            await update.effective_message.reply_text(
+                f"❌ Не удалось загрузить файлы. Сирена «{record.title}» "
+                f"сохранена неактивной — включи её вручную после исправления."
+            )
+            return
 
-        sent_sound = await update.effective_message.reply_voice(
-            voice=sound_buf,
-            read_timeout=30,
-            write_timeout=30,
-            connect_timeout=10,
-        )
-        sound_asset = await SirenRecordSound.objects.acreate(record=record)
-        await BotFile.objects.acreate(
-            content_object=sound_asset,
-            bot_id=self.app_bot_id,
-            file_id=sent_sound.voice.file_id,
-        )
+        # Всё загрузилось — включаем
+        await SirenRecord.objects.filter(pk=record.pk).aupdate(is_active=True)
+        record.is_active = True
 
         logger.info(f"Создана новая запись сирены: {record}")
         await update.effective_message.reply_text(
@@ -236,43 +295,62 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         )
 
     async def handle_my(self, update: Update, context: CallbackContext) -> None:
-        """Личный кабинет: данные юзера, его рекорд, ссылка на /get."""
+        """Личный кабинет: данные юзера и все сирены, по которым он играл."""
         query = update.callback_query
         if query is not None:
             await query.answer()
-        
+
         user = await self.get_or_create_virtual_user(update)
-
-        best = (
-            await SirenAttempt.objects
-            .filter(user=user, status=SirenAttempt.Status.SUCCESS)
-            .order_by("-score")
-            .afirst()
-        )
-        total_attempts = await SirenAttempt.objects.filter(
-            user=user, status=SirenAttempt.Status.SUCCESS
-        ).acount()
-
-        if best is not None:
-            verdict = self._score_verdict(best.score)
-            best_line = f"🏆 Лучший результат: {best.score}% — {verdict}"
-        else:
-            best_line = "🏆 Пока ни одной завершённой попытки"
 
         tg = update.effective_user
         name = tg.first_name or tg.username or f"id{tg.id}"
 
-        text = (
-            f"👤 {name}\n"
-            f"🆔 tg_id: {tg.id}\n"
-            f"🎮 Попыток: {total_attempts}\n"
-            f"{best_line}\n\n"
-            f"🔊 Все сирены: /get"
+        # Один запрос: по каждой сирене — число попыток и лучший результат.
+        # Сортировка по лучшему результату (сверху — самое успешное).
+        rows = (
+            SirenAttempt.objects
+            .filter(user=user, status=SirenAttempt.Status.SUCCESS)
+            .values("record__id", "record__title")
+            .annotate(
+                attempts=Count("id"),
+                best_score=Max("score"),
+            )
+            .order_by("-best_score")
         )
+        rows = [r async for r in rows]
 
-        await update.effective_message.reply_text(
-            text,
-        )
+        lines = [
+            f"👤 {name}",
+            f"🆔 tg_id: {tg.id}",
+            "",
+        ]
+
+        if not rows:
+            lines.append("Пока ни одной завершённой попытки.")
+            lines.append("Начни с /get — выбери сирену и запиши голосовое.")
+        else:
+            shown = rows[:MAX_SIRENS_IN_MY]
+            hidden = len(rows) - len(shown)
+
+            if hidden:
+                lines.append(f"🎮 Показаны первые {MAX_SIRENS_IN_MY} из {len(rows)}:")
+            else:
+                lines.append(f"🎮 Сирен в игре: {len(rows)}")
+            lines.append("")
+
+            for r in shown:
+                verdict = self._score_verdict(r["best_score"])
+                lines.append(
+                    f"🔊 «{r['record__title']}»\n"
+                    f"   попыток: {r['attempts']}, лучший: {r['best_score']}% — {verdict}"
+                )
+
+            if hidden:
+                lines.append("")
+                lines.append(f"… и ещё {hidden}")
+
+        text = "\n".join(lines)
+        await update.effective_message.reply_text(text)
         
     async def build_siren_list(self, page: int) -> tuple[str, InlineKeyboardMarkup]:
         """
@@ -392,28 +470,20 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         """
         /get <slug> — отправляет конкретную запись.
         /get без slug — присылает клавиатуру сирен с пагинацией.
+        Колбек siren_uact_get (из подвала результата) — то же, что /get без аргумента.
         """
-        query = update.callback_query
-        if query is not None:
-            await query.answer()
-            
-        user = await self.get_or_create_virtual_user(update)
+        query = update.callback_query            
         message = update.effective_message
         
-        if query is not None:
+        args = context.args or []
+        
+        if query is not None or not args:
             text, keyboard = await self.build_siren_list(page=0)
             await message.reply_text(text, reply_markup=keyboard)
             return
         
-        args = context.args or []
-        if args:
-            if not await self.cooldown.use(update):
-                return 
-            
-        if not args:
-            text, keyboard = await self.build_siren_list(page=0)
-            await update.effective_message.reply_text(text, reply_markup=keyboard)
-            return
+        if not await self.cooldown.use(update):
+            return 
         
         try:
             record = await SirenRecord.objects.aget(slug=args[0], is_active=True)
@@ -423,6 +493,7 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
             )
             return
 
+        user = await self.get_or_create_virtual_user(update)
         await self.send_siren_record(update.effective_message, user, record)
 
     async def handle_siren_page(self, update: Update, context: CallbackContext) -> None:
@@ -434,24 +505,30 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         await query.answer()
 
     async def handle_siren_pick(self, update: Update, context: CallbackContext) -> None:
-        """Клик по номеру записи в списке — эквивалент /get <slug>."""
+        """Клик по записи в списке — эквивалент /get <slug>."""
         query = update.callback_query
         await query.answer()
+
+        record_id = int(query.data.split(":", 1)[1])
+        await self._dispatch_siren_pick(update, context, record_id)
         
+    async def _dispatch_siren_pick(
+        self, update: Update, context: CallbackContext, record_id: int
+    ) -> None:
+        """Общая логика «показать конкретную сирену по id» — для siren_pick и siren_uact_pick."""
         if not await self.cooldown.use(update):
             return
-        
-        record_id = int(query.data.split(":", 1)[1])
+
         try:
             record = await SirenRecord.objects.aget(id=record_id, is_active=True)
         except SirenRecord.DoesNotExist:
-            await query.message.reply_text(
+            await update.effective_message.reply_text(
                 f"❌ Сирена #{record_id} не найдена."
             )
             return
 
         user = await self.get_or_create_virtual_user(update)
-        await self.send_siren_record(query.message, user, record)
+        await self.send_siren_record(update.effective_message, user, record)
 
     async def handle_siren_noop(self, update: Update, context: CallbackContext) -> None:
         """Клик по неактивной кнопке навигации — просто гасим "часики" на кнопке."""
@@ -498,9 +575,17 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         record = attempt.record
 
         # 4. Приглашение «Разбираю…»
-        invite_msg = await self._send_invite_message(update, record)
-        attempt.reply_message_id = invite_msg.message_id
-        await attempt.asave(update_fields=["reply_message_id", "updated_at"])
+        try:
+            invite_msg = await self._send_invite_message(update, record)            
+            attempt.reply_message_id = invite_msg.message_id
+            await attempt.asave(update_fields=["reply_message_id", "updated_at"])
+        except Exception as e:
+            logger.error(f"Не удалось отправить приглашение: {e}", exc_info=True)
+            await self._fail_attempt(
+                attempt, update, None,  # invite_msg ещё нет
+                "❌ Не удалось подготовить разбор. Попробуй ещё раз.",
+            )
+            return
 
         # 5. Скачивание
         try:
@@ -573,17 +658,13 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         return True
 
     async def _send_invite_message(self, update: Update, record: SirenRecord):
-        """Шлёт картинку эталона с подписью «Разбираю…» (или текст, если картинки нет)."""
         image_asset = await SirenRecordImage.objects.aget(record=record)
         reference_file_id = await image_asset.aget_file_id(self.app_bot_id, default=None)
-
-        if reference_file_id:
-            return await update.effective_message.reply_photo(
-                photo=reference_file_id,
-                caption="⏳ Разбираю твоё голосовое, готовлю результат…",
-            )
-        return await update.effective_message.reply_text(
-            "⏳ Разбираю твоё голосовое, готовлю результат…"
+        if not reference_file_id:
+            raise RuntimeError(f"Нет картинки-эталона для сирены {record.id}")
+        return await update.effective_message.reply_photo(
+            photo=reference_file_id,
+            caption="⏳ Разбираю твоё голосовое, готовлю результат…",
         )
 
     async def _download_voice(self, context: CallbackContext, file_id: str) -> bytes:
@@ -628,21 +709,41 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         invite_msg,
         text: str,
     ) -> None:
-        """Откат PROCESSING → CANCELLED + сообщение юзеру вместо «Разбираю…»."""
+        """
+        Откат PROCESSING → CANCELLED + сообщение юзеру.
+
+        Если invite_msg есть — редактируем его caption. Если нет
+        (приглашение не успело создаться) — шлём новое сообщение и
+        записываем его id в attempt.reply_message_id, чтобы потом
+        (например, при отмене через /get) можно было его найти.
+        """
         await SirenAttempt.objects.filter(
             pk=attempt.pk, status=SirenAttempt.Status.PROCESSING
         ).aupdate(
             status=SirenAttempt.Status.CANCELLED,
             updated_at=timezone.now(),
         )
-        try:
-            await update.get_bot().edit_message_caption(
-                chat_id=update.effective_chat.id,
-                message_id=invite_msg.message_id,
-                caption=text,
-            )
-        except Exception:
-            await update.effective_message.reply_text(text)
+
+        if invite_msg is not None:
+            try:
+                await update.get_bot().edit_message_caption(
+                    chat_id=update.effective_chat.id,
+                    message_id=invite_msg.message_id,
+                    caption=text,
+                )
+                return
+            except Exception as e:
+                logger.warning(
+                    f"Не удалось отредактировать invite_msg "
+                    f"{invite_msg.message_id}: {e}"
+                )
+                # падаем в fallback — шлём новым сообщением
+
+        msg = await update.effective_message.reply_text(text)
+        await SirenAttempt.objects.filter(pk=attempt.pk).aupdate(
+            reply_message_id=msg.message_id,
+            updated_at=timezone.now(),
+        )
 
     async def _render_result(
         self,

@@ -181,3 +181,15 @@ class CooldownService:
             )
             await self.set_message(chat_id, user_id, msg.message_id)
         return False
+    
+    async def reset(self, bot, chat_id: int, user_id: int) -> None:
+        """
+        Сбрасывает кулдаун: удаляет таймер и сообщение-предупреждение,
+        если оно висит в чате. Используется, когда нужно «простить»
+        юзера — например, после успешной попытки или по админ-команде.
+        """
+        # Удаляем сообщение-предупреждение, если есть
+        await self._delete_previous_message(bot, chat_id, user_id)
+        # Снимаем таймер
+        await self._redis.delete(self._timer_key(chat_id, user_id))
+

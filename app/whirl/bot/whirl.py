@@ -1,9 +1,11 @@
 import io
+import os
 import wave
 
 import numpy as np
 from PIL import Image, ImageDraw
 from pydub import AudioSegment
+import redis.asyncio as aioredis
 
 from telegram import Update, InputMediaPhoto
 from telegram.ext import CommandHandler, MessageHandler, CallbackContext, filters
@@ -14,8 +16,35 @@ from tg_bot.bot.abstract import AbstractBot
 from server.logger import logger
 
 from tg_bot.models import TgUser, BotFile
-from whirl.models import WhirlUser, SirenRecord, SirenRecordImage, SirenRecordSound, SirenAttempt
+from whirl.models import (
+    WhirlUser,
+    SirenRecord,
+    SirenRecordImage,
+    SirenRecordSound,
+    SirenAttempt,
+)
 
+PEAK_THRESHOLD = 0.15  # можно вынести в константу класса
+
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+
+SIREN_COOLDOWN_SECONDS = 10
+SIREN_COOLDOWN_KEY_TEMPLATE = "siren:{chat_id}:{user_id}"
+
+
+def get_redis_client(
+    db: int = 0, decode_responses: bool = True
+) -> aioredis.StrictRedis:
+    """Фабрика клиентов Redis."""
+    return aioredis.StrictRedis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        db=db,
+        decode_responses=decode_responses,
+    )
+
+redis_client = get_redis_client(db=3)
 
 class WhirlBot(AbstractBot):
     def __init__(self):
@@ -26,7 +55,7 @@ class WhirlBot(AbstractBot):
             CommandHandler("start", self.handle_start, filters.ChatType.PRIVATE),
             CommandHandler("create", self.handle_create, filters.ChatType.PRIVATE),
             CommandHandler("get", self.handle_get, filters.ChatType.PRIVATE),
-            MessageHandler(filters.VOICE, self.handle_voice_reply)
+            MessageHandler(filters.VOICE, self.handle_voice_reply),
         ]
 
     async def get_or_create_virtual_user(self, update: Update) -> WhirlUser:
@@ -52,6 +81,39 @@ class WhirlBot(AbstractBot):
 
         user.whirl_user = whirl_user
         return whirl_user
+
+    async def set_cooldown(self, chat_id: int, user_id: int, seconds: int = SIREN_COOLDOWN_SECONDS) -> None:
+        """
+        Кладёт в Redis ключ siren:{chat_id}:{user_id} со значением = seconds
+        (сколько секунд осталось на момент установки) и TTL = seconds.
+        Значение хранит "сколько осталось" на старте кулдауна для наглядности
+        при ручном просмотре ключа; фактическое протухание отслеживает TTL.
+        """
+        key = SIREN_COOLDOWN_KEY_TEMPLATE.format(chat_id=chat_id, user_id=user_id)
+        await redis_client.set(key, seconds, ex=seconds)
+
+    async def check_cooldown(self, chat_id: int, user_id: int) -> int | None:
+        """
+        None — кулдауна нет, можно действовать.
+        int — сколько секунд ещё осталось ждать.
+        """
+        key = SIREN_COOLDOWN_KEY_TEMPLATE.format(chat_id=chat_id, user_id=user_id)
+        ttl = await redis_client.ttl(key)
+        if ttl is None or ttl < 0:
+            return None
+        return ttl
+    
+    async def use_cooldown(self, update: Update) -> bool:
+        chat_id = update.effective_chat.id
+        tg_user_id = update.effective_user.id
+
+        remaining = await self.check_cooldown(chat_id, tg_user_id)
+        if remaining is not None:
+            await update.effective_message.reply_text(f"⏳ Подожди ещё {remaining} сек.")
+            return False  # кулдаун активен — действие НЕ разрешено
+
+        await self.set_cooldown(chat_id, tg_user_id)
+        return True  # кулдаун сброшен — действие разрешено
 
     async def handle_start(self, update: Update, context: CallbackContext) -> None:
         user = await self.get_or_create_virtual_user(update)
@@ -170,8 +232,10 @@ class WhirlBot(AbstractBot):
         что пользователь ждёт разбора своего голосового именно
         по этой сирене.
         """
-        user = await self.get_or_create_virtual_user(update)
+        if not await self.use_cooldown(update): return
         
+        user = await self.get_or_create_virtual_user(update)
+
         args = context.args
         if not args:
             await update.effective_message.reply_text("Использование: /get <slug>")
@@ -228,15 +292,18 @@ class WhirlBot(AbstractBot):
         запрашивал сирену через /get — считает это попыткой её повторить,
         строит normalized_curve из записи и рисует её тем же render_pattern_image,
         что и эталон.
-        """
+        """        
         user = await self.get_or_create_virtual_user(update)
         voice = update.effective_message.voice
         if voice is None:
             return
 
-        attempt = await SirenAttempt.objects.select_related("record").filter(
-            user=user, status=SirenAttempt.Status.WAITING
-        ).order_by("-created_at").afirst()
+        attempt = (
+            await SirenAttempt.objects.select_related("record")
+            .filter(user=user, status=SirenAttempt.Status.WAITING)
+            .order_by("-created_at")
+            .afirst()
+        )
 
         if attempt is None:
             return
@@ -306,6 +373,9 @@ class WhirlBot(AbstractBot):
                 chat_id=update.effective_chat.id,
                 message_id=attempt.reply_message_id,
                 media=InputMediaPhoto(media=image_buf, caption=caption),
+                read_timeout=30,
+                write_timeout=30,
+                connect_timeout=10,
             )
         except Exception as e:
             logger.error(f"Не удалось отредактировать сообщение: {e}", exc_info=True)

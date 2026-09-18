@@ -433,125 +433,69 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         """Клик по неактивной кнопке навигации — просто гасим "часики" на кнопке."""
         await update.callback_query.answer()
         
+    # ---------- handle_voice_reply: оркестратор ----------
+
     async def handle_voice_reply(self, update: Update, context: CallbackContext) -> None:
+        """
+        Ловит голосовое пользователя и, если есть активная WAITING-попытка,
+        разбирает его как попытку повторить сирену.
+
+        Логика разбита на маленькие шаги: лимиты → захват попытки →
+        приглашение → скачивание → анализ → результат. Каждый шаг знает
+        только про себя, оркестрация — здесь.
+        """
         user = await self.get_or_create_virtual_user(update)
         voice = update.effective_message.voice
         if voice is None:
             return
-        
+
         # 1. Лимиты
-        if voice.duration and voice.duration > MAX_VOICE_DURATION_SEC:
-            await update.effective_message.reply_text(
-                f"⏱ Слишком длинное голосовое — максимум {MAX_VOICE_DURATION_SEC} сек."
-            )
+        if not await self._check_voice_limits(update, voice):
             return
 
-        if voice.file_size and voice.file_size > MAX_VOICE_FILE_SIZE_BYTES:
-            await update.effective_message.reply_text(
-                f"📦 Файл слишком большой."
-            )
-            return
-
-        # 2. Ищем актуальную попытку
+        # 2. Активная попытка
         attempt = (
             await SirenAttempt.objects.select_related("record")
             .filter(user=user, status=SirenAttempt.Status.WAITING)
             .order_by("-created_at")
             .afirst()
         )
-
         if attempt is None:
-            # UX: не молчим, если юзер прислал войс просто так
             await update.effective_message.reply_text(
                 "Сначала выбери сирену, которую хочешь повторить! 🔊\n"
                 "Отправь /get или выбери из списка."
             )
             return
 
-        # 3. АТОМАРНЫЙ ЗАХВАТ (Защита от двойного тапа и спама)
-        # Пытаемся перевести ИМЕННО ЭТУ попытку из WAITING в PROCESSING
-        updated_count = await SirenAttempt.objects.filter(
-            id=attempt.id, 
-            status=SirenAttempt.Status.WAITING
-        ).aupdate(status=SirenAttempt.Status.PROCESSING)
-
-        if updated_count == 0:
-            # Если обновилось 0 строк, значит статус уже не WAITING.
-            # Другое голосовое доли секунды назад уже захватило эту попытку.
-            logger.info(f"Игнор второго войса от {user} (попытка уже PROCESSING)")
+        # 3. Атомарный захват
+        if not await self._claim_attempt(attempt, user):
             return
 
         record = attempt.record
 
-        # 4. Отправляем эталонную картинку с подписью "разбираю"
-        image_asset = await SirenRecordImage.objects.aget(record=record)
-        reference_file_id = await image_asset.aget_file_id(self.app_bot_id, default=None)
-
-        if reference_file_id:
-            invite_msg = await update.effective_message.reply_photo(
-                photo=reference_file_id,
-                caption="⏳ Разбираю твоё голосовое, готовлю результат…",
-            )
-        else:
-            invite_msg = await update.effective_message.reply_text(
-                "⏳ Разбираю твоё голосовое, готовлю результат…"
-            )
-
-        # Сохраняем ID сообщения для редактирования
+        # 4. Приглашение «Разбираю…»
+        invite_msg = await self._send_invite_message(update, record)
         attempt.reply_message_id = invite_msg.message_id
         await attempt.asave(update_fields=["reply_message_id", "updated_at"])
 
-        # 5. Скачиваем аудио
+        # 5. Скачивание
         try:
-            tg_file = await context.bot.get_file(voice.file_id)
-            buf = io.BytesIO()
-            await tg_file.download_to_memory(buf)
-            voice_bytes = buf.getvalue()
+            voice_bytes = await self._download_voice(context, voice.file_id)
         except Exception as e:
             logger.error(
                 f"Не удалось скачать голосовое {voice.file_id}: {e}",
                 exc_info=True,
             )
-            await SirenAttempt.objects.filter(
-                pk=attempt.pk, status=SirenAttempt.Status.PROCESSING
-            ).aupdate(
-                status=SirenAttempt.Status.CANCELLED,
-                updated_at=timezone.now(),
+            await self._fail_attempt(
+                attempt, update, invite_msg,
+                "❌ Не удалось скачать голосовое. Попробуй ещё раз.",
             )
-            # Сообщаем юзеру, что не получилось — молчание тут плохо,
-            # он уже увидел «Разбираю…» и ждёт результата.
-            try:
-                await context.bot.edit_message_caption(
-                    chat_id=update.effective_chat.id,
-                    message_id=invite_msg.message_id,
-                    caption="❌ Не удалось скачать голосовое. Попробуй ещё раз.",
-                )
-            except Exception:
-                await update.effective_message.reply_text(
-                    "❌ Не удалось скачать голосовое. Попробуй ещё раз."
-                )
             return
 
-        # 6. Тяжелая математика
-        def _analyze() -> dict:
-            raw_curve = self.extract_normalized_curve(voice_bytes)
-            smoothed = self.smooth_curve(raw_curve)
-            thresholded = self.apply_threshold(smoothed)
-            aligned = self.align_user_curve(record.normalized_curve, thresholded)
-            score = self.compute_match_score(record.normalized_curve, aligned)
-            image_bytes = self.render_comparison_image(
-                record.normalized_curve, aligned
-            )
-            return {
-                "aligned": aligned,
-                "score": score,
-                "image_bytes": image_bytes,
-            }
-
-        # 7. Запускаем анализ с обработкой ошибок
+        # 6. Анализ (CPU в потоке, с таймаутом)
         try:
             result = await asyncio.wait_for(
-                asyncio.to_thread(_analyze),
+                asyncio.to_thread(self._analyze_voice, voice_bytes, record),
                 timeout=ANALYZE_TIMEOUT_SEC,
             )
         except asyncio.TimeoutError:
@@ -559,43 +503,93 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
                 f"Анализ голосового не уложился в {ANALYZE_TIMEOUT_SEC} сек — "
                 f"поток продолжает работу, но результат будет отброшен."
             )
-            await SirenAttempt.objects.filter(pk=attempt.pk).aupdate(
-                status=SirenAttempt.Status.CANCELLED,
-                updated_at=timezone.now(),
+            await self._fail_attempt(
+                attempt, update, invite_msg,
+                "⏱ Не успел разобрать голосовое. Попробуй ещё раз.",
             )
-            try:
-                await context.bot.edit_message_caption(
-                    chat_id=update.effective_chat.id,
-                    message_id=invite_msg.message_id,
-                    caption="⏱ Не успел разобрать голосовое. Попробуй ещё раз.",
-                )
-            except Exception:
-                await update.effective_message.reply_text(
-                    "⏱ Не успел разобрать голосовое. Попробуй ещё раз."
-                )
             return
         except Exception as e:
             logger.error(f"Ошибка разбора голосового: {e}", exc_info=True)
-            
-            # Раз упали — откатываем статус явно
-            await SirenAttempt.objects.filter(pk=attempt.pk).aupdate(
-                status=SirenAttempt.Status.CANCELLED,
-                updated_at=timezone.now(),
+            await self._fail_attempt(
+                attempt, update, invite_msg,
+                "❌ Не удалось разобрать голосовое сообщение.",
             )
-            
-            try:
-                await context.bot.edit_message_caption(
-                    chat_id=update.effective_chat.id,
-                    message_id=invite_msg.message_id,
-                    caption="❌ Не удалось разобрать голосовое сообщение.",
-                )
-            except Exception:
-                await update.effective_message.reply_text(
-                    "❌ Не удалось разобрать голосовое сообщение."
-                )
             return
 
-        # 8. Сюда доходим только при УСПЕХЕ. Сохраняем результат.
+        # 7. Успех
+        await self._save_success(attempt, result)
+        await self._render_result(update, invite_msg, attempt, record, result)
+
+    # ---------- шаги ----------
+
+    async def _check_voice_limits(self, update: Update, voice) -> bool:
+        """True — лимиты ок, False — уже ответили юзеру и надо выйти."""
+        if voice.duration and voice.duration > MAX_VOICE_DURATION_SEC:
+            await update.effective_message.reply_text(
+                f"⏱ Слишком длинное голосовое — максимум {MAX_VOICE_DURATION_SEC} сек."
+            )
+            return False
+        if voice.file_size and voice.file_size > MAX_VOICE_FILE_SIZE_BYTES:
+            await update.effective_message.reply_text(
+                "📦 Файл слишком большой."
+            )
+            return False
+        return True
+
+    async def _claim_attempt(self, attempt: SirenAttempt, user: WhirlUser) -> bool:
+        """Атомарно WAITING → PROCESSING. False, если попытку уже захватили."""
+        updated = await SirenAttempt.objects.filter(
+            id=attempt.id, status=SirenAttempt.Status.WAITING
+        ).aupdate(status=SirenAttempt.Status.PROCESSING)
+        if updated == 0:
+            logger.info(
+                f"Игнор второго войса от {user} (попытка {attempt.id} уже PROCESSING)"
+            )
+            return False
+        return True
+
+    async def _send_invite_message(self, update: Update, record: SirenRecord):
+        """Шлёт картинку эталона с подписью «Разбираю…» (или текст, если картинки нет)."""
+        image_asset = await SirenRecordImage.objects.aget(record=record)
+        reference_file_id = await image_asset.aget_file_id(self.app_bot_id, default=None)
+
+        if reference_file_id:
+            return await update.effective_message.reply_photo(
+                photo=reference_file_id,
+                caption="⏳ Разбираю твоё голосовое, готовлю результат…",
+            )
+        return await update.effective_message.reply_text(
+            "⏳ Разбираю твоё голосовое, готовлю результат…"
+        )
+
+    async def _download_voice(self, context: CallbackContext, file_id: str) -> bytes:
+        """Скачивает голосовое в память и возвращает bytes."""
+        tg_file = await context.bot.get_file(
+            file_id,
+            connect_timeout=10,
+            read_timeout=30,
+            pool_timeout=10,
+        )
+        buf = io.BytesIO()
+        await tg_file.download_to_memory(buf)
+        return buf.getvalue()
+
+    def _analyze_voice(self, voice_bytes: bytes, record: SirenRecord) -> dict:
+        """
+        Синхронная CPU-цепочка: кривая → сглаживание → выравнивание →
+        score → картинка сравнения. Запускается через asyncio.to_thread,
+        поэтому внутри не должно быть await.
+        """
+        raw_curve = self.extract_normalized_curve(voice_bytes)
+        smoothed = self.smooth_curve(raw_curve)
+        thresholded = self.apply_threshold(smoothed)
+        aligned = self.align_user_curve(record.normalized_curve, thresholded)
+        score = self.compute_match_score(record.normalized_curve, aligned)
+        image_bytes = self.render_comparison_image(record.normalized_curve, aligned)
+        return {"aligned": aligned, "score": score, "image_bytes": image_bytes}
+
+    async def _save_success(self, attempt: SirenAttempt, result: dict) -> None:
+        """Помечает попытку SUCCESS и сохраняет score и кривую."""
         await SirenAttempt.objects.filter(pk=attempt.pk).aupdate(
             status=SirenAttempt.Status.SUCCESS,
             score=result["score"],
@@ -603,7 +597,38 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
             updated_at=timezone.now(),
         )
 
-        # 9. Показываем картинку
+    async def _fail_attempt(
+        self,
+        attempt: SirenAttempt,
+        update: Update,
+        invite_msg,
+        text: str,
+    ) -> None:
+        """Откат PROCESSING → CANCELLED + сообщение юзеру вместо «Разбираю…»."""
+        await SirenAttempt.objects.filter(
+            pk=attempt.pk, status=SirenAttempt.Status.PROCESSING
+        ).aupdate(
+            status=SirenAttempt.Status.CANCELLED,
+            updated_at=timezone.now(),
+        )
+        try:
+            await update.get_bot().edit_message_caption(
+                chat_id=update.effective_chat.id,
+                message_id=invite_msg.message_id,
+                caption=text,
+            )
+        except Exception:
+            await update.effective_message.reply_text(text)
+
+    async def _render_result(
+        self,
+        update: Update,
+        invite_msg,
+        attempt: SirenAttempt,
+        record: SirenRecord,
+        result: dict,
+    ) -> None:
+        """Подменяет приглашение на картинку с результатом и клавиатуру."""
         image_buf = io.BytesIO(result["image_bytes"])
         image_buf.name = f"{record.slug}_attempt.png"
 
@@ -614,9 +639,9 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         )
 
         try:
-            await context.bot.edit_message_media(
+            await update.get_bot().edit_message_media(
                 chat_id=update.effective_chat.id,
-                message_id=attempt.reply_message_id,
+                message_id=invite_msg.message_id,
                 media=InputMediaPhoto(media=image_buf, caption=caption),
                 reply_markup=self._result_keyboard(record.id),
                 read_timeout=30,

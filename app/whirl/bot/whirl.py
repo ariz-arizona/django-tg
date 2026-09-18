@@ -1,10 +1,5 @@
 import io
 import os
-import wave
-
-import numpy as np
-from PIL import Image, ImageDraw
-from pydub import AudioSegment
 import redis.asyncio as aioredis
 
 from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
@@ -24,9 +19,9 @@ from whirl.models import (
     SirenAttempt,
 )
 
+from .rendering import RenderingMixin
+from .audio import AudioMixin
 from .cooldown import CooldownService
-
-PEAK_THRESHOLD = 0.15  # можно вынести в константу класса
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
@@ -46,7 +41,7 @@ def get_redis_client(
 
 redis_client = get_redis_client(db=3)
 
-class WhirlBot(AbstractBot):
+class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
     def __init__(self):
         self.handlers = self.get_handlers()
         self.cooldown = CooldownService(redis_client)
@@ -236,16 +231,17 @@ class WhirlBot(AbstractBot):
         has_prev = page > 0
         has_next = offset + SIREN_PAGE_SIZE < total
 
-        buttons.append([
-            InlineKeyboardButton(
-                "⬅️ Назад" if has_prev else "📢",
-                callback_data=f"siren_page:{page - 1}" if has_prev else "siren_noop",
-            ),
-            InlineKeyboardButton(
-                "Вперёд ➡️" if has_next else "📢",
-                callback_data=f"siren_page:{page + 1}" if has_next else "siren_noop",
-            ),
-        ])
+        if has_next or has_prev:
+            buttons.append([
+                InlineKeyboardButton(
+                    "⬅️ Назад" if has_prev else "📢",
+                    callback_data=f"siren_page:{page - 1}" if has_prev else "siren_noop",
+                ),
+                InlineKeyboardButton(
+                    "Вперёд ➡️" if has_next else "📢",
+                    callback_data=f"siren_page:{page + 1}" if has_next else "siren_noop",
+                ),
+            ])
 
         text = f"У меня есть {total} записей. Выбери номер:"
         return text, InlineKeyboardMarkup(buttons)
@@ -447,371 +443,3 @@ class WhirlBot(AbstractBot):
                 photo=image_buf,
                 caption=caption,
             )
-        
-    def extract_normalized_curve(self, ogg_bytes: bytes, n_points: int = 200) -> list:
-        """
-        Декодирует голосовое (OGG/Opus) и строит нормализованную огибающую
-        громкости в том же формате, что normalized_curve из generate_pattern:
-        [{"t": ..., "rms": ..., "pitch": ...}, ...], чтобы её можно было
-        отрисовать тем же render_pattern_image.
-        Требует ffmpeg в системе (используется через pydub).
-        """
-        audio = AudioSegment.from_file(io.BytesIO(ogg_bytes), format="ogg")
-        audio = audio.set_channels(1)
-
-        samples = np.array(audio.get_array_of_samples()).astype(np.float32)
-        sample_rate = audio.frame_rate
-        duration = len(samples) / sample_rate
-
-        if duration <= 0:
-            raise ValueError("Пустая аудиозапись")
-
-        # RMS-окна по ~30мс, без сторонних библиотек типа librosa
-        window_size = max(int(sample_rate * 0.03), 1)
-        n_windows = max(len(samples) // window_size, 1)
-
-        rms = np.array([
-            np.sqrt(np.mean(
-                samples[i * window_size:(i + 1) * window_size].astype(np.float64) ** 2
-            ) + 1e-9)
-            for i in range(n_windows)
-        ])
-
-        rms_norm = (rms - rms.min()) / (rms.max() - rms.min() + 1e-9)
-
-        # растягиваем на n_points, как в generate_pattern, чтобы формат
-        # совпадал с эталонной кривой
-        x_src = np.linspace(0, duration, n_windows)
-        t = np.linspace(0, duration, n_points)
-        rms_interp = np.interp(t, x_src, rms_norm)
-
-        # без честного pitch-трекинга (librosa.pyin) держим синюю линию
-        # на нуле — она у нас и так по умолчанию не обязательна
-        pitch_flat = np.zeros_like(t)
-
-        return [
-            {"t": float(ti), "rms": float(ri), "pitch": float(pi)}
-            for ti, ri, pi in zip(t, rms_interp, pitch_flat)
-        ]
-
-    def apply_threshold(self, curve: list, threshold: float = PEAK_THRESHOLD, key: str = "rms") -> list:
-        """
-        Шумовой гейт: значения key ниже threshold обнуляются, чтобы тишина
-        и случайные шорохи в начале/конце голосового не участвовали
-        в поиске пика и в расчёте несовпадения.
-        """
-        result = []
-        for p in curve:
-            p = dict(p)
-            if p[key] < threshold:
-                p[key] = 0.0
-            result.append(p)
-        return result
-
-    def smooth_curve(self, curve: list, window: int = 9, key: str = "rms") -> list:
-        """
-        Сглаживает key скользящим средним (окно нечётное, симметричное).
-        Нужно в первую очередь для пользовательской кривой — сырой RMS
-        из voice-сообщения рваный даже при идеальном повторе паттерна,
-        и эти зубцы срезают площадь пересечения при подсчёте IoU.
-        Края паддим ближайшим значением, чтобы не проседали к нулю.
-        """
-        if window < 3 or window % 2 == 0:
-            window = 9
-
-        values = np.array([p[key] for p in curve])
-        pad = window // 2
-        padded = np.pad(values, pad, mode="edge")
-        kernel = np.ones(window) / window
-        smoothed = np.convolve(padded, kernel, mode="valid")
-
-        result = []
-        for p, s in zip(curve, smoothed):
-            p = dict(p)
-            p[key] = float(s)
-            result.append(p)
-        return result
-
-    def find_first_peak(self, curve: list, threshold: float = PEAK_THRESHOLD, key: str = "rms") -> dict | None:
-        """
-        Первый локальный максимум key, превышающий threshold.
-        Если чёткого локального максимума нет (пик на самом краю кривой) —
-        берём первую точку, вообще превысившую порог.
-        """
-        values = [p[key] for p in curve]
-        n = len(values)
-        for i in range(1, n - 1):
-            if values[i] < threshold:
-                continue
-            if values[i] >= values[i - 1] and values[i] >= values[i + 1] and values[i] > values[i - 1]:
-                return curve[i]
-        for p in curve:
-            if p[key] >= threshold:
-                return p
-        return None
-
-    def align_user_curve(self, target_curve: list, user_curve: list, threshold: float = PEAK_THRESHOLD) -> list:
-        """
-        Сдвигает user_curve по времени так, чтобы её первый пик rms совпал
-        с первым пиком target_curve, и ресемплит на временную сетку target —
-        дальше кривые сравнимы поточечно и рисуются в одних координатах.
-        """
-        target_peak = self.find_first_peak(target_curve, threshold)
-        user_peak = self.find_first_peak(user_curve, threshold)
-
-        shift = target_peak["t"] - user_peak["t"] if (target_peak and user_peak) else 0.0
-
-        user_t = np.array([p["t"] for p in user_curve]) + shift
-        user_rms = np.array([p["rms"] for p in user_curve])
-        user_pitch = np.array([p.get("pitch", 0.0) for p in user_curve])
-        target_t = np.array([p["t"] for p in target_curve])
-
-        # вне диапазона user-кривой после сдвига (ещё не начала / уже
-        # закончила) — честно считаем громкость нулевой
-        rms_aligned = np.interp(target_t, user_t, user_rms, left=0.0, right=0.0)
-        pitch_aligned = np.interp(target_t, user_t, user_pitch, left=0.0, right=0.0)
-
-        return [
-            {"t": float(ti), "rms": float(ri), "pitch": float(pi)}
-            for ti, ri, pi in zip(target_t, rms_aligned, pitch_aligned)
-        ]
-
-    def compute_match_score(self, target_curve: list, user_curve_aligned: list, key: str = "rms") -> float:
-        """
-        Score = площадь пересечения / площадь объединения (IoU) по огибающей.
-        В отличие от MSE, не завышается за счёт совместной тишины: пустые
-        участки, где обе кривые ~0, не дают вклада ни в числитель, ни
-        в знаменатель — учитывается только реально «звучащая» масса.
-        """
-        target = np.array([p[key] for p in target_curve])
-        user = np.array([p[key] for p in user_curve_aligned])
-
-        intersection = np.sum(np.minimum(target, user))
-        union = np.sum(np.maximum(target, user))
-
-        if union <= 1e-9:
-            return 0.0
-
-        return round(intersection / union * 100, 1)
-
-    def render_comparison_image(self, target_curve: list, user_curve_aligned: list) -> bytes:
-        """
-        Эталон и попытка пользователя рисуются как полупрозрачные заливки
-        от кривой до нуля — каждая своим бледным цветом. Там, где области
-        перекрываются, альфа-блендинг даёт смешанный цвет, и рассинхрон
-        виден сразу по форме и по чистым (неперекрытым) кускам заливки,
-        без нужды сверяться с цифрой score.
-        """
-        width, height = 800, 300
-        margin = 20
-        bg_color = (18, 18, 24, 255)
-        target_fill = (255, 140, 60, 110)    # бледно-оранжевый, полупрозрачный
-        target_line = (255, 140, 60, 255)
-        user_fill = (110, 220, 120, 110)     # бледно-зелёный, полупрозрачный
-        user_line = (110, 220, 120, 255)
-        axis_color = (70, 70, 80, 255)
-
-        base = Image.new("RGBA", (width, height), bg_color)
-        axis_draw = ImageDraw.Draw(base)
-        axis_draw.line(
-            [(margin, height // 2), (width - margin, height // 2)],
-            fill=axis_color,
-            width=1,
-        )
-
-        n = len(target_curve)
-        if n < 2:
-            buf = io.BytesIO()
-            base.convert("RGB").save(buf, format="PNG")
-            return buf.getvalue()
-
-        plot_w = width - 2 * margin
-        plot_h = height - 2 * margin
-        baseline_y = margin + plot_h  # y соответствующий value=0
-
-        def to_xy(i: int, value: float):
-            x = margin + plot_w * (i / (n - 1))
-            y = margin + plot_h * (1 - value)
-            return x, y
-
-        def draw_area(curve: list, key: str, fill_color, line_color):
-            points = [to_xy(i, p[key]) for i, p in enumerate(curve)]
-            polygon = [(margin, baseline_y)] + points + [(width - margin, baseline_y)]
-
-            layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-            layer_draw = ImageDraw.Draw(layer)
-            layer_draw.polygon(polygon, fill=fill_color)
-            layer_draw.line(points, fill=line_color, width=2, joint="curve")
-            return layer
-
-        target_layer = draw_area(target_curve, "rms", target_fill, target_line)
-        user_layer = draw_area(user_curve_aligned, "rms", user_fill, user_line)
-
-        base = Image.alpha_composite(base, target_layer)
-        base = Image.alpha_composite(base, user_layer)
-
-        buf = io.BytesIO()
-        base.convert("RGB").save(buf, format="PNG")
-        return buf.getvalue()
-
-    # --- Генерация паттерна ---
-
-    def generate_pattern(self, pattern: list[float] | None = None):
-        """
-        Генерирует процедурный паттерн сирены.
-
-        :param pattern: необязательная "заготовка" волны, например [0,1,2,1,2,0,0].
-            Если передана — паттерн повторяется 3 раза подряд и растягивается
-            (линейной интерполяцией) на всю длительность сирены, а максимальное
-            значение списка принимается за максимум огибающей амплитуды.
-            Если None — амплитуда генерируется автоматически (синус со
-            случайной частотой), как раньше.
-        Возвращает (generated_sequence, normalized_curve), оба —
-        JSON-сериализуемые списки точек, готовые для полей модели.
-        """
-        duration = 5.0
-        n_points = 200
-        t = np.linspace(0, duration, n_points)
-
-        base_freq = np.random.uniform(0.5, 1.5)
-        pitch = 400 + 200 * np.sin(2 * np.pi * base_freq * t)
-
-        if pattern:
-            pattern_arr = np.asarray(pattern, dtype=float)
-            pattern_max = pattern_arr.max()
-            if pattern_max <= 0:
-                pattern_max = 1.0
-
-            repeated = np.tile(pattern_arr, 3)
-            x_repeated = np.linspace(0, duration, repeated.size)
-
-            shape = np.interp(t, x_repeated, repeated) / pattern_max
-            shape = np.clip(shape, 0.0, 1.0)
-
-            amplitude = shape
-
-            # питч следует той же самой форме, что и амплитуда —
-            # никакой отдельной "заморозки" и скачков, просто другой
-            # диапазон значений (Гц вместо 0..1)
-            pitch_base = 400
-            pitch_range = 200
-            pitch = pitch_base + pitch_range * shape
-        else:
-            amplitude = 0.5 + 0.5 * np.abs(np.sin(2 * np.pi * base_freq * t))
-            pitch = 400 + 200 * np.sin(2 * np.pi * base_freq * t)
-
-        generated_sequence = [
-            {"t": float(ti), "amplitude": float(ai), "pitch": float(pi)}
-            for ti, ai, pi in zip(t, amplitude, pitch)
-        ]
-
-        amp_norm = (amplitude - amplitude.min()) / (
-            amplitude.max() - amplitude.min() + 1e-9
-        )
-        pitch_norm = (pitch - pitch.min()) / (pitch.max() - pitch.min() + 1e-9)
-
-        normalized_curve = [
-            {"t": float(ti), "rms": float(ri), "pitch": float(pi)}
-            for ti, ri, pi in zip(t, amp_norm, pitch_norm)
-        ]
-
-        return generated_sequence, normalized_curve
-
-    def render_pattern_image(self, normalized_curve: list) -> bytes:
-        """
-        Рисует PNG с огибающей громкости (оранжевая линия) и, если есть,
-        pitch-контуром (синяя линия) поверх нормализованной кривой [0, 1].
-        """
-        width, height = 800, 300
-        margin = 20
-        bg_color = (18, 18, 24)
-        amp_color = (255, 140, 60)
-        pitch_color = (90, 170, 255)
-        axis_color = (70, 70, 80)
-
-        img = Image.new("RGB", (width, height), bg_color)
-        draw = ImageDraw.Draw(img)
-        draw.line(
-            [(margin, height // 2), (width - margin, height // 2)],
-            fill=axis_color,
-            width=1,
-        )
-
-        n = len(normalized_curve)
-        if n < 2:
-            buf = io.BytesIO()
-            img.save(buf, format="PNG")
-            return buf.getvalue()
-
-        plot_w = width - 2 * margin
-        plot_h = height - 2 * margin
-
-        def to_xy(i: int, value: float):
-            x = margin + plot_w * (i / (n - 1))
-            y = margin + plot_h * (1 - value)
-            return x, y
-
-        amp_points = [to_xy(i, p["rms"]) for i, p in enumerate(normalized_curve)]
-        draw.line(amp_points, fill=amp_color, width=3, joint="curve")
-
-        if "pitch" in normalized_curve[0]:
-            pitch_points = [
-                to_xy(i, p["pitch"]) for i, p in enumerate(normalized_curve)
-            ]
-            draw.line(pitch_points, fill=pitch_color, width=2, joint="curve")
-
-        buf = io.BytesIO()
-        img.save(buf, format="PNG")
-        return buf.getvalue()
-
-    def render_pattern_sound(self, generated_sequence: list) -> bytes:
-        """
-        Синтезирует эталонный звук по generated_sequence: амплитуда и
-        частота интерполируются по времени, частота интегрируется в фазу
-        (а не просто sin(2*pi*f*t)), чтобы плавающий pitch не давал щелчков.
-        Возвращает моно WAV 16-bit PCM как bytes.
-        """
-        sample_rate = 44100
-
-        n = len(generated_sequence)
-        if n < 2:
-            raise ValueError("generated_sequence слишком короткая для синтеза звука")
-
-        t_points = np.array([p["t"] for p in generated_sequence])
-        amp_points = np.array([p["amplitude"] for p in generated_sequence])
-        freq_points = np.array([p.get("pitch", 440.0) for p in generated_sequence])
-
-        duration = t_points[-1] - t_points[0]
-        n_samples = max(int(duration * sample_rate), 2)
-        t_samples = np.linspace(t_points[0], t_points[-1], n_samples)
-
-        amp_env = np.interp(t_samples, t_points, amp_points)
-        freq_env = np.interp(t_samples, t_points, freq_points)
-
-        dt = 1.0 / sample_rate
-        phase = 2 * np.pi * np.cumsum(freq_env) * dt
-        waveform = amp_env * np.sin(phase)
-
-        # нормализация громкости + короткий fade in/out на краях, чтобы
-        # не было щелчка в начале/конце файла
-        peak = np.max(np.abs(waveform))
-        if peak > 0:
-            waveform = waveform / peak
-
-        fade_len = int(0.01 * sample_rate)
-        if 0 < fade_len < n_samples // 2:
-            fade_in = np.linspace(0, 1, fade_len)
-            fade_out = np.linspace(1, 0, fade_len)
-            waveform[:fade_len] *= fade_in
-            waveform[-fade_len:] *= fade_out
-
-        pcm = (waveform * 32767 * 0.9).astype(np.int16)
-
-        buf = io.BytesIO()
-        with wave.open(buf, "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)
-            wf.setframerate(sample_rate)
-            wf.writeframes(pcm.tobytes())
-
-        return buf.getvalue()

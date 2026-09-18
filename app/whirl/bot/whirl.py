@@ -32,6 +32,8 @@ SIREN_PAGE_SIZE = 4
 MAX_VOICE_DURATION_SEC = 15
 MAX_VOICE_FILE_SIZE_BYTES = 1 * 1024 * 1024
 
+ANALYZE_TIMEOUT_SEC = 20
+
 def get_redis_client(
     db: int = 0, decode_responses: bool = True
 ) -> aioredis.StrictRedis:
@@ -500,10 +502,35 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         await attempt.asave(update_fields=["reply_message_id", "updated_at"])
 
         # 5. Скачиваем аудио
-        tg_file = await context.bot.get_file(voice.file_id)
-        buf = io.BytesIO()
-        await tg_file.download_to_memory(buf)
-        voice_bytes = buf.getvalue()
+        try:
+            tg_file = await context.bot.get_file(voice.file_id)
+            buf = io.BytesIO()
+            await tg_file.download_to_memory(buf)
+            voice_bytes = buf.getvalue()
+        except Exception as e:
+            logger.error(
+                f"Не удалось скачать голосовое {voice.file_id}: {e}",
+                exc_info=True,
+            )
+            await SirenAttempt.objects.filter(
+                pk=attempt.pk, status=SirenAttempt.Status.PROCESSING
+            ).aupdate(
+                status=SirenAttempt.Status.CANCELLED,
+                updated_at=timezone.now(),
+            )
+            # Сообщаем юзеру, что не получилось — молчание тут плохо,
+            # он уже увидел «Разбираю…» и ждёт результата.
+            try:
+                await context.bot.edit_message_caption(
+                    chat_id=update.effective_chat.id,
+                    message_id=invite_msg.message_id,
+                    caption="❌ Не удалось скачать голосовое. Попробуй ещё раз.",
+                )
+            except Exception:
+                await update.effective_message.reply_text(
+                    "❌ Не удалось скачать голосовое. Попробуй ещё раз."
+                )
+            return
 
         # 6. Тяжелая математика
         def _analyze() -> dict:
@@ -523,7 +550,30 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
 
         # 7. Запускаем анализ с обработкой ошибок
         try:
-            result = await asyncio.to_thread(_analyze)
+            result = await asyncio.wait_for(
+                asyncio.to_thread(_analyze),
+                timeout=ANALYZE_TIMEOUT_SEC,
+            )
+        except asyncio.TimeoutError:
+            logger.error(
+                f"Анализ голосового не уложился в {ANALYZE_TIMEOUT_SEC} сек — "
+                f"поток продолжает работу, но результат будет отброшен."
+            )
+            await SirenAttempt.objects.filter(pk=attempt.pk).aupdate(
+                status=SirenAttempt.Status.CANCELLED,
+                updated_at=timezone.now(),
+            )
+            try:
+                await context.bot.edit_message_caption(
+                    chat_id=update.effective_chat.id,
+                    message_id=invite_msg.message_id,
+                    caption="⏱ Не успел разобрать голосовое. Попробуй ещё раз.",
+                )
+            except Exception:
+                await update.effective_message.reply_text(
+                    "⏱ Не успел разобрать голосовое. Попробуй ещё раз."
+                )
+            return
         except Exception as e:
             logger.error(f"Ошибка разбора голосового: {e}", exc_info=True)
             

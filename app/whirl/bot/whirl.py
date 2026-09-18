@@ -54,6 +54,7 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         return [
             CommandHandler("start", self.handle_start, filters.ChatType.PRIVATE),
             CommandHandler("create", self.handle_create, filters.ChatType.PRIVATE),
+            CommandHandler("my", self.handle_my, filters.ChatType.PRIVATE),
             CommandHandler("get", self.handle_get, filters.ChatType.PRIVATE),
             MessageHandler(
                 filters.VOICE & filters.ChatType.PRIVATE,
@@ -74,6 +75,15 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         if score >= 40:
             return "Сирена немного заблудилась"
         return "Это был скорее грустный чайник"
+    
+    @staticmethod
+    def _result_keyboard(record_id: int) -> InlineKeyboardMarkup:
+        """Клавиатура после разбора: действия привязаны к конкретной сирене."""
+        return InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🔁 Повторить", callback_data=f"siren_pick:{record_id}"),
+            ],
+        ])
 
     async def get_or_create_virtual_user(self, update: Update) -> WhirlUser:
         """Находит или создаёт TgUser по данным Telegram."""
@@ -213,6 +223,44 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
             f"✅ Сирена «{record.title}» сохранена под slug «{record.slug}»."
         )
 
+    async def handle_my(self, update: Update, context: CallbackContext) -> None:
+        """Личный кабинет: данные юзера, его рекорд, ссылка на /get."""
+        user = await self.get_or_create_virtual_user(update)
+
+        best = (
+            await SirenAttempt.objects
+            .filter(user=user, status=SirenAttempt.Status.SUCCESS)
+            .order_by("-score")
+            .afirst()
+        )
+        total_attempts = await SirenAttempt.objects.filter(
+            user=user, status=SirenAttempt.Status.SUCCESS
+        ).acount()
+
+        if best is not None:
+            verdict = self._score_verdict(best.score)
+            best_line = f"🏆 Лучший результат: {best.score}% — {verdict}"
+        else:
+            best_line = "🏆 Пока ни одной завершённой попытки"
+
+        tg = update.effective_user
+        name = tg.first_name or tg.username or f"id{tg.id}"
+
+        text = (
+            f"👤 {name}\n"
+            f"🆔 tg_id: {tg.id}\n"
+            f"🎮 Попыток: {total_attempts}\n"
+            f"{best_line}\n\n"
+            f"🔊 Все сирены: /get"
+        )
+
+        await update.effective_message.reply_text(
+            text,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("📊 Мои результаты", callback_data="siren_history")],
+            ]),
+        )
+        
     async def build_siren_list(self, page: int) -> tuple[str, InlineKeyboardMarkup]:
         """
         Текст + клавиатура для страницы списка сирен: кнопки с сквозными
@@ -507,6 +555,7 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
                 chat_id=update.effective_chat.id,
                 message_id=attempt.reply_message_id,
                 media=InputMediaPhoto(media=image_buf, caption=caption),
+                reply_markup=self._result_keyboard(record.id),
                 read_timeout=30,
                 write_timeout=30,
                 connect_timeout=10,
@@ -517,4 +566,5 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
             await update.effective_message.reply_photo(
                 photo=image_buf,
                 caption=caption,
+                reply_markup=self._result_keyboard(record.id),
             )

@@ -63,6 +63,17 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
             CallbackQueryHandler(self.handle_siren_pick, pattern=r"^siren_pick:.+$"),
             CallbackQueryHandler(self.handle_siren_noop, pattern=r"^siren_noop$"),
         ]
+        
+    @staticmethod
+    def _score_verdict(score: float) -> str:
+        """Словесная оценка совпадения — чтобы не только цифра, но и эмоция."""
+        if score >= 90:
+            return "Почти идеальная сирена 🚨"
+        if score >= 65:
+            return "Очень похоже!"
+        if score >= 40:
+            return "Сирена немного заблудилась"
+        return "Это был скорее грустный чайник"
 
     async def get_or_create_virtual_user(self, update: Update) -> WhirlUser:
         """Находит или создаёт TgUser по данным Telegram."""
@@ -226,7 +237,7 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
             row.append(
                 InlineKeyboardButton(
                     truncate(record.title),
-                    callback_data=f"siren_pick:{record.slug}",
+                    callback_data=f"siren_pick:{record.id}",
                 )
             )
             if len(row) == 2:  # было 4
@@ -261,34 +272,29 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         text = f"У меня есть {total} {word}. Выбери одну:"
         return text, InlineKeyboardMarkup(buttons)
 
-    async def send_siren_record(self, message, user: WhirlUser, slug: str) -> None:
+    async def send_siren_record(self, message, user: WhirlUser, record: SirenRecord) -> None:
         """
-        Общая логика: находит запись по slug, шлёт картинку с подписью-
-        инструкцией + аудио, отменяет прежние WAITING попытки пользователя
-        и создаёт новую. Используется и из /get <slug>, и из клика по
-        номеру в инлайн-списке — message может быть как
-        Update.effective_message, так и CallbackQuery.message.
+        Общая логика: шлёт картинку с подписью-инструкцией + voice эталона,
+        отменяет прежние WAITING попытки пользователя и создаёт новую.
+        Используется и из /get <slug>, и из клика по номеру в инлайн-списке —
+        message может быть как Update.effective_message, так и
+        CallbackQuery.message.
         """
-        try:
-            record = await SirenRecord.objects.aget(slug=slug, is_active=True)
-        except SirenRecord.DoesNotExist:
-            await message.reply_text(f"❌ Сирена «{slug}» не найдена.")
-            return
-
         try:
             image_asset = await SirenRecordImage.objects.aget(record=record)
             sound_asset = await SirenRecordSound.objects.aget(record=record)
         except (SirenRecordImage.DoesNotExist, SirenRecordSound.DoesNotExist):
-            await message.reply_text(f"❌ Для сирены «{slug}» не найдены файлы.")
+            await message.reply_text(f"❌ Для сирены «{record.title}» не найдены файлы.")  # было slug
             return
 
         image_file_id = await image_asset.aget_file_id(self.app_bot_id, default=None)
         sound_file_id = await sound_asset.aget_file_id(self.app_bot_id, default=None)
 
         if not image_file_id or not sound_file_id:
-            await message.reply_text(f"❌ Для сирены «{slug}» не найдены файлы этого бота.")
+            await message.reply_text(
+                f"❌ Для сирены «{record.title}» не найдены файлы этого бота."
+            ) 
             return
-
         # Фото с подписью — сразу и название, и инструкция. Это экономит
         # отдельное сообщение с текстом.
         await message.reply_photo(
@@ -324,7 +330,7 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
     async def handle_get(self, update: Update, context: CallbackContext) -> None:
         """
         /get <slug> — отправляет конкретную запись.
-        /get без slug — присылает пронумерованный список с пагинацией.
+        /get без slug — присылает клавиатуру сирен с пагинацией.
         """
         user = await self.get_or_create_virtual_user(update)
 
@@ -338,7 +344,15 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
             await update.effective_message.reply_text(text, reply_markup=keyboard)
             return
         
-        await self.send_siren_record(update.effective_message, user, args[0])
+        try:
+            record = await SirenRecord.objects.aget(slug=args[0], is_active=True)
+        except SirenRecord.DoesNotExist:
+            await update.effective_message.reply_text(
+                f"❌ Сирена «{args[0]}» не найдена."
+            )
+            return
+
+        await self.send_siren_record(update.effective_message, user, record)
 
     async def handle_siren_page(self, update: Update, context: CallbackContext) -> None:
         """Переключение страницы списка — просто перерисовывает клавиатуру на месте."""
@@ -356,9 +370,17 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         if not await self.cooldown.use(update):
             return
         
-        slug = query.data.split(":", 1)[1]
+        record_id = int(query.data.split(":", 1)[1])
+        try:
+            record = await SirenRecord.objects.aget(id=record_id, is_active=True)
+        except SirenRecord.DoesNotExist:
+            await query.message.reply_text(
+                f"❌ Сирена #{record_id} не найдена."
+            )
+            return
+
         user = await self.get_or_create_virtual_user(update)
-        await self.send_siren_record(query.message, user, slug)
+        await self.send_siren_record(query.message, user, record)
 
     async def handle_siren_noop(self, update: Update, context: CallbackContext) -> None:
         """Клик по неактивной кнопке навигации — просто гасим "часики" на кнопке."""
@@ -474,9 +496,10 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         image_buf = io.BytesIO(result["image_bytes"])
         image_buf.name = f"{record.slug}_attempt.png"
 
+        verdict = self._score_verdict(result["score"])
         caption = (
-            f"Твоя попытка повторить «{record.title}»: "
-            f"совпадение {result['score']}%"
+            f"{result['score']}% — {verdict}\n\n"
+            f"Твоя попытка повторить «{record.title}»"
         )
 
         try:

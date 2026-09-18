@@ -1,5 +1,6 @@
 import io
 import os
+import asyncio
 import redis.asyncio as aioredis
 
 from telegram import Update, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
@@ -363,6 +364,9 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         запрашивал сирену через /get — считает это попыткой её повторить,
         строит normalized_curve из записи и рисует её тем же render_pattern_image,
         что и эталон.
+
+        Вся CPU-тяжёлая обработка звука и рендер картинки вынесены в
+        asyncio.to_thread(), чтобы не блокировать event loop бота.
         """
         user = await self.get_or_create_virtual_user(update)
         voice = update.effective_message.voice
@@ -398,14 +402,30 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         attempt.reply_message_id = invite_msg.message_id
         await attempt.asave(update_fields=["reply_message_id", "updated_at"])
 
-        # 2) Скачиваем и разбираем голосовое
+        # 2) Скачиваем голосовое (I/O — оставляем в loop)
         tg_file = await context.bot.get_file(voice.file_id)
         buf = io.BytesIO()
         await tg_file.download_to_memory(buf)
-        buf.seek(0)
+        voice_bytes = buf.getvalue()
+
+        # 3) CPU-тяжёлая обработка — в отдельный поток
+        def _analyze() -> dict:
+            raw_curve = self.extract_normalized_curve(voice_bytes)
+            smoothed = self.smooth_curve(raw_curve)
+            thresholded = self.apply_threshold(smoothed)
+            aligned = self.align_user_curve(record.normalized_curve, thresholded)
+            score = self.compute_match_score(record.normalized_curve, aligned)
+            image_bytes = self.render_comparison_image(
+                record.normalized_curve, aligned
+            )
+            return {
+                "aligned": aligned,
+                "score": score,
+                "image_bytes": image_bytes,
+            }
 
         try:
-            raw_curve = self.extract_normalized_curve(buf.read())
+            result = await asyncio.to_thread(_analyze)
         except Exception as e:
             logger.error(f"Ошибка разбора голосового: {e}", exc_info=True)
             try:
@@ -420,24 +440,21 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
                 )
             return
 
-        smoothed = self.smooth_curve(raw_curve)
-        thresholded = self.apply_threshold(smoothed)
-        aligned = self.align_user_curve(record.normalized_curve, thresholded)
-        score = self.compute_match_score(record.normalized_curve, aligned)
-
         await SirenAttempt.objects.filter(pk=attempt.pk).aupdate(
             status=SirenAttempt.Status.SUCCESS,
-            score=score,
-            user_curve=aligned,
+            score=result["score"],
+            user_curve=result["aligned"],
             updated_at=timezone.now(),
         )
 
-        # 3) Рисуем результат и редактируем то же сообщение
-        image_bytes = self.render_comparison_image(record.normalized_curve, aligned)
-        image_buf = io.BytesIO(image_bytes)
+        # 4) Редактируем то же сообщение — подменяем картинку на результат
+        image_buf = io.BytesIO(result["image_bytes"])
         image_buf.name = f"{record.slug}_attempt.png"
 
-        caption = f"Твоя попытка повторить «{record.title}»: совпадение {score}%"
+        caption = (
+            f"Твоя попытка повторить «{record.title}»: "
+            f"совпадение {result['score']}%"
+        )
 
         try:
             await context.bot.edit_message_media(
@@ -450,7 +467,7 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
             )
         except Exception as e:
             logger.error(f"Не удалось отредактировать сообщение: {e}", exc_info=True)
-            # фолбэк — новым сообщением
+            image_buf.seek(0)
             await update.effective_message.reply_photo(
                 photo=image_buf,
                 caption=caption,

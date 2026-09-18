@@ -150,6 +150,7 @@ class SirenAttempt(models.Model):
 
     class Status(models.TextChoices):
         WAITING = "waiting", "Ожидает голосового"
+        PROCESSING = "processing", "Обрабатывается"
         SUCCESS = "success", "Разобрана"
         CANCELLED = "cancelled", "Отменена"
 

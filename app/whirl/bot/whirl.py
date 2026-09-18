@@ -256,9 +256,6 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
 
         await update.effective_message.reply_text(
             text,
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("📊 Мои результаты", callback_data="siren_history")],
-            ]),
         )
         
     async def build_siren_list(self, page: int) -> tuple[str, InlineKeyboardMarkup]:
@@ -435,37 +432,25 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         await update.callback_query.answer()
         
     async def handle_voice_reply(self, update: Update, context: CallbackContext) -> None:
-        """
-        Ловит голосовое сообщение пользователя. Если перед этим он
-        запрашивал сирену через /get — считает это попыткой её повторить,
-        строит normalized_curve из записи и рисует её тем же render_pattern_image,
-        что и эталон.
-
-        Вся CPU-тяжёлая обработка звука и рендер картинки вынесены в
-        asyncio.to_thread(), чтобы не блокировать event loop бота.
-        """
         user = await self.get_or_create_virtual_user(update)
         voice = update.effective_message.voice
         if voice is None:
             return
         
-        # Отсекаем слишком длинные/тяжёлые голосовые до любой обработки:
-        # дорогая цепочка extract_* / render_* на длинной записи съест
-        # CPU и время впустую.
+        # 1. Лимиты
         if voice.duration and voice.duration > MAX_VOICE_DURATION_SEC:
             await update.effective_message.reply_text(
-                f"⏱ Слишком длинное голосовое — максимум "
-                f"{MAX_VOICE_DURATION_SEC} секунд. Запиши покороче."
+                f"⏱ Слишком длинное голосовое — максимум {MAX_VOICE_DURATION_SEC} сек."
             )
             return
 
         if voice.file_size and voice.file_size > MAX_VOICE_FILE_SIZE_BYTES:
             await update.effective_message.reply_text(
-                f"📦 Файл слишком большой — максимум "
-                f"{MAX_VOICE_FILE_SIZE_BYTES // (1024 * 1024)} МБ."
+                f"📦 Файл слишком большой."
             )
             return
 
+        # 2. Ищем актуальную попытку
         attempt = (
             await SirenAttempt.objects.select_related("record")
             .filter(user=user, status=SirenAttempt.Status.WAITING)
@@ -474,11 +459,29 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
         )
 
         if attempt is None:
+            # UX: не молчим, если юзер прислал войс просто так
+            await update.effective_message.reply_text(
+                "Сначала выбери сирену, которую хочешь повторить! 🔊\n"
+                "Отправь /get или выбери из списка."
+            )
+            return
+
+        # 3. АТОМАРНЫЙ ЗАХВАТ (Защита от двойного тапа и спама)
+        # Пытаемся перевести ИМЕННО ЭТУ попытку из WAITING в PROCESSING
+        updated_count = await SirenAttempt.objects.filter(
+            id=attempt.id, 
+            status=SirenAttempt.Status.WAITING
+        ).aupdate(status=SirenAttempt.Status.PROCESSING)
+
+        if updated_count == 0:
+            # Если обновилось 0 строк, значит статус уже не WAITING.
+            # Другое голосовое доли секунды назад уже захватило эту попытку.
+            logger.info(f"Игнор второго войса от {user} (попытка уже PROCESSING)")
             return
 
         record = attempt.record
 
-        # 1) Отправляем эталонную картинку с подписью "разбираю"
+        # 4. Отправляем эталонную картинку с подписью "разбираю"
         image_asset = await SirenRecordImage.objects.aget(record=record)
         reference_file_id = await image_asset.aget_file_id(self.app_bot_id, default=None)
 
@@ -492,16 +495,17 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
                 "⏳ Разбираю твоё голосовое, готовлю результат…"
             )
 
+        # Сохраняем ID сообщения для редактирования
         attempt.reply_message_id = invite_msg.message_id
         await attempt.asave(update_fields=["reply_message_id", "updated_at"])
 
-        # 2) Скачиваем голосовое (I/O — оставляем в loop)
+        # 5. Скачиваем аудио
         tg_file = await context.bot.get_file(voice.file_id)
         buf = io.BytesIO()
         await tg_file.download_to_memory(buf)
         voice_bytes = buf.getvalue()
 
-        # 3) CPU-тяжёлая обработка — в отдельный поток
+        # 6. Тяжелая математика
         def _analyze() -> dict:
             raw_curve = self.extract_normalized_curve(voice_bytes)
             smoothed = self.smooth_curve(raw_curve)
@@ -517,14 +521,22 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
                 "image_bytes": image_bytes,
             }
 
+        # 7. Запускаем анализ с обработкой ошибок
         try:
             result = await asyncio.to_thread(_analyze)
         except Exception as e:
             logger.error(f"Ошибка разбора голосового: {e}", exc_info=True)
+            
+            # Раз упали — откатываем статус явно
+            await SirenAttempt.objects.filter(pk=attempt.pk).aupdate(
+                status=SirenAttempt.Status.CANCELLED,
+                updated_at=timezone.now(),
+            )
+            
             try:
                 await context.bot.edit_message_caption(
                     chat_id=update.effective_chat.id,
-                    message_id=attempt.reply_message_id,
+                    message_id=invite_msg.message_id,
                     caption="❌ Не удалось разобрать голосовое сообщение.",
                 )
             except Exception:
@@ -533,6 +545,7 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
                 )
             return
 
+        # 8. Сюда доходим только при УСПЕХЕ. Сохраняем результат.
         await SirenAttempt.objects.filter(pk=attempt.pk).aupdate(
             status=SirenAttempt.Status.SUCCESS,
             score=result["score"],
@@ -540,7 +553,7 @@ class WhirlBot(AudioMixin, RenderingMixin, AbstractBot):
             updated_at=timezone.now(),
         )
 
-        # 4) Редактируем то же сообщение — подменяем картинку на результат
+        # 9. Показываем картинку
         image_buf = io.BytesIO(result["image_bytes"])
         image_buf.name = f"{record.slug}_attempt.png"
 

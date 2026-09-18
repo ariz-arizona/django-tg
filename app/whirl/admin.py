@@ -3,7 +3,7 @@ import json
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import SirenRecord, SirenRecordImage, SirenRecordSound, WhirlUser
+from .models import SirenRecord, SirenRecordImage, SirenRecordSound, WhirlUser, SirenAttempt
 
 
 # --- Inline-модели для отображения ассетов прямо в карточке записи сирены ---
@@ -165,3 +165,11 @@ class SirenRecordSoundAdmin(admin.ModelAdmin):
     @admin.display(description="Файлов")
     def files_count(self, obj):
         return obj.files.count()
+    
+@admin.register(SirenAttempt)
+class SirenAttemptAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "record", "status", "score", "created_at", "updated_at")
+    list_filter = ("status", "record")
+    search_fields = ("user__user__username", "record__slug", "record__title")
+    readonly_fields = ("user", "record", "status", "score", "user_curve", "created_at", "updated_at")
+    ordering = ("-created_at",)

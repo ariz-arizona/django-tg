@@ -136,3 +136,70 @@ class SirenRecordSound(BotFileMixin, models.Model):
 
     def __str__(self):
         return f"Звук: {self.record.slug}"
+
+class SirenAttempt(models.Model):
+    """
+    Попытка пользователя повторить паттерн сирены. Единственное хранилище
+    состояния "ждём голосового" — context.user_data не используется.
+    Создаётся со статусом WAITING сразу по /get. Если пользователь
+    запрашивает /get заново, не ответив голосовым, — все его прежние
+    WAITING попытки переводятся в CANCELLED, отвечать на них уже нельзя.
+    На одну SirenRecord у пользователя может быть сколько угодно попыток
+    (успешных, отменённых) — ограничения на количество нет.
+    """
+
+    class Status(models.TextChoices):
+        WAITING = "waiting", "Ожидает голосового"
+        SUCCESS = "success", "Разобрана"
+        CANCELLED = "cancelled", "Отменена"
+
+    user = models.ForeignKey(
+        WhirlUser,
+        on_delete=models.CASCADE,
+        related_name="attempts",
+        verbose_name="Пользователь",
+    )
+
+    record = models.ForeignKey(
+        SirenRecord,
+        on_delete=models.CASCADE,
+        related_name="attempts",
+        verbose_name="Сирена",
+    )
+
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.WAITING,
+    )
+
+    score = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="IoU-совпадение с эталоном, 0..100. Заполняется при переходе в SUCCESS.",
+    )
+
+    user_curve = models.JSONField(
+        null=True,
+        blank=True,
+        help_text='Выровненная кривая попытки: [{"t": .., "rms": .., "pitch": ..}, ...]. Заполняется при переходе в SUCCESS.',
+    )
+    
+    reply_message_id = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text="ID сообщения-приглашения ('запиши голосовое'), которое редактируется при ответе.",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Попытка"
+        verbose_name_plural = "Попытки"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        if self.status == self.Status.SUCCESS:
+            return f"{self.user} → {self.record.slug}: {self.score}%"
+        return f"{self.user} → {self.record.slug}: {self.get_status_display()}"

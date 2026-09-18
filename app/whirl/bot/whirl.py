@@ -5,14 +5,16 @@ import numpy as np
 from PIL import Image, ImageDraw
 from pydub import AudioSegment
 
-from telegram import Update
+from telegram import Update, InputMediaPhoto
 from telegram.ext import CommandHandler, MessageHandler, CallbackContext, filters
+
+from django.utils import timezone
 
 from tg_bot.bot.abstract import AbstractBot
 from server.logger import logger
 
 from tg_bot.models import TgUser, BotFile
-from whirl.models import WhirlUser, SirenRecord, SirenRecordImage, SirenRecordSound
+from whirl.models import WhirlUser, SirenRecord, SirenRecordImage, SirenRecordSound, SirenAttempt
 
 
 class WhirlBot(AbstractBot):
@@ -168,6 +170,8 @@ class WhirlBot(AbstractBot):
         что пользователь ждёт разбора своего голосового именно
         по этой сирене.
         """
+        user = await self.get_or_create_virtual_user(update)
+        
         args = context.args
         if not args:
             await update.effective_message.reply_text("Использование: /get <slug>")
@@ -204,10 +208,15 @@ class WhirlBot(AbstractBot):
             audio=sound_file_id,
             title=record.title,
         )
-
-        # запоминаем, какую сирену пользователь сейчас пытается повторить —
-        # следующее голосовое от него будет разобрано именно по ней
-        context.user_data["awaiting_siren_id"] = record.id
+        await SirenAttempt.objects.filter(
+            user=user, status=SirenAttempt.Status.WAITING
+        ).aupdate(status=SirenAttempt.Status.CANCELLED)
+        
+        await SirenAttempt.objects.acreate(
+            user=user,
+            record=record,
+            status=SirenAttempt.Status.WAITING,
+        )
 
         await update.effective_message.reply_text(
             "🎤 Теперь запиши голосовое — попробуй повторить этот паттерн."
@@ -220,25 +229,38 @@ class WhirlBot(AbstractBot):
         строит normalized_curve из записи и рисует её тем же render_pattern_image,
         что и эталон.
         """
-        siren_id = context.user_data.get("awaiting_siren_id")
-        if siren_id is None:
-            # голосовое пришло не в ответ на /get — игнорируем молча,
-            # чтобы бот не реагировал на случайные войсы
-            return
-
+        user = await self.get_or_create_virtual_user(update)
         voice = update.effective_message.voice
         if voice is None:
             return
 
-        try:
-            record = await SirenRecord.objects.aget(id=siren_id)
-        except SirenRecord.DoesNotExist:
-            context.user_data.pop("awaiting_siren_id", None)
-            await update.effective_message.reply_text(
-                "❌ Сирена, на которую ты отвечала, больше не существует."
-            )
+        attempt = await SirenAttempt.objects.select_related("record").filter(
+            user=user, status=SirenAttempt.Status.WAITING
+        ).order_by("-created_at").afirst()
+
+        if attempt is None:
             return
 
+        record = attempt.record
+
+        # 1) Отправляем эталонную картинку с подписью "разбираю"
+        image_asset = await SirenRecordImage.objects.aget(record=record)
+        reference_file_id = await image_asset.aget_file_id(self.app_bot_id, default=None)
+
+        if reference_file_id:
+            invite_msg = await update.effective_message.reply_photo(
+                photo=reference_file_id,
+                caption="⏳ Разбираю твоё голосовое, готовлю результат…",
+            )
+        else:
+            invite_msg = await update.effective_message.reply_text(
+                "⏳ Разбираю твоё голосовое, готовлю результат…"
+            )
+
+        attempt.reply_message_id = invite_msg.message_id
+        await attempt.asave(update_fields=["reply_message_id", "updated_at"])
+
+        # 2) Скачиваем и разбираем голосовое
         tg_file = await context.bot.get_file(voice.file_id)
         buf = io.BytesIO()
         await tg_file.download_to_memory(buf)
@@ -248,9 +270,16 @@ class WhirlBot(AbstractBot):
             raw_curve = self.extract_normalized_curve(buf.read())
         except Exception as e:
             logger.error(f"Ошибка разбора голосового: {e}", exc_info=True)
-            await update.effective_message.reply_text(
-                "❌ Не удалось разобрать голосовое сообщение."
-            )
+            try:
+                await context.bot.edit_message_caption(
+                    chat_id=update.effective_chat.id,
+                    message_id=attempt.reply_message_id,
+                    caption="❌ Не удалось разобрать голосовое сообщение.",
+                )
+            except Exception:
+                await update.effective_message.reply_text(
+                    "❌ Не удалось разобрать голосовое сообщение."
+                )
             return
 
         smoothed = self.smooth_curve(raw_curve)
@@ -258,19 +287,34 @@ class WhirlBot(AbstractBot):
         aligned = self.align_user_curve(record.normalized_curve, thresholded)
         score = self.compute_match_score(record.normalized_curve, aligned)
 
+        await SirenAttempt.objects.filter(pk=attempt.pk).aupdate(
+            status=SirenAttempt.Status.SUCCESS,
+            score=score,
+            user_curve=aligned,
+            updated_at=timezone.now(),
+        )
+
+        # 3) Рисуем результат и редактируем то же сообщение
         image_bytes = self.render_comparison_image(record.normalized_curve, aligned)
         image_buf = io.BytesIO(image_bytes)
         image_buf.name = f"{record.slug}_attempt.png"
 
-        await update.effective_message.reply_photo(
-            photo=image_buf,
-            caption=f"Твоя попытка повторить «{record.title}»: совпадение {score}%",
-        )
+        caption = f"Твоя попытка повторить «{record.title}»: совпадение {score}%"
 
-        # сбрасываем ожидание — следующее голосовое уже не будет разобрано,
-        # пока пользователь не вызовет /get заново
-        context.user_data.pop("awaiting_siren_id", None)
-
+        try:
+            await context.bot.edit_message_media(
+                chat_id=update.effective_chat.id,
+                message_id=attempt.reply_message_id,
+                media=InputMediaPhoto(media=image_buf, caption=caption),
+            )
+        except Exception as e:
+            logger.error(f"Не удалось отредактировать сообщение: {e}", exc_info=True)
+            # фолбэк — новым сообщением
+            await update.effective_message.reply_photo(
+                photo=image_buf,
+                caption=caption,
+            )
+        
     def extract_normalized_curve(self, ogg_bytes: bytes, n_points: int = 200) -> list:
         """
         Декодирует голосовое (OGG/Opus) и строит нормализованную огибающую
